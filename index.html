@@ -157,4 +157,49 @@ const observer = new IntersectionObserver(entries => {
 }, { threshold: 0.2 });
 
 document.querySelectorAll('#news-feed > div').forEach(card => observer.observe(card));
+</script><!-- Мобільна стрічка новин -->
+<section class="max-w-full px-4 py-6">
+  <h2 class="text-2xl font-bold mb-4 text-center">Стрічка новин</h2>
+  <div id="news-feed-mobile" class="flex gap-4 overflow-x-auto pb-4">
+    <!-- Картки новин будуть тут -->
+  </div>
+</section>
+
+<script>
+// Масив новин (можна до 480)
+const newsFeedMobile = Array.from({length: 20}, (_, i) => ({
+  title: `Новина ${i + 1}`,
+  description: `Короткий опис новини ${i + 1}.`,
+  image: 'https://picsum.photos/300/180?random=' + (i + 1),
+  url: '#'
+}));
+
+const feedContainerMobile = document.getElementById('news-feed-mobile');
+
+newsFeedMobile.forEach((news, index) => {
+  const card = document.createElement('div');
+  card.className = 'min-w-[220px] bg-mono-card rounded-xl overflow-hidden border border-gray-800 flex-shrink-0 shadow-sm hover:shadow-md transition-all duration-300 opacity-0 translate-y-6 animate-fade-in-up';
+  card.style.animationDelay = `${index * 60}ms`;
+
+  card.innerHTML = `
+    <img src="${news.image}" alt="" class="w-full h-36 object-cover transition-transform duration-500 hover:scale-105">
+    <div class="p-3">
+      <h3 class="text-base font-semibold mb-1 line-clamp-2">${news.title}</h3>
+      <p class="text-gray-400 text-sm line-clamp-3">${news.description}</p>
+      <a href="${news.url}" class="mt-2 inline-block text-xs px-2 py-1 bg-gray-800 hover:bg-gray-700 text-white rounded transition">Читати</a>
+    </div>
+  `;
+  feedContainerMobile.appendChild(card);
+});
+
+// Анімація при скролі (для мобільного теж)
+const observerMobile = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.remove('opacity-0', 'translate-y-6');
+    }
+  });
+}, { threshold: 0.2 });
+
+document.querySelectorAll('#news-feed-mobile > div').forEach(card => observerMobile.observe(card));
 </script>
