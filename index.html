@@ -80,4 +80,59 @@ loadNews('https://www.pravda.com.ua/rss/');
 </script>
 
 </body>
-</html>
+</html><style>
+.glass {
+  background: rgba(20,20,20,.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.menu-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.06);
+  transition: .2s;
+}
+.menu-btn:active {
+  transform: scale(.97);
+  background: rgba(255,255,255,.12);
+}
+</style><header class="fixed top-0 inset-x-0 z-50 glass border-b border-white/10">
+  <div class="flex items-center justify-between px-4 py-3">
+    <button id="menuBtn" class="text-xl">☰</button>
+    <h1 class="font-semibold">Новини</h1>
+    <span class="opacity-30">●</span>
+  </div>
+</header>
+
+<div class="h-16"></div><aside id="sidebar" class="fixed inset-y-0 left-0 w-72 glass p-5 -translate-x-full transition-all duration-300 z-50">
+  <h2 class="text-lg font-semibold mb-6">Категорії</h2>
+
+  <div class="space-y-3">
+    <button class="menu-btn cat-btn" data-cat="all">📰 Усі</button>
+    <button class="menu-btn cat-btn" data-cat="politics">🏛 Політика</button>
+    <button class="menu-btn cat-btn" data-cat="business">💰 Бізнес</button>
+    <button class="menu-btn cat-btn" data-cat="technology">💻 Технології</button>
+    <button class="menu-btn cat-btn" data-cat="sports">⚽ Спорт</button>
+  </div>
+</aside>
+
+<div id="overlay" class="fixed inset-0 bg-black/60 hidden z-40"></div><nav class="fixed bottom-0 inset-x-0 z-50 glass border-t border-white/10">
+  <div class="flex justify-around py-2 text-lg">
+    <button onclick="loadNews('all')">🏠</button>
+    <button onclick="loadNews('technology')">🔥</button>
+    <button onclick="loadNews('world')">🌍</button>
+  </div>
+</nav>
+
+<div class="h-16"></div>menuBtn.onclick = () => {
+  sidebar.classList.remove('-translate-x-full');
+  overlay.classList.remove('hidden');
+};
+
+overlay.onclick = closeSidebar;
+
+function closeSidebar() {
+  sidebar.classList.add('-translate-x-full');
+  overlay.classList.add('hidden');
+}
