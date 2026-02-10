@@ -30,6 +30,7 @@ tailwind.config = {
 }
 </script>
 </head>
+
 <body class="bg-mono-bg text-mono-text min-h-screen">
 
 <!-- HEADER -->
@@ -44,7 +45,7 @@ tailwind.config = {
 
 <!-- SIDEBAR -->
 <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-mono-card border-r border-gray-800 p-6 transform -translate-x-full transition-transform duration-300 z-50">
-  <button id="close-sidebar" class="mb-6 text-gray-400 text-3xl">&times;</button>
+  <button id="close-sidebar" class="mb-6 text-gray-400 text-2xl">&times;</button>
   <h2 class="text-2xl font-bold mb-6">Категорії</h2>
   <div class="space-y-2">
     <button data-cat="all" class="cat-btn w-full text-left px-3 py-2 bg-gray-800 rounded">Усі</button>
@@ -60,7 +61,7 @@ tailwind.config = {
 <!-- MAIN CONTENT -->
 <main class="p-4 mt-4">
   <div id="news" class="grid gap-6"></div>
-  <p id="loading" class="text-center text-gray-400 mt-10 hidden">Завантаження…</p>
+  <p id="loading" class="text-center text-gray-400 mt-10 hidden">Завантаження новин…</p>
 
   <!-- Горизонтальна стрічка новин -->
   <section class="mt-8">
@@ -75,26 +76,13 @@ tailwind.config = {
     <button onclick="closeModal()" class="absolute top-4 right-6 text-3xl font-bold">&times;</button>
     <h2 id="modal-title" class="text-3xl font-bold mb-6"></h2>
     <p id="modal-text" class="text-gray-300 leading-relaxed mb-6"></p>
-    <a id="modal-link" href="#" target="_blank" class="inline-block bg-gray-700 hover:bg-gray-600 text-white px-5 py-3 rounded-lg transition">Читати оригінал на сайті →</a>
+    <a id="modal-link" href="#" target="_blank" class="inline-block bg-gray-700 hover:bg-gray-600 text-white px-5 py-3 rounded-lg transition">Читати оригінал →</a>
   </div>
 </div>
 
 <script>
-// Показ/сховати сайдбар
-const sidebar = document.getElementById('sidebar');
-const overlay = document.getElementById('overlay');
-document.getElementById('open-sidebar').onclick = () => { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); };
-document.getElementById('close-sidebar').onclick = () => { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); };
-overlay.onclick = () => { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); };
-
-// Масив статичних новин
-const newsData = Array.from({length: 30}, (_, i) => ({
-  title: `Новина ${i+1}`,
-  description: `Короткий опис новини номер ${i+1}.`,
-  category: ['politics','business','technology','sports','world'][i%5],
-  image: `https://picsum.photos/300/180?random=${i+1}`,
-  url: '#'
-}));
+const API_KEY = 'BEkquRVH3PtoBeGk2DrPQGig2XalmtjiKKpgv0pa';
+const BASE_URL = `https://api.thenewsapi.com/v1/news/all?api_token=${API_KEY}&language=uk,ru,en&limit=15&sort=published_at`;
 
 const newsEl = document.getElementById('news');
 const feedEl = document.getElementById('news-feed');
@@ -104,89 +92,27 @@ const modalTitle = document.getElementById('modal-title');
 const modalText = document.getElementById('modal-text');
 const modalLink = document.getElementById('modal-link');
 
-// Завантаження новин
-function loadNews(category='all'){
-  newsEl.innerHTML = '';
-  feedEl.innerHTML = '';
-  loadingEl.classList.remove('hidden');
-
-  const filtered = category==='all' ? newsData : newsData.filter(n=>n.category===category);
-
-  filtered.forEach((article,index)=>{
-    // Головна сітка
-    const div=document.createElement('div');
-    div.className='bg-mono-card p-5 rounded-xl border border-gray-800 opacity-0 translate-y-10 animate-fade-in-up flex flex-col';
-    div.style.animationDelay=`${index*80}ms`;
-    div.innerHTML=`
-      <img src="${article.image}" alt="" class="w-full h-48 object-cover rounded-lg mb-4">
-      <h3 class="text-xl font-semibold mb-3 line-clamp-2">${article.title}</h3>
-      <p class="text-gray-400 mb-4 line-clamp-3 flex-grow">${article.description}</p>
-      <button class="underline text-blue-400 hover:text-blue-300 self-start mt-auto"
-        onclick="openModal('${article.title}','${article.description}','${article.url}')">
-        Детальніше
-      </button>
-    `;
-    newsEl.appendChild(div);
-
-    // Горизонтальна стрічка (перші 10)
-    if(index<10){
-      const card=document.createElement('div');
-      card.className='min-w-[280px] bg-mono-card rounded-xl overflow-hidden border border-gray-800 flex-shrink-0 snap-start opacity-0 translate-y-6 animate-fade-in-up';
-      card.style.animationDelay=`${index*80}ms`;
-      card.innerHTML=`
-        <img src="${article.image}" alt="" class="w-full h-40 object-cover">
-        <div class="p-4">
-          <h4 class="font-semibold mb-2 line-clamp-2">${article.title}</h4>
-          <a href="${article.url}" target="_blank" class="text-xs text-blue-400 hover:underline">Читати →</a>
-        </div>
-      `;
-      feedEl.appendChild(card);
-    }
-  });
-  loadingEl.classList.add('hidden');
-}
-
-// Кнопки категорій
-document.querySelectorAll('.cat-btn').forEach(btn=>{
-  btn.onclick=()=>{
-    document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('bg-gray-800'));
-    btn.classList.add('bg-gray-800');
-    loadNews(btn.dataset.cat);
-    sidebar.classList.add('-translate-x-full');
-    overlay.classList.add('hidden');
-  };
-});
-
-// Модалка
-function openModal(title,text,url){
-  modalTitle.innerText=title;
-  modalText.innerText=text;
-  modalLink.href=url;
-  modal.classList.remove('hidden');
-}
-function closeModal(){ modal.classList.add('hidden'); }
-modal.addEventListener('click',e=>{ if(e.target===modal) closeModal(); });
-
-// Початкове завантаження
-loadNews();
-</script>
-
-</body>
-</html><script>
-const API_KEY = 'BEkquRVH3PtoBeGk2DrPQGig2XalmtjiKKpgv0pa';
-const BASE_URL = `https://api.thenewsapi.com/v1/news/all?api_token=${API_KEY}&language=uk,ru,en&limit=15&sort=published_at`;
-
-const newsEl = document.getElementById('news');
-const feedEl = document.getElementById('news-feed');
-const loadingEl = document.getElementById('loading');
-
 document.querySelectorAll('.cat-btn').forEach(btn => {
   btn.onclick = () => {
     document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('bg-gray-800'));
     btn.classList.add('bg-gray-800');
     loadNews(btn.dataset.cat);
+    closeSidebar();
   };
 });
+
+// Показати/сховати сайдбар
+document.getElementById('open-sidebar').onclick = () => {
+  document.getElementById('sidebar').classList.remove('-translate-x-full');
+  document.getElementById('overlay').classList.remove('hidden');
+};
+document.getElementById('close-sidebar').onclick = closeSidebar;
+document.getElementById('overlay').onclick = closeSidebar;
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.add('-translate-x-full');
+  document.getElementById('overlay').classList.add('hidden');
+}
 
 async function loadNews(category='all') {
   newsEl.innerHTML = '';
@@ -206,7 +132,7 @@ async function loadNews(category='all') {
       return;
     }
 
-    // Головна сітка новин
+    // Вертикальна сітка
     data.data.forEach((article,index)=>{
       const div = document.createElement('div');
       div.className = 'bg-mono-card p-4 rounded-xl border border-gray-800 opacity-0 translate-y-6 animate-fade-in-up';
@@ -241,6 +167,18 @@ async function loadNews(category='all') {
   }
 }
 
-// Завантажуємо всі новини при старті
+// Модалка
+function openModal(title,text,url){
+  modalTitle.innerText = title;
+  modalText.innerText = text||'Опис відсутній';
+  modalLink.href = url;
+  modal.classList.remove('hidden');
+}
+function closeModal(){ modal.classList.add('hidden'); }
+
+// Початкове завантаження
 loadNews();
 </script>
+
+</body>
+</html>
