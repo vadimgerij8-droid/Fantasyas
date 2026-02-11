@@ -264,4 +264,66 @@ document.querySelectorAll('.comment-btn').forEach(btn=>{
     countEl.textContent = count;
   });
 });
+</script><!-- Форма для нового поста -->
+<div class="new-post">
+  <textarea id="postText" placeholder="Напиши свій пост..." rows="3"></textarea>
+  <button id="addPost">Додати пост</button>
+</div>
+
+<style>
+.new-post {margin-bottom:20px; display:flex; flex-direction:column; gap:10px;}
+.new-post textarea {width:100%; padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.08); color:#fff; outline:none; resize:none; font-family:'Manrope',sans-serif;}
+.new-post textarea::placeholder {color:#aaa;}
+.new-post button {width:120px; padding:8px 12px; border:none; border-radius:12px; background:#fff; color:#000; font-weight:700; cursor:pointer; transition:0.2s;}
+.new-post button:hover {background:#ddd;}
+</style>
+
+<script>
+// Додавання нового поста
+document.getElementById('addPost').addEventListener('click', () => {
+  const text = document.getElementById('postText').value.trim();
+  if(!text) return; // нічого не робимо, якщо порожньо
+
+  const feed = document.getElementById('feed');
+
+  // Створюємо новий пост
+  const post = document.createElement('div');
+  post.className = 'post';
+  post.innerHTML = `
+    <div class="post-header">
+      <div class="avatar"></div>
+      <div class="username">Новий користувач</div>
+    </div>
+    <div class="post-content">${text}</div>
+    <div class="post-footer">
+      <button class="like-btn"><span class="heart"></span> <span class="count">0</span></button>
+      <button class="comment-btn"><span class="bubble"></span> <span class="count">0</span></button>
+    </div>
+  `;
+
+  feed.prepend(post); // додаємо зверху
+
+  // Очищаємо textarea
+  document.getElementById('postText').value = '';
+
+  // Додаємо функціонал для лайків і коментарів
+  const likeBtn = post.querySelector('.like-btn');
+  likeBtn.addEventListener('click', ()=>{
+    const countEl = likeBtn.querySelector('.count');
+    let count = parseInt(countEl.textContent);
+    if(likeBtn.classList.contains('liked')){count--; likeBtn.classList.remove('liked');}
+    else{count++; likeBtn.classList.add('liked');}
+    countEl.textContent = count;
+  });
+
+  const commentBtn = post.querySelector('.comment-btn');
+  commentBtn.addEventListener('click', ()=>{
+    const countEl = commentBtn.querySelector('.count');
+    let count = parseInt(countEl.textContent);
+    count++;
+    commentBtn.classList.add('liked');
+    setTimeout(()=>commentBtn.classList.remove('liked'),300);
+    countEl.textContent = count;
+  });
+});
 </script>
