@@ -690,9 +690,9 @@ function renderPosts(container = feed, onlyUser = false) {
       <div class="post-meta">${new Date(post.created).toLocaleString('uk-UA', {dateStyle:'short', timeStyle:'short'})}</div>
       <div class="post-footer">
         <button class="like-btn ${isLiked ? 'liked' : ''}">❤️ ${post.likes || 0}</button>
-        <button class="comment-btn">💬 ${post.comments?.length || 0}</button>
-        <button class="favorite-btn ${isFavorite ? 'favorited' : ''}">⭐</button>
-        ${post.username === username ? '<button class="edit-btn">✏️</button>' : ''}
+        <button class="comment-btn">🫶 ${post.comments?.length || 0}</button>
+        <button class="favorite-btn ${isFavorite ? 'favorited' : ''}">🤩</button>
+        ${post.username === username ? '<button class="edit-btn">😭</button>' : ''}
       </div>
       <div class="reactions-container">
         ${Object.keys(post.reactions).map(e => `
@@ -940,4 +940,3 @@ if (username) {
 </script>
 </body>
 </html>
-```>
