@@ -176,4 +176,112 @@ if(username){
 </script>
 
 </body>
-</html>
+</html><nav class="sidebar" id="sidebar">
+  <a data-section="home">Головна</a>
+  <a data-section="favorites">Обране</a>
+  <a data-section="drafts">Чернетки</a>
+  <a data-section="profile">Профіль</a>
+  <a data-section="settings">Налаштування</a>
+</nav>
+
+<!-- 2️⃣ НОВІ СЕКЦІЇ -->
+<div id="favorites" class="section">
+  <h2>Обране</h2>
+  <div class="feed" id="favoritesFeed"></div>
+</div>
+
+<div id="drafts" class="section">
+  <h2>Чернетки</h2>
+  <div class="feed" id="draftsFeed"></div>
+</div>
+
+<!-- 3️⃣ NEW POST -->
+<div class="new-post" id="newPostBox" style="display:none;">
+  <textarea id="postText" placeholder="Що у тебе на думці?..." rows="4"></textarea>
+  <div style="display:flex;gap:10px;">
+    <button id="addPost">Опублікувати</button>
+    <button id="saveDraft">У чернетки</button>
+  </div>
+</div>
+
+<!-- 4️⃣ АВАТАР ФАЙЛ -->
+<label>Аватар (файл)</label>
+<input type="file" id="avatarFile" accept="image/*">
+
+<script>
+/* ───────── КЛЮЧІ ───────── */
+const KEY = {
+  USERNAME:'fantasyasUsername',
+  USER:'fantasyasUserData',
+  POSTS:'fantasyas_posts_v4',
+  DRAFTS:'fantasyas_drafts',
+  AVATARS:'fantasyas_avatars'
+};
+
+let username = localStorage.getItem(KEY.USERNAME);
+let posts = JSON.parse(localStorage.getItem(KEY.POSTS)) || [];
+let drafts = JSON.parse(localStorage.getItem(KEY.DRAFTS)) || [];
+let avatars = JSON.parse(localStorage.getItem(KEY.AVATARS)) || {};
+let userData = JSON.parse(localStorage.getItem(KEY.USER)) || {bio:'',favorites:[]};
+
+/* ───────── АВАТАР ФАЙЛ ───────── */
+document.getElementById('avatarFile')?.addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{avatars[username]=r.result;saveAll();renderAll();}
+  r.readAsDataURL(f);
+});
+
+function getAvatar(u){return avatars[u]||'';}
+
+function saveAll(){
+ localStorage.setItem(KEY.POSTS,JSON.stringify(posts));
+ localStorage.setItem(KEY.DRAFTS,JSON.stringify(drafts));
+ localStorage.setItem(KEY.AVATARS,JSON.stringify(avatars));
+ localStorage.setItem(KEY.USER,JSON.stringify(userData));
+}
+
+/* ───────── ЧЕРНЕТКИ ───────── */
+saveDraft.onclick=()=>{
+ if(!postText.value) return;
+ drafts.unshift({id:Date.now(),user:username,text:postText.value});
+ postText.value='';
+ saveAll();renderAll();
+};
+
+/* ───────── РЕНДЕР ───────── */
+function renderFeed(list,container,opts={}){
+ container.innerHTML='';
+ list.forEach(p=>{
+  const el=document.createElement('div');
+  el.className='post';
+  el.innerHTML=`
+   <div class="post-header">
+    <div class="avatar" style="background-image:url('${getAvatar(p.user)}')"></div>
+    <div class="username">${p.user}</div>
+   </div>
+   <div class="post-content">${p.text}</div>
+   <div class="post-footer">
+    ${opts.delete?'<button class="danger-btn">Видалити</button>':''}
+   </div>`;
+  if(opts.delete){
+   el.querySelector('button').onclick=()=>{
+    posts=posts.filter(x=>x.id!==p.id);
+    drafts=drafts.filter(x=>x.id!==p.id);
+    userData.favorites=userData.favorites.filter(id=>id!==p.id);
+    saveAll();renderAll();
+   };
+  }
+  container.appendChild(el);
+ });
+}
+
+function renderAll(){
+ renderFeed(posts,feed,{delete:true});
+ renderFeed(posts.filter(p=>userData.favorites.includes(p.id)),favoritesFeed);
+ renderFeed(drafts.filter(d=>d.user===username),draftsFeed,{delete:true});
+ renderFeed(posts.filter(p=>p.user===username),profilePosts,{delete:true});
+}
+
+if(username){renderAll();}
+</script>
