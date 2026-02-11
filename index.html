@@ -1,221 +1,168 @@
 <!DOCTYPE html>
-<html lang="uk" class="scroll-smooth">
+<html lang="uk">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Новини · UA</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Твій Сайт</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  
   <style>
-    :root {
-      --bg: #000;
-      --surface: #0a0a0a;
-      --border: #1a1a1a;
-      --text: #e5e5e5;
-      --text-muted: #888;
-    }
-    body {
-      font-family: 'Geist', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+    * {
       margin: 0;
-      -webkit-font-smoothing: antialiased;
+      padding: 0;
+      box-sizing: border-box;
     }
-    header {
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+    
+    body {
+      font-family: 'Manrope', system-ui, sans-serif;
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
+
+    /* Верхній рядок з назвою справа */
+    .top-bar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 80px;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      z-index: 1000;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .site-name {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(90deg, #fff, #ccc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Бічне меню зліва */
     .sidebar {
-      transform: translateX(-100%);
-      transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      padding: 120px 40px 40px;
+      background: #000;
+      border-right: 1px solid rgba(255,255,255,0.06);
+      overflow-y: auto;
+      z-index: 900;
     }
-    .sidebar.open {
-      transform: translateX(0);
-    }
-    .card {
+
+    .sidebar a {
+      display: block;
+      color: #aaa;
+      text-decoration: none;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 1.4rem 0;
+      transition: all 0.3s ease;
       opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateX(-30px);
+      animation: slideIn 0.8s forwards;
     }
-    .card.visible {
-      opacity: 1;
-      transform: translateY(0);
+
+    .sidebar a:nth-child(1) { animation-delay: 0.1s; }
+    .sidebar a:nth-child(2) { animation-delay: 0.2s; }
+    .sidebar a:nth-child(3) { animation-delay: 0.3s; }
+    .sidebar a:nth-child(4) { animation-delay: 0.4s; }
+    .sidebar a:nth-child(5) { animation-delay: 0.5s; }
+
+    .sidebar a:hover {
+      color: #fff;
+      transform: translateX(8px);
     }
-    img {
-      filter: grayscale(90%) contrast(1.1);
-      transition: filter 0.5s ease, transform 0.7s ease;
+
+    /* Основний контент */
+    .main-content {
+      margin-left: 280px;
+      padding: 140px 60px 60px;
     }
-    .card:hover img {
-      filter: grayscale(40%) contrast(1.05);
-      transform: scale(1.04);
-    }
-    #scrollToTop {
+
+    h1 {
+      font-size: 5.5rem;
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 0.95;
+      margin-bottom: 1.5rem;
       opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s, transform 0.3s;
+      animation: fadeInUp 1.2s forwards 0.6s;
     }
-    #scrollToTop.show {
-      opacity: 0.6;
-      pointer-events: auto;
+
+    p.intro {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #ccc;
+      max-width: 700px;
+      opacity: 0;
+      animation: fadeInUp 1.2s forwards 0.9s;
     }
-    #scrollToTop:hover {
-      opacity: 1;
-      transform: scale(1.1);
+
+    /* Анімації */
+    @keyframes slideIn {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Для мобілки (sidebar стає зверху) */
+    @media (max-width: 900px) {
+      .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        padding: 100px 30px 30px;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      .main-content {
+        margin-left: 0;
+        padding: 40px 25px;
+      }
+      h1 { font-size: 3.8rem; }
     }
   </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-  <!-- Header -->
-  <header class="fixed top-0 inset-x-0 z-50 bg-black/80 border-b border-[#111] py-4 px-5">
-    <div class="flex items-center justify-between max-w-3xl mx-auto">
-      <button id="menuBtn" class="text-2xl font-bold">≡</button>
-      <h1 class="text-lg font-medium tracking-wider">НОВИНИ</h1>
-      <div class="w-8"></div>
-    </div>
-  </header>
+  <div class="top-bar">
+    <div class="site-name">ВАШ САЙТ</div>
+  </div>
 
-  <!-- Overlay -->
-  <div id="overlay" class="fixed inset-0 bg-black/85 z-40 hidden transition-opacity duration-500"></div>
+  <nav class="sidebar">
+    <a href="#">Головна</a>
+    <a href="#">Про нас</a>
+    <a href="#">Послуги</a>
+    <a href="#">Портфоліо</a>
+    <a href="#">Контакти</a>
+  </nav>
 
-  <!-- Sidebar -->
-  <aside id="sidebar" class="sidebar fixed inset-y-0 left-0 w-72 bg-black border-r border-[#111] z-50 flex flex-col">
-    <div class="p-6 border-b border-[#111]">
-      <button id="closeBtn" class="text-3xl font-light text-gray-600 hover:text-white">×</button>
-    </div>
-    <nav class="flex-1 px-4 py-8 space-y-2">
-      <button data-rss="https://www.pravda.com.ua/rss/" class="w-full text-left px-5 py-4 rounded-lg hover:bg-[#111] transition font-medium text-gray-300 hover:text-white">
-        Українська правда
-      </button>
-      <button data-rss="https://tsn.ua/rss" class="w-full text-left px-5 py-4 rounded-lg hover:bg-[#111] transition font-medium text-gray-300 hover:text-white">
-        ТСН
-      </button>
-      <button data-rss="https://24tv.ua/rss/all.xml" class="w-full text-left px-5 py-4 rounded-lg hover:bg-[#111] transition font-medium text-gray-300 hover:text-white">
-        24 Канал
-      </button>
-    </nav>
-  </aside>
+  <main class="main-content">
+    <h1>Сучасний<br>чорно-білий<br>дизайн</h1>
+    <p class="intro">Мінімалізм. Сила. Швидкість. Саме так має виглядати сайт у 2025–2026 році.</p>
+  </main>
 
-  <!-- Content -->
-  <main class="pt-20 px-4 max-w-3xl mx-auto pb-16 space-y-8" id="news"></main>
-
-  <!-- Scroll to top -->
-  <button id="scrollToTop" class="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-[#111] border border-[#222] text-white flex items-center justify-center text-xl shadow-lg z-40">
-    ↑
-  </button>
-
-  <script>
-    const news = document.getElementById('news');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
-    const menuBtn = document.getElementById('menuBtn');
-    const closeBtn = document.getElementById('closeBtn');
-    const scrollBtn = document.getElementById('scrollToTop');
-
-    // Menu toggle
-    menuBtn.onclick = () => { sidebar.classList.add('open'); overlay.classList.remove('hidden'); };
-    closeBtn.onclick = overlay.onclick = () => { sidebar.classList.remove('open'); setTimeout(() => overlay.classList.add('hidden'), 400); };
-
-    // Scroll to top
-    window.onscroll = () => {
-      scrollBtn.classList.toggle('show', window.scrollY > 300);
-    };
-    scrollBtn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    async function loadNews(rss) {
-      news.innerHTML = '';
-      // Skeleton
-      for (let i = 0; i < 5; i++) {
-        news.innerHTML += `
-          <div class="card bg-[#0a0a0a] border border-[#111] rounded-xl overflow-hidden">
-            <div class="h-52 bg-gradient-to-r from-[#0f0f0f] to-[#1a1a1a] animate-pulse"></div>
-            <div class="p-5 space-y-3">
-              <div class="h-6 bg-[#111] rounded animate-pulse"></div>
-              <div class="h-4 bg-[#111] rounded animate-pulse w-5/6"></div>
-              <div class="h-4 bg-[#111] rounded animate-pulse w-4/6"></div>
-            </div>
-          </div>`;
-      }
-
-      try {
-        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rss)}`);
-        const { items } = await res.json();
-
-        news.innerHTML = '';
-
-        if (!items?.length) {
-          news.innerHTML = '<p class="text-center py-20 text-gray-600 text-lg">Немає новин</p>';
-          return;
-        }
-
-        items.slice(0, 12).forEach((item, i) => {
-          let img = item.enclosure?.url || '';
-          if (!img && item.description?.match(/<img/)) {
-            img = (item.description.match(/src=["'](.*?)["']/i) || [])[1] || '';
-          }
-
-          const card = document.createElement('div');
-          card.className = 'card bg-[#0a0a0a] border border-[#111] rounded-xl overflow-hidden hover:border-gray-700 transition-all';
-          card.innerHTML = `
-            ${img ? `
-              <div class="h-52 overflow-hidden bg-black">
-                <img src="${img}" alt loading="lazy" class="w-full h-full object-cover">
-              </div>
-            ` : `
-              <div class="h-52 bg-[#0d0d0d] flex items-center justify-center text-gray-700 text-sm">
-                без фото
-              </div>
-            `}
-            <div class="p-5">
-              <h2 class="text-xl font-medium leading-tight mb-2 line-clamp-2">
-                ${item.title}
-              </h2>
-              <p class="text-gray-400 text-[15px] leading-relaxed line-clamp-3 mb-4">
-                ${item.description?.replace(/<[^>]+>/g, '').substring(0, 180).trim() || '…'}…
-              </p>
-              <a href="${item.link}" target="_blank" class="text-gray-300 hover:text-white text-sm uppercase tracking-wide">
-                Читати →
-              </a>
-            </div>
-          `;
-
-          news.appendChild(card);
-          setTimeout(() => card.classList.add('visible'), i * 80);
-        });
-
-      } catch (e) {
-        news.innerHTML = `<p class="text-center py-20 text-gray-600">Помилка завантаження</p>`;
-      }
-    }
-
-    // Початкове завантаження
-    loadNews('https://www.pravda.com.ua/rss/');
-
-    // Обробка вибору джерела
-    document.querySelectorAll('[data-rss]').forEach(btn => {
-      btn.onclick = () => loadNews(btn.dataset.rss);
-    });
-  </script>
 </body>
 </html>
-<div id="loader" class="fixed inset-0 bg-black/90 flex items-center justify-center z-30 transition-opacity duration-500">
-  <div class="w-3 h-3 bg-white rounded-full animate-pulse-slow"></div>
-</div>
-@keyframes pulse-slow {
-  0%, 100% { transform: scale(1); opacity: 0.4; }
-  50%      { transform: scale(1.8); opacity: 1; }
-}
-.animate-pulse-slow {
-  animation: pulse-slow 2.5s infinite ease-in-out;
-}// Показуємо/ховаємо лоадер
-function showLoader() { document.getElementById('loader').style.opacity = '1'; document.getElementById('loader').style.pointerEvents = 'auto'; }
-function hideLoader() { document.getElementById('loader').style.opacity = '0'; setTimeout(() => { document.getElementById('loader').style.pointerEvents = 'none'; }, 500); }
-
-// В функції loadNews на початку додай:
-showLoader();
-
-// А після try-catch (в самому кінці функції loadNews) додай:
-hideLoader();
