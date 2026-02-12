@@ -77,6 +77,23 @@ body.light .modal-content{background:#fff;color:#000;}
 .close-modal{position:absolute;top:12px;right:16px;font-size:1.8rem;cursor:pointer;color:#aaa;}
 body.light .close-modal{color:#555;}
 
+/* Додаткові стилі для постів, коментарів, лайків і чатів */
+.post-actions{display:flex;align-items:center;gap:12px;margin-top:12px;}
+.like-btn,.comment-btn,.add-comment{padding:8px 14px;background:rgba(255,255,255,0.1);border:none;border-radius:10px;cursor:pointer;color:#fff;font-weight:600;transition:0.2s;}
+.like-btn:hover,.comment-btn:hover,.add-comment:hover{background:rgba(255,255,255,0.2);}
+body.light .like-btn, body.light .comment-btn, body.light .add-comment{background:rgba(0,0,0,0.05);color:#000;}
+body.light .like-btn:hover, body.light .comment-btn:hover, body.light .add-comment:hover{background:rgba(0,0,0,0.1);}
+.comment{padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;margin-top:6px;}
+body.light .comment{background:rgba(0,0,0,0.03);}
+.comment-username{font-weight:700;}
+.chats{display:flex;flex-direction:column;gap:12px;}
+.chat-item{padding:12px;background:rgba(255,255,255,0.05);border-radius:10px;cursor:pointer;transition:0.3s;}
+.chat-item:hover{background:rgba(255,255,255,0.1);}
+body.light .chat-item{background:rgba(0,0,0,0.03);}
+body.light .chat-item:hover{background:rgba(0,0,0,0.06);}
+.message{padding:8px;margin-top:6px;border-radius:8px;background:rgba(255,255,255,0.05);}
+body.light .message{background:rgba(0,0,0,0.03);}
+
 @media(max-width:900px){.sidebar{width:100%;left:-100%;border-right:none;}}
 </style>
 </head>
@@ -100,6 +117,7 @@ body.light .close-modal{color:#555;}
   <!-- Авторизація -->
   <div id="home" class="section active">
     <div class="auth-box" id="authBox">
+      <input type="text" id="usernameInput" placeholder="Ім'я користувача">
       <input type="email" id="emailInput" placeholder="Email">
       <input type="password" id="passwordInput" placeholder="Пароль">
       <button id="loginBtn">Увійти</button>
@@ -131,7 +149,22 @@ body.light .close-modal{color:#555;}
     </div>
   </div>
 
-  <div id="messages" class="section"><h2>Чати</h2></div>
+  <!-- Повідомлення -->
+  <div id="messages" class="section">
+    <h2>Повідомлення</h2>
+    <div class="chats">
+      <input type="text" id="chatUserInput" placeholder="Ім'я користувача">
+      <button id="startChat">Почати чат</button>
+      <div id="chatList"></div>
+      <div id="currentChat" style="display:none;">
+        <h3 id="chatWith"></h3>
+        <div id="messagesList" style="height:300px; overflow-y:auto; border:1px solid rgba(255,255,255,0.1); padding:10px; border-radius:8px;"></div>
+        <input type="text" id="messageInput" placeholder="Повідомлення...">
+        <button id="sendMessage">Надіслати</button>
+      </div>
+    </div>
+  </div>
+
   <div id="groups" class="section"><h2>Групи</h2></div>
   <div id="settings" class="section"><h2>Налаштування</h2><button id="toggleTheme">Світла/Темна тема</button></div>
 </main>
@@ -166,7 +199,10 @@ const auth=firebase.auth();
 
 // Змінні
 let currentUser=null;
-let userData={avatar:'',bio:'',followers:[],following:[]};
+let userData={username:'', avatar:'', bio:'', followers:[], following:[], chats:{}};
+let currentProfileUid = null;
+let currentChatId = null;
+let currentOtherUid = null;
 
 // Бургер меню
 const burger=document.getElementById('burger');
@@ -178,7 +214,11 @@ const sections=document.querySelectorAll('.section');
 document.querySelectorAll('[data-section]').forEach(el=>{
   el.addEventListener('click',()=>{
     sections.forEach(s=>s.classList.remove('active'));
-    document.getElementById(el.dataset.section).classList.add('active');
+    const section = document.getElementById(el.dataset.section);
+    section.classList.add('active');
+    if(el.dataset.section === 'profile') {
+      showProfile(currentUser.uid);
+    }
     sidebar.classList.remove('active'); burger.classList.remove('active');
   });
 });
@@ -186,24 +226,39 @@ document.querySelectorAll('[data-section]').forEach(el=>{
 // Авторизація
 const authBox=document.getElementById('authBox');
 const newPostBox=document.getElementById('newPostBox');
+const usernameInput=document.getElementById('usernameInput');
+const emailInput=document.getElementById('emailInput');
+const passwordInput=document.getElementById('passwordInput');
 const profileUsernameDisplay=document.getElementById('profileUsernameDisplay');
+const profileAvatar=document.getElementById('profileAvatar');
+const profileBio=document.getElementById('profileBio');
+const postsCount=document.getElementById('postsCount');
+const followersCount=document.getElementById('followersCount');
+const followingCount=document.getElementById('followingCount');
+const followBtn=document.getElementById('followBtn');
+const editProfileBtn=document.getElementById('editProfileBtn');
 
 document.getElementById('registerBtn').addEventListener('click',()=>{
-  const email=document.getElementById('emailInput').value;
-  const pass=document.getElementById('passwordInput').value;
-  if(!email||!pass)return alert('Введіть email і пароль');
-  auth.createUserWithEmailAndPassword(email,pass)
-    .then(res=>{
+  const username = usernameInput.value.trim();
+  const email = emailInput.value;
+  const pass = passwordInput.value;
+  if(!username || !email || !pass) return alert('Заповніть всі поля');
+  db.ref(`usernames/${username}`).once('value').then(snap => {
+    if(snap.val()) return alert('Ім\'я користувача зайняте');
+    auth.createUserWithEmailAndPassword(email,pass).then(res=>{
       currentUser=res.user;
-      db.ref(`users/${currentUser.uid}`).set({email,followers:[],following:[],avatar:'',bio:''});
+      userData = {username, email, followers:[], following:[], avatar:'', bio:'', chats:{}};
+      db.ref(`users/${currentUser.uid}`).set(userData);
+      db.ref(`usernames/${username}`).set(currentUser.uid);
       afterLogin();
     }).catch(err=>alert(err.message));
+  });
 });
 
 document.getElementById('loginBtn').addEventListener('click',()=>{
-  const email=document.getElementById('emailInput').value;
-  const pass=document.getElementById('passwordInput').value;
-  if(!email||!pass)return alert('Введіть email і пароль');
+  const email = emailInput.value;
+  const pass = passwordInput.value;
+  if(!email || !pass) return alert('Введіть email і пароль');
   auth.signInWithEmailAndPassword(email,pass)
     .then(res=>{currentUser=res.user; afterLogin();})
     .catch(err=>alert(err.message));
@@ -211,29 +266,102 @@ document.getElementById('loginBtn').addEventListener('click',()=>{
 
 function afterLogin(){
   authBox.style.display='none';
-  newPostBox.style.display='flex';
-  profileUsernameDisplay.innerText=currentUser.email;
+  newPostBox.style.display='block';
   loadUserData();
-  updatePostsCount();
 }
+
+// Завантаження даних користувача
+function loadUserData(){
+  db.ref(`users/${currentUser.uid}`).on('value', snap=>{
+    userData = snap.val() || {username:'', avatar:'', bio:'', followers:[], following:[], chats:{}};
+    if(currentProfileUid === currentUser.uid){
+      showProfile(currentUser.uid);
+    }
+  });
+}
+
+// Показ профілю
+function showProfile(uid){
+  currentProfileUid = uid;
+  if(uid === currentUser.uid){
+    editProfileBtn.style.display = 'block';
+    followBtn.style.display = 'none';
+    profileAvatar.style.backgroundImage = `url('${userData.avatar || ''}')`;
+    profileUsernameDisplay.innerText = userData.username || currentUser.email;
+    profileBio.innerText = userData.bio || 'Немає опису';
+    followersCount.innerText = `Підписники: ${userData.followers.length}`;
+    followingCount.innerText = `Підписки: ${userData.following.length}`;
+    updatePostsCount(uid);
+  } else {
+    editProfileBtn.style.display = 'none';
+    followBtn.style.display = 'block';
+    db.ref(`users/${uid}`).once('value', snap=>{
+      const ud = snap.val();
+      profileAvatar.style.backgroundImage = `url('${ud.avatar || ''}')`;
+      profileUsernameDisplay.innerText = ud.username || ud.email;
+      profileBio.innerText = ud.bio || 'Немає опису';
+      followersCount.innerText = `Підписники: ${ud.followers.length}`;
+      followingCount.innerText = `Підписки: ${ud.following.length}`;
+      const isFollowing = userData.following.includes(uid);
+      followBtn.innerText = isFollowing ? 'Відписатися' : 'Підписатися';
+      followBtn.classList.toggle('following', isFollowing);
+    });
+    updatePostsCount(uid);
+  }
+}
+
+function updatePostsCount(uid){
+  db.ref('posts').once('value', snap=>{
+    const posts = snap.val() || {};
+    const count = Object.values(posts).filter(p=>p.uid===uid).length;
+    postsCount.innerText=`Пости: ${count}`;
+  });
+}
+
+// Підписка/відписка
+followBtn.addEventListener('click',()=>{
+  if(!currentProfileUid || currentProfileUid === currentUser.uid) return;
+  const isFollowing = userData.following.includes(currentProfileUid);
+  db.ref(`users/${currentUser.uid}/following`).transaction(fol=>{
+    fol = fol || [];
+    if(isFollowing){
+      return fol.filter(u=>u!==currentProfileUid);
+    } else {
+      fol.push(currentProfileUid);
+      return fol;
+    }
+  }).then(()=>{
+    db.ref(`users/${currentProfileUid}/followers`).transaction(fol=>{
+      fol = fol || [];
+      if(isFollowing){
+        return fol.filter(u=>u!==currentUser.uid);
+      } else {
+        fol.push(currentUser.uid);
+        return fol;
+      }
+    }).then(()=>{
+      showProfile(currentProfileUid);
+    });
+  });
+});
 
 // Новий пост
 document.getElementById('addPost').addEventListener('click',()=>{
   const text=document.getElementById('postText').value.trim();
-  if(!text||!currentUser)return;
+  if(!text||!currentUser) return;
   const file=document.getElementById('postImage').files[0];
+  const postData = {uid:currentUser.uid, username:userData.username, avatar:userData.avatar, text, image:null, time:Date.now(), likes:[], comments:{}};
   if(file){
     const reader=new FileReader();
     reader.onload=e=>{
-      db.ref('posts').push({username:currentUser.email,text,image:e.target.result,time:Date.now()});
+      postData.image = e.target.result;
+      db.ref('posts').push(postData);
       document.getElementById('postText').value=''; document.getElementById('postImage').value='';
-      updatePostsCount();
     };
     reader.readAsDataURL(file);
   }else{
-    db.ref('posts').push({username:currentUser.email,text,image:null,time:Date.now()});
+    db.ref('posts').push(postData);
     document.getElementById('postText').value='';
-    updatePostsCount();
   }
 });
 
@@ -242,26 +370,76 @@ const feed=document.getElementById('feed');
 db.ref('posts').on('value',snap=>{
   feed.innerHTML='';
   const data=snap.val();
-  if(!data)return;
-  Object.keys(data).reverse().forEach(key=>{
-    const p=data[key];
+  if(!data) return;
+  Object.entries(data).sort((a,b)=>b[1].time - a[1].time).forEach(([key, p])=>{
+    let commentsHtml = '';
+    if(p.comments){
+      Object.values(p.comments).forEach(c=>{
+        commentsHtml += `<div class="comment"><span class="comment-username">${c.username}:</span> ${c.text}</div>`;
+      });
+    }
     const div=document.createElement('div');
     div.className='post';
     div.innerHTML=`
       <div class="post-header">
         <div class="avatar" style="background-image:url('${p.avatar||''}')"></div>
-        <div class="username">${p.username}</div>
+        <div class="username" data-uid="${p.uid}">${p.username}</div>
       </div>
       <div class="post-content">${p.text}${p.image?`<img src="${p.image}" style="max-width:100%;margin-top:8px;border-radius:8px;"/>`:''}</div>
+      <div class="post-actions">
+        <button data-postid="${key}" class="like-btn">Лайк <span class="like-count">${p.likes ? p.likes.length : 0}</span></button>
+        <button data-postid="${key}" class="comment-btn">Коментарі (${p.comments ? Object.keys(p.comments).length : 0})</button>
+      </div>
+      <div class="comments" id="comments-${key}" style="display:none;">
+        <div class="comment-list">${commentsHtml}</div>
+        <input class="comment-input" placeholder="Додати коментар..."/>
+        <button class="add-comment">Надіслати</button>
+      </div>
     `;
     feed.appendChild(div);
     setTimeout(()=>{div.classList.add('show');},50);
   });
 });
 
+// Дії з постами
+feed.addEventListener('click', e=>{
+  if(e.target.classList.contains('like-btn')){
+    const postid = e.target.dataset.postid;
+    db.ref(`posts/${postid}/likes`).transaction(likes=>{
+      likes = likes || [];
+      if(likes.includes(currentUser.uid)){
+        return likes.filter(u=>u!==currentUser.uid);
+      } else {
+        likes.push(currentUser.uid);
+        return likes;
+      }
+    });
+  }
+  if(e.target.classList.contains('comment-btn')){
+    const postid = e.target.dataset.postid;
+    const comm = document.getElementById(`comments-${postid}`);
+    comm.style.display = comm.style.display === 'none' ? 'block' : 'none';
+  }
+  if(e.target.classList.contains('add-comment')){
+    const commentsDiv = e.target.closest('.comments');
+    const postid = commentsDiv.id.split('-')[1];
+    const input = commentsDiv.querySelector('.comment-input');
+    const text = input.value.trim();
+    if(text){
+      db.ref(`posts/${postid}/comments`).push({uid:currentUser.uid, username:userData.username, text, time:Date.now()});
+      input.value = '';
+    }
+  }
+  if(e.target.classList.contains('username')){
+    showProfile(e.target.dataset.uid);
+    sections.forEach(s=>s.classList.remove('active'));
+    document.getElementById('profile').classList.add('active');
+  }
+});
+
 // Редагування профілю
 const editModal=document.getElementById('editProfileModal');
-document.getElementById('editProfileBtn').addEventListener('click',()=>editModal.classList.add('active'));
+editProfileBtn.addEventListener('click',()=>editModal.classList.add('active'));
 document.getElementById('closeModal').addEventListener('click',()=>editModal.classList.remove('active'));
 document.getElementById('saveProfileEdit').addEventListener('click',()=>{
   const file=document.getElementById('editAvatarFile').files[0];
@@ -269,48 +447,89 @@ document.getElementById('saveProfileEdit').addEventListener('click',()=>{
   if(file){
     const reader=new FileReader();
     reader.onload=e=>{
-      userData.avatar=e.target.result;
-      document.getElementById('profileAvatar').style.backgroundImage=`url('${userData.avatar}')`;
+      userData.avatar = e.target.result;
       db.ref(`users/${currentUser.uid}`).update({avatar:userData.avatar});
-      editModal.classList.remove('active');
     };
     reader.readAsDataURL(file);
   }
-  userData.bio=bio;
-  document.getElementById('profileBio').innerText=bio||'Немає опису';
+  userData.bio = bio;
   db.ref(`users/${currentUser.uid}`).update({bio});
+  editModal.classList.remove('active');
 });
 
 // Тема
 document.getElementById('toggleTheme').addEventListener('click',()=>document.body.classList.toggle('light'));
 
-// Статистика
-const postsCount=document.getElementById('postsCount');
-const followersCount=document.getElementById('followersCount');
-const followingCount=document.getElementById('followingCount');
-const followBtn=document.getElementById('followBtn');
+// Чати
+const chatUserInput = document.getElementById('chatUserInput');
+const startChat = document.getElementById('startChat');
+const chatList = document.getElementById('chatList');
+const currentChat = document.getElementById('currentChat');
+const chatWith = document.getElementById('chatWith');
+const messagesList = document.getElementById('messagesList');
+const messageInput = document.getElementById('messageInput');
+const sendMessage = document.getElementById('sendMessage');
+const messagesSection = document.getElementById('messages');
 
-function loadUserData(){
-  db.ref(`users/${currentUser.uid}`).once('value',snap=>{
-    userData=snap.val()||{avatar:'',bio:'',followers:[],following:[]};
-    document.getElementById('profileAvatar').style.backgroundImage=`url('${userData.avatar}')`;
-    document.getElementById('profileBio').innerText=userData.bio||'Немає опису';
-    followersCount.innerText=`Підписники: ${userData.followers.length}`;
-    followingCount.innerText=`Підписки: ${userData.following.length}`;
+startChat.addEventListener('click', () => {
+  const targetUsername = chatUserInput.value.trim();
+  if(!targetUsername) return;
+  db.ref(`usernames/${targetUsername}`).once('value').then(snap => {
+    const targetUid = snap.val();
+    if(!targetUid) return alert('Користувача не знайдено');
+    if(targetUid === currentUser.uid) return alert('Не можна чат з собою');
+    db.ref(`users/${currentUser.uid}/chats/${targetUid}`).set(targetUsername);
+    db.ref(`users/${targetUid}/chats/${currentUser.uid}`).set(userData.username);
+    chatUserInput.value = '';
   });
-}
+});
 
-function updatePostsCount(){
-  db.ref('posts').once('value',snap=>{
-    const posts = snap.val();
-    const count = posts ? Object.values(posts).filter(p=>p.username===currentUser.email).length : 0;
-    postsCount.innerText=`Пости: ${count}`;
+db.ref(`users/${currentUser ? currentUser.uid : ''}/chats`).on('value', snap => {
+  if(!currentUser) return;
+  chatList.innerHTML = '';
+  const chats = snap.val() || {};
+  Object.entries(chats).forEach(([ouid, uname]) => {
+    const div = document.createElement('div');
+    div.className = 'chat-item';
+    div.dataset.ouid = ouid;
+    div.dataset.uname = uname;
+    div.textContent = uname;
+    chatList.appendChild(div);
   });
-}
+});
 
-// Підписка/відписка
-followBtn.addEventListener('click',()=>{
-  // ТУТ Можна додати логіку підписки на інших користувачів
+messagesSection.addEventListener('click', e => {
+  if(e.target.classList.contains('chat-item')){
+    currentOtherUid = e.target.dataset.ouid;
+    const uname = e.target.dataset.uname;
+    chatWith.textContent = `Чат з ${uname}`;
+    currentChatId = [currentUser.uid, currentOtherUid].sort().join('_');
+    currentChat.style.display = 'block';
+    db.ref(`messages/${currentChatId}`).off();
+    db.ref(`messages/${currentChatId}`).on('value', snap => {
+      messagesList.innerHTML = '';
+      const msgs = snap.val() || {};
+      Object.values(msgs).sort((a,b)=>a.time - b.time).forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'message';
+        div.innerHTML = `<span class="username">${m.username}:</span> ${m.text}`;
+        messagesList.appendChild(div);
+      });
+      messagesList.scrollTop = messagesList.scrollHeight;
+    });
+  }
+});
+
+sendMessage.addEventListener('click', () => {
+  const text = messageInput.value.trim();
+  if(!text || !currentChatId) return;
+  db.ref(`messages/${currentChatId}`).push({
+    username: userData.username,
+    uid: currentUser.uid,
+    text,
+    time: Date.now()
+  });
+  messageInput.value = '';
 });
 
 </script>
