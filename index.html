@@ -154,6 +154,31 @@
       .sidebar{width:100%; left:-100%; padding:100px 20px; border-right:none; border-bottom:1px solid rgba(255,255,255,0.06);}
       .sidebar.active{left:0;}
     }
+    .hashtag {
+      color: #1da1f2;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    body.light .hashtag {
+      color: #1a8cd8;
+    }
+    .hashtag:hover {
+      text-decoration: underline;
+    }
+    .post-content img {
+      max-width: 100%;
+      border-radius: 12px;
+      margin-top: 10px;
+      display: block;
+    }
+    .messages-list, .groups-list {display:flex; flex-direction:column; gap:10px;}
+    .message-item, .group-item {background:rgba(255,255,255,0.05); padding:12px; border-radius:12px; cursor:pointer;}
+    .chat-window {display:flex; flex-direction:column; height:400px; overflow-y:auto; gap:10px; padding:10px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.1); border-radius:12px;}
+    .chat-message {padding:8px 12px; border-radius:8px; max-width:70%;}
+    .chat-message.sent {background:#007bff; align-self:flex-end;}
+    .chat-message.received {background:#333; align-self:flex-start;}
+    .notifications {display:flex; flex-direction:column; gap:10px; margin-top:20px;}
+    .notification {background:rgba(255,255,255,0.05); padding:12px; border-radius:12px;}
   </style>
 </head>
 <body>
@@ -166,6 +191,9 @@
 <nav class="sidebar" id="sidebar">
   <a data-section="home">Головна</a>
   <a data-section="profile">Профіль</a>
+  <a data-section="messages">Повідомлення</a>
+  <a data-section="groups">Групи</a>
+  <a data-section="notifications">Сповіщення</a>
   <a data-section="settings">Налаштування</a>
   <a href="#">Про нас</a>
   <a href="#">Послуги</a>
@@ -184,6 +212,21 @@
 
     <div class="new-post" id="newPostBox" style="display:none;">
       <textarea id="postText" placeholder="Що у тебе на думці?..." rows="4"></textarea>
+      
+      <!-- Завантаження фото -->
+      <div style="margin:12px 0; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <label for="postImage" style="cursor:pointer; padding:8px 14px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#aaa;">
+          📎 Додати фото/мем
+        </label>
+        <input type="file" id="postImage" accept="image/*" style="display:none;" />
+        <div id="imagePreview" style="max-width:180px; display:none; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
+          <img style="width:100%; display:block;" />
+        </div>
+        <span id="imageName" style="color:#888; font-size:0.9rem;"></span>
+      </div>
+
+      <label><input type="checkbox" id="postPrivate"> Приватний пост (видно тільки тобі)</label>
+
       <button id="addPost">Опублікувати</button>
     </div>
 
@@ -212,6 +255,41 @@
 
     <h3 style="margin:40px 0 20px;">Твої пости</h3>
     <div id="profilePosts" class="feed"></div>
+  </div>
+
+  <!-- ── Повідомлення ── -->
+  <div id="messages" class="section">
+    <h2>Приватні повідомлення</h2>
+    <div class="messages-list" id="messagesList"></div>
+    <div class="new-message">
+      <input type="text" id="dmTo" placeholder="Кому (ім'я користувача)">
+      <textarea id="dmText" placeholder="Повідомлення..." rows="2"></textarea>
+      <button id="sendDm">Надіслати</button>
+    </div>
+    <div id="chatWindow" class="chat-window" style="display:none;"></div>
+  </div>
+
+  <!-- ── Групи ── -->
+  <div id="groups" class="section">
+    <h2>Групи / Чати</h2>
+    <div class="groups-list" id="groupsList"></div>
+    <div class="new-group">
+      <input type="text" id="groupName" placeholder="Назва групи">
+      <input type="text" id="groupMembers" placeholder="Учасники (через кому)">
+      <button id="createGroup">Створити групу</button>
+    </div>
+    <div id="groupChatWindow" class="chat-window" style="display:none;"></div>
+    <div class="group-message-input" style="display:none;">
+      <textarea id="groupMessageText" placeholder="Повідомлення в групу..." rows="2"></textarea>
+      <button id="sendGroupMessage">Надіслати</button>
+    </div>
+  </div>
+
+  <!-- ── Сповіщення ── -->
+  <div id="notifications" class="section">
+    <h2>Сповіщення</h2>
+    <div class="notifications" id="notificationsList"></div>
+    <button id="clearNotifications">Очистити сповіщення</button>
   </div>
 
   <!-- ── Налаштування ── -->
@@ -277,7 +355,10 @@
 const KEY = {
   USERNAME: 'fantasyasUsername',
   USER: 'fantasyasUserData',
-  POSTS: 'fantasyas_posts_v3'
+  POSTS: 'fantasyas_posts_v3',
+  MESSAGES: 'fantasyas_messages',
+  GROUPS: 'fantasyas_groups',
+  NOTIFICATIONS: 'fantasyas_notifications'
 };
 
 let username = localStorage.getItem(KEY.USERNAME);
@@ -285,9 +366,13 @@ let userData = JSON.parse(localStorage.getItem(KEY.USER)) || {
   avatar: '',
   bio: '',
   registered: new Date().toISOString().split('T')[0],
-  favorites: []
+  favorites: [],
+  lastSeen: Date.now()
 };
 let posts = JSON.parse(localStorage.getItem(KEY.POSTS)) || [];
+let messages = JSON.parse(localStorage.getItem(KEY.MESSAGES)) || [];
+let groups = JSON.parse(localStorage.getItem(KEY.GROUPS)) || [];
+let notifications = JSON.parse(localStorage.getItem(KEY.NOTIFICATIONS)) || [];
 
 // Елементи
 const burger = document.getElementById('burger');
@@ -298,6 +383,10 @@ const newPostBox = document.getElementById('newPostBox');
 const feed = document.getElementById('feed');
 const postText = document.getElementById('postText');
 const modal = document.getElementById('editProfileModal');
+let pendingImage = null;
+let pendingImageName = '';
+let currentChatUser = null;
+let currentGroupId = null;
 
 // ── Бургер та навігація ──
 burger.addEventListener('click', () => {
@@ -311,6 +400,19 @@ function showSection(id) {
   sidebar.classList.remove('active');
   burger.classList.remove('active');
   if (id === 'profile') updateProfile();
+  if (id === 'home') renderPosts();
+  if (id === 'messages') renderMessages();
+  if (id === 'groups') renderGroups();
+  if (id === 'notifications') renderNotifications();
+  // очищаємо форму нового поста при зміні секції
+  if (id !== 'home') {
+    postText.value = '';
+    pendingImage = null;
+    pendingImageName = '';
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('imageName').textContent = '';
+    document.getElementById('postImage').value = '';
+  }
 }
 
 document.querySelectorAll('[data-section]').forEach(el => {
@@ -350,14 +452,47 @@ document.getElementById('saveUsername').addEventListener('click', () => {
   renderPosts();
 });
 
+// ── Обробка завантаження зображення ──
+document.getElementById('postImage').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    alert('Тільки зображення, будь ласка');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {   // 5 MB ліміт
+    alert('Файл завеликий (максимум ~5 МБ)');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    pendingImage = ev.target.result;  // це data:image/jpeg;base64,...
+    pendingImageName = file.name;
+
+    // Прев'ю
+    const preview = document.getElementById('imagePreview');
+    const img = preview.querySelector('img');
+    img.src = pendingImage;
+    preview.style.display = 'block';
+    document.getElementById('imageName').textContent = pendingImageName;
+  };
+  reader.readAsDataURL(file);
+});
+
 // ── Додавання поста ──
 document.getElementById('addPost').addEventListener('click', () => {
   const text = postText.value.trim();
   if (!text || !username) return;
+  const isPrivate = document.getElementById('postPrivate').checked;
   posts.unshift({
     id: Date.now(),
     username,
     text,
+    image: pendingImage || null,
+    private: isPrivate,
     likes: 0,
     likedBy: [],
     comments: [],
@@ -365,13 +500,21 @@ document.getElementById('addPost').addEventListener('click', () => {
   });
   savePosts();
   postText.value = '';
+  pendingImage = null;
+  pendingImageName = '';
+  document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('imageName').textContent = '';
+  document.getElementById('postImage').value = '';
+  document.getElementById('postPrivate').checked = false;
   renderPosts();
+  checkNotifications();
 });
 
 // ── Рендер стрічки ──
 function renderPosts(container = feed) {
   container.innerHTML = '';
-  posts.forEach(post => {
+  const filteredPosts = posts.filter(post => !post.private || post.username === username);
+  filteredPosts.forEach(post => {
     const isLiked = post.likedBy?.includes(username);
     const isFavorite = userData.favorites?.includes(post.id);
     const postEl = document.createElement('div');
@@ -381,8 +524,11 @@ function renderPosts(container = feed) {
         <div class="avatar" style="background-image:url('${getAvatar(post.username)}')"></div>
         <div class="username">${post.username}</div>
       </div>
-      <div class="post-content">${post.text.replace(/\n/g, '<br>')}</div>
-      <div class="post-meta">${new Date(post.created).toLocaleString('uk-UA', {dateStyle:'short', timeStyle:'short'})}</div>
+      <div class="post-content">
+        ${formatPostText(post.text)}
+        ${post.image ? `<img src="${post.image}" alt="Завантажене зображення" />` : ''}
+      </div>
+      <div class="post-meta">${new Date(post.created).toLocaleString('uk-UA', {dateStyle:'short', timeStyle:'short'})} ${post.private ? '(приватний)' : ''}</div>
       <div class="post-footer">
         <button class="like-btn ${isLiked ? 'liked' : ''}">
           <span class="heart"></span> ${post.likes || 0}
@@ -409,6 +555,7 @@ function renderPosts(container = feed) {
       if (idx === -1) {
         post.likedBy.push(username);
         post.likes = (post.likes || 0) + 1;
+        addNotification(post.username, `${username} вподобав твій пост`);
       } else {
         post.likedBy.splice(idx, 1);
         post.likes--;
@@ -427,6 +574,7 @@ function renderPosts(container = feed) {
       if (!post.comments) post.comments = [];
       post.comments.push({user: username, text, time: Date.now()});
       inp.value = '';
+      addNotification(post.username, `${username} прокоментував твій пост`);
       savePosts();
       renderComments(post.id, postEl.querySelector(`#comments-${post.id}`));
       renderPosts(container);
@@ -468,6 +616,18 @@ function getAvatar(uname) {
   return '';
 }
 
+function formatPostText(text) {
+  let escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+  escaped = escaped.replace(/\n/g, '<br>');
+  escaped = escaped.replace(/(^|\s)(#[a-zA-Z0-9_]+)/g, '$1<a href="#" class="hashtag">$2</a>');
+  return escaped;
+}
+
 // ── Профіль ──
 function updateProfile() {
   if (!username) return;
@@ -494,8 +654,156 @@ function updateProfile() {
   // Твої пости
   const profilePosts = document.getElementById('profilePosts');
   profilePosts.innerHTML = '';
-  const myPosts = posts.filter(p => p.username === username);
-  renderPosts(profilePosts); // але тільки мої пости вже відфільтровані в логіці вище
+  renderPosts(profilePosts);
+}
+
+// ── Приватні повідомлення ──
+function renderMessages() {
+  const list = document.getElementById('messagesList');
+  list.innerHTML = '';
+  const users = [...new Set(messages.map(m => m.from === username ? m.to : m.from))];
+  users.forEach(u => {
+    const item = document.createElement('div');
+    item.className = 'message-item';
+    item.textContent = u;
+    item.addEventListener('click', () => openChat(u));
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('sendDm').addEventListener('click', () => {
+  const to = document.getElementById('dmTo').value.trim();
+  const text = document.getElementById('dmText').value.trim();
+  if (!to || !text) return;
+  messages.push({from: username, to, text, time: Date.now()});
+  saveMessages();
+  addNotification(to, `${username} надіслав повідомлення`);
+  document.getElementById('dmText').value = '';
+  renderMessages();
+});
+
+function openChat(user) {
+  currentChatUser = user;
+  const chatWindow = document.getElementById('chatWindow');
+  chatWindow.style.display = 'block';
+  renderChatMessages(chatWindow, messages.filter(m => (m.from === username && m.to === user) || (m.from === user && m.to === username)));
+  // Додати інпут для відповіді
+  if (!chatWindow.querySelector('.dm-input')) {
+    const inputDiv = document.createElement('div');
+    inputDiv.className = 'comment-input';
+    inputDiv.innerHTML = `
+      <input type="text" placeholder="Відповісти..." class="dm-inp"/>
+      <button class="send-dm-btn">→</button>
+    `;
+    inputDiv.querySelector('.send-dm-btn').addEventListener('click', () => {
+      const text = inputDiv.querySelector('.dm-inp').value.trim();
+      if (!text) return;
+      messages.push({from: username, to: user, text, time: Date.now()});
+      saveMessages();
+      addNotification(user, `${username} надіслав повідомлення`);
+      inputDiv.querySelector('.dm-inp').value = '';
+      renderChatMessages(chatWindow, messages.filter(m => (m.from === username && m.to === user) || (m.from === user && m.to === username)));
+    });
+    chatWindow.appendChild(inputDiv);
+  }
+}
+
+function renderChatMessages(container, msgs) {
+  container.innerHTML = '';
+  msgs.sort((a,b) => a.time - b.time).forEach(m => {
+    const div = document.createElement('div');
+    div.className = `chat-message ${m.from === username ? 'sent' : 'received'}`;
+    div.innerHTML = `<strong>${m.from}</strong>: ${m.text}`;
+    container.appendChild(div);
+  });
+  container.scrollTop = container.scrollHeight;
+}
+
+// ── Групи / Чати ──
+function renderGroups() {
+  const list = document.getElementById('groupsList');
+  list.innerHTML = '';
+  groups.forEach(g => {
+    const item = document.createElement('div');
+    item.className = 'group-item';
+    item.textContent = g.name;
+    item.addEventListener('click', () => openGroupChat(g.id));
+    list.appendChild(item);
+  });
+}
+
+document.getElementById('createGroup').addEventListener('click', () => {
+  const name = document.getElementById('groupName').value.trim();
+  const membersStr = document.getElementById('groupMembers').value.trim();
+  if (!name || !membersStr) return;
+  const members = membersStr.split(',').map(m => m.trim()).filter(m => m);
+  if (!members.includes(username)) members.push(username);
+  const group = {id: Date.now(), name, members, messages: []};
+  groups.push(group);
+  saveGroups();
+  document.getElementById('groupName').value = '';
+  document.getElementById('groupMembers').value = '';
+  renderGroups();
+});
+
+function openGroupChat(groupId) {
+  currentGroupId = groupId;
+  const group = groups.find(g => g.id === groupId);
+  if (!group) return;
+  const chatWindow = document.getElementById('groupChatWindow');
+  chatWindow.style.display = 'block';
+  document.querySelector('.group-message-input').style.display = 'flex';
+  renderChatMessages(chatWindow, group.messages);
+}
+
+document.getElementById('sendGroupMessage').addEventListener('click', () => {
+  if (!currentGroupId) return;
+  const text = document.getElementById('groupMessageText').value.trim();
+  if (!text) return;
+  const group = groups.find(g => g.id === currentGroupId);
+  group.messages.push({from: username, text, time: Date.now()});
+  group.members.forEach(member => {
+    if (member !== username) addNotification(member, `Нове повідомлення в групі ${group.name}`);
+  });
+  saveGroups();
+  document.getElementById('groupMessageText').value = '';
+  renderChatMessages(document.getElementById('groupChatWindow'), group.messages);
+});
+
+// ── Сповіщення ──
+function addNotification(to, text) {
+  if (to === username) return; // не сповіщати себе
+  notifications.push({to, text, time: Date.now(), read: false});
+  saveNotifications();
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notificationsList');
+  list.innerHTML = '';
+  const userNotifs = notifications.filter(n => n.to === username);
+  userNotifs.forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'notification';
+    div.textContent = `${n.text} (${new Date(n.time).toLocaleString()})`;
+    if (!n.read) div.style.fontWeight = 'bold';
+    div.addEventListener('click', () => {
+      n.read = true;
+      saveNotifications();
+      renderNotifications();
+    });
+    list.appendChild(div);
+  });
+}
+
+document.getElementById('clearNotifications').addEventListener('click', () => {
+  notifications = notifications.filter(n => n.to !== username);
+  saveNotifications();
+  renderNotifications();
+});
+
+function checkNotifications() {
+  // Симуляція реального часу: перевіряти при завантаженні/оновленні
+  renderNotifications();
 }
 
 // ── Налаштування ──
@@ -510,6 +818,15 @@ document.getElementById('saveSettings').addEventListener('click', () => {
       if (p.username === username) p.username = newName;
       p.comments?.forEach(c => { if (c.user === username) c.user = newName; });
     });
+    messages.forEach(m => {
+      if (m.from === username) m.from = newName;
+      if (m.to === username) m.to = newName;
+    });
+    groups.forEach(g => {
+      g.members = g.members.map(m => m === username ? newName : m);
+      g.messages.forEach(msg => { if (msg.from === username) msg.from = newName; });
+    });
+    notifications.forEach(n => { if (n.to === username) n.to = newName; });
     username = newName;
     localStorage.setItem(KEY.USERNAME, username);
   }
@@ -517,7 +834,7 @@ document.getElementById('saveSettings').addEventListener('click', () => {
   userData.avatar = newAvatar;
   userData.bio = newBio;
   localStorage.setItem(KEY.USER, JSON.stringify(userData));
-  localStorage.setItem(KEY.POSTS, JSON.stringify(posts));
+  saveAll();
 
   alert('Зміни збережено!');
   updateProfile();
@@ -544,9 +861,12 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 document.getElementById('deleteAccountBtn').addEventListener('click', () => {
   if (confirm('Видалити акаунт? Всі твої пости та коментарі будуть видалені!')) {
     posts = posts.filter(p => p.username !== username);
+    messages = messages.filter(m => m.from !== username && m.to !== username);
+    groups = groups.filter(g => !g.members.includes(username));
+    notifications = notifications.filter(n => n.to !== username);
     localStorage.removeItem(KEY.USERNAME);
     localStorage.removeItem(KEY.USER);
-    savePosts();
+    saveAll();
     location.reload();
   }
 });
@@ -575,15 +895,31 @@ document.getElementById('saveProfileEdit').addEventListener('click', () => {
   alert('Профіль оновлено!');
 });
 
-// ── Збереження постів ──
+// ── Збереження ──
 function savePosts() {
   localStorage.setItem(KEY.POSTS, JSON.stringify(posts));
+}
+function saveMessages() {
+  localStorage.setItem(KEY.MESSAGES, JSON.stringify(messages));
+}
+function saveGroups() {
+  localStorage.setItem(KEY.GROUPS, JSON.stringify(groups));
+}
+function saveNotifications() {
+  localStorage.setItem(KEY.NOTIFICATIONS, JSON.stringify(notifications));
+}
+function saveAll() {
+  savePosts();
+  saveMessages();
+  saveGroups();
+  saveNotifications();
 }
 
 // Початок
 if (username) {
   renderPosts();
   updateProfile();
+  checkNotifications();
 }
 </script>
 </body>
