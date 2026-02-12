@@ -11,22 +11,16 @@
       --bg: #0a0a0a;
       --text: #f0f0f0;
       --text-sec: #a0a0a0;
-      --card: rgba(255,255,255,0.05);
-      --border: rgba(255,255,255,0.08);
-      --accent: #00aaff;
-      --accent-dark: #0088cc;
-      --error: #ff5555;
-      --success: #55ff55;
+      --card: #1a1a1a;
+      --border: #333;
       --shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
     body.light {
-      --bg: #f8f9fa;
+      --bg: #fff;
       --text: #1a1a1a;
       --text-sec: #666;
-      --card: rgba(0,0,0,0.03);
-      --border: rgba(0,0,0,0.08);
-      --accent: #0099ff;
-      --accent-dark: #0077cc;
+      --card: #f4f4f4;
+      --border: #ccc;
       --shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
     *{margin:0;padding:0;box-sizing:border-box;}
@@ -47,7 +41,7 @@
     /* Верхня панель */
     .top-bar{position:fixed;top:0;left:0;right:0;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(10,10,10,0.95);backdrop-filter:blur(20px);z-index:1000;box-shadow:var(--shadow);transition:all 0.4s ease;}
     body.light .top-bar{background:rgba(255,255,255,0.95);}
-    .site-name{font-size:1.8rem;font-weight:800;color:var(--accent);text-shadow:0 0 10px rgba(0,170,255,0.5);}
+    .site-name{font-size:1.8rem;font-weight:800;color:var(--text);}
     .burger{cursor:pointer;width:30px;height:22px;display:flex;flex-direction:column;justify-content:space-between;}
     .burger span{height:3px;background:var(--text);transition:all 0.4s;border-radius:2px;}
     .burger.active span:nth-child(1){transform:rotate(45deg) translate(6px,6px);}
@@ -55,26 +49,25 @@
     .burger.active span:nth-child(3){transform:rotate(-45deg) translate(7px,-7px);}
 
     /* Бокова панель */
-    .sidebar{position:fixed;top:0;left:-300px;width:300px;height:100%;background:rgba(10,10,10,0.98);padding:80px 25px;transition:left 0.6s cubic-bezier(0.68,-0.55,0.265,1.55);z-index:900;box-shadow:var(--shadow);}
+    .sidebar{position:fixed;top:0;left:-300px;width:300px;height:100%;background:var(--card);padding:80px 25px;transition:left 0.6s cubic-bezier(0.68,-0.55,0.265,1.55);z-index:900;box-shadow:var(--shadow);}
     .sidebar.active{left:0;}
-    body.light .sidebar{background:rgba(255,255,255,0.98);}
     .sidebar a{display:flex;align-items:center;gap:15px;color:var(--text-sec);text-decoration:none;font-size:1.2rem;font-weight:600;margin:15px 0;padding:10px 15px;border-radius:12px;transition:all 0.3s ease;}
-    .sidebar a:hover{background:var(--card);color:var(--accent);transform:translateX(10px);box-shadow:var(--shadow);}
+    .sidebar a:hover{background:var(--border);color:var(--text);transform:translateX(10px);box-shadow:var(--shadow);}
 
     /* Основний контент */
     .main-content{margin-top:70px;padding:25px;max-width:900px;margin:0 auto;}
     .section{display:none;}
     .section.active{display:block;animation:fadeIn 0.8s ease;}
     .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:25px;margin-bottom:25px;transition:transform 0.4s ease,box-shadow 0.4s ease;box-shadow:var(--shadow);}
-    .card:hover{transform:translateY(-5px);box-shadow:0 10px 30px rgba(0,170,255,0.2);}
+    .card:hover{transform:translateY(-5px);box-shadow:0 10px 30px rgba(0,0,0,0.2);}
     input, textarea{width:100%;padding:15px;margin:10px 0;border:1px solid var(--border);border-radius:15px;background:var(--card);color:var(--text);font-size:1rem;transition:all 0.3s ease;}
-    input:focus, textarea:focus{border-color:var(--accent);box-shadow:0 0 15px rgba(0,170,255,0.3);}
-    button{padding:12px 25px;border:none;border-radius:15px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;transition:all 0.4s ease;}
-    button:hover{background:var(--accent-dark);transform:scale(1.05) rotate(2deg);box-shadow:0 0 20px rgba(0,170,255,0.4);}
+    input:focus, textarea:focus{border-color:var(--text-sec);box-shadow:0 0 15px rgba(255,255,255,0.1);}
+    button{padding:12px 25px;border:none;border-radius:15px;background:var(--border);color:var(--text);font-weight:700;cursor:pointer;transition:all 0.4s ease;}
+    button:hover{background:var(--text-sec);transform:scale(1.05) rotate(2deg);box-shadow:0 0 20px rgba(255,255,255,0.1);}
     .feed{display:flex;flex-direction:column;gap:25px;}
     .post{background:var(--card);border-radius:20px;padding:20px;box-shadow:var(--shadow);transition:all 0.5s ease;animation:slideInLeft 0.6s ease-out;}
-    .post:hover{transform:scale(1.02);box-shadow:0 15px 40px rgba(0,170,255,0.25);}
-    .avatar{width:50px;height:50px;border-radius:50%;background:#444;background-size:cover;border:2px solid var(--accent);transition:transform 0.3s ease;}
+    .post:hover{transform:scale(1.02);box-shadow:0 15px 40px rgba(255,255,255,0.1);}
+    .avatar{width:50px;height:50px;border-radius:50%;background:#444;background-size:cover;border:2px solid var(--border);transition:transform 0.3s ease;}
     .avatar:hover{transform:rotate(360deg);}
     .modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:2000;animation:fadeIn 0.6s ease;}
     .modal.active{display:flex;}
@@ -98,7 +91,6 @@
   </nav>
 
   <main class="main-content">
-    <!-- Головна / Пости -->
     <section id="home" class="section active">
       <div class="card" id="auth-card">
         <div id="login-form">
@@ -125,7 +117,6 @@
       <div class="feed" id="feed"></div>
     </section>
 
-    <!-- Профіль -->
     <section id="profile" class="section">
       <div class="card fade-in">
         <div class="avatar" id="profile-avatar"></div>
@@ -135,7 +126,6 @@
       <div class="feed" id="profile-posts"></div>
     </section>
 
-    <!-- Налаштування -->
     <section id="settings" class="section">
       <div class="card fade-in">
         <h2>Налаштування</h2>
@@ -148,40 +138,16 @@
         </div>
         <div class="settings-group">
           <h3>Тема</h3>
-          <button id="toggle-theme">Темна / Світла тема</button>
-        </div>
-        <div class="settings-group">
-          <h3>Сповіщення</h3>
-          <label><input type="checkbox" id="notif-sound"> Звуки сповіщень</label>
-          <label><input type="checkbox" id="notif-chat"> Нові повідомлення</label>
-        </div>
-        <div class="settings-group">
-          <h3>Приватність</h3>
-          <label><input type="checkbox" id="private-chat"> Тільки друзі можуть писати</label>
-          <label><input type="checkbox" id="private-posts"> Пости лише для підписників</label>
-        </div>
-        <div class="settings-group">
-          <h3>Чати</h3>
-          <button id="clear-chat">Очистити історію</button>
-        </div>
-        <div class="settings-group">
-          <h3>Інше</h3>
-          <button id="logout">Вийти</button>
-          <button id="delete-account">Видалити акаунт</button>
+          <button id="toggle-theme">Світла / Темна тема</button>
         </div>
       </div>
     </section>
-
   </main>
 
-<script>
+  <script>
 let db;
 const request=indexedDB.open('FantasyasDB',1);
-request.onupgradeneeded=e=>{
-  db=e.target.result;
-  db.createObjectStore('users',{keyPath:'nick'});
-  db.createObjectStore('posts',{autoIncrement:true});
-};
+request.onupgradeneeded=e=>{db=e.target.result;db.createObjectStore('users',{keyPath:'nick'});db.createObjectStore('posts',{autoIncrement:true});}
 request.onsuccess=e=>{db=e.target.result;initApp();}
 let currentUser=localStorage.getItem('user');
 
@@ -189,61 +155,30 @@ function initApp(){
   const burger=document.getElementById('burger');
   const sidebar=document.getElementById('sidebar');
   burger.addEventListener('click',()=>{burger.classList.toggle('active');sidebar.classList.toggle('active');});
+  document.querySelectorAll('.sidebar a').forEach(a=>{a.addEventListener('click',()=>{document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.getElementById(a.dataset.section).classList.add('active');sidebar.classList.remove('active');burger.classList.remove('active');if(a.dataset.section==='profile') loadProfile();});});
+  document.getElementById('to-reg').addEventListener('click',()=>{document.getElementById('login-form').style.display='none';document.getElementById('reg-form').style.display='block';});
+  document.getElementById('to-login').addEventListener('click',()=>{document.getElementById('reg-form').style.display='none';document.getElementById('login-form').style.display='block';});
 
-  document.querySelectorAll('.sidebar a').forEach(a=>{
-    a.addEventListener('click',()=>{
-      document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-      document.getElementById(a.dataset.section).classList.add('active');
-      sidebar.classList.remove('active');
-      burger.classList.remove('active');
-      if(a.dataset.section==='profile') loadProfile();
-    });
-  });
-
-  document.getElementById('to-reg').addEventListener('click',()=>{
-    document.getElementById('login-form').style.display='none';
-    document.getElementById('reg-form').style.display='block';
-  });
-  document.getElementById('to-login').addEventListener('click',()=>{
-    document.getElementById('reg-form').style.display='none';
-    document.getElementById('login-form').style.display='block';
-  });
-
-  // Реєстрація
   document.getElementById('reg-btn').addEventListener('click',()=>{
     const nick=document.getElementById('reg-nick').value.trim();
     const pass=document.getElementById('reg-pass').value.trim();
-    if(!nick||!pass) return alert('Заповніть поля');
+    if(!nick||!pass)return alert('Заповніть поля');
     const tx=db.transaction('users','readwrite').objectStore('users');
-    tx.get(nick).onsuccess=e=>{
-      if(e.target.result) return alert('Нік зайнятий');
-      tx.add({nick,pass,bio:'',avatar:'',posts:[]});
-      alert('Реєстрація успішна!'); document.getElementById('to-login').click();
-    };
+    tx.get(nick).onsuccess=e=>{if(e.target.result)return alert('Нік зайнятий');tx.add({nick,pass,bio:'',avatar:'',posts:[]});alert('Реєстрація успішна!');document.getElementById('to-login').click();};
   });
 
-  // Вхід
   document.getElementById('login-btn').addEventListener('click',()=>{
     const nick=document.getElementById('login-nick').value.trim();
     const pass=document.getElementById('login-pass').value.trim();
     const tx=db.transaction('users').objectStore('users');
-    tx.get(nick).onsuccess=e=>{
-      const user=e.target.result;
-      if(!user||user.pass!==pass) return alert('Невірні дані');
-      currentUser=nick; localStorage.setItem('user',nick);
-      document.getElementById('auth-card').style.display='none';
-      document.getElementById('post-form').style.display='block';
-      loadPosts();
-    };
+    tx.get(nick).onsuccess=e=>{const user=e.target.result;if(!user||user.pass!==pass)return alert('Невірні дані');currentUser=nick;localStorage.setItem('user',nick);document.getElementById('auth-card').style.display='none';document.getElementById('post-form').style.display='block';loadPosts();};
   });
 
-  // Пости
   document.getElementById('submit-post').addEventListener('click',()=>{
     const text=document.getElementById('post-text').value.trim();
-    if(!text) return alert('Напишіть пост');
+    if(!text)return alert('Напишіть пост');
     const post={author:currentUser,text,created:Date.now()};
-    const tx=db.transaction('posts','readwrite').objectStore('posts');
-    tx.add(post);
+    const tx=db.transaction('posts','readwrite').objectStore('posts');tx.add(post);
     tx.transaction.oncomplete=()=>{document.getElementById('post-text').value='';loadPosts();}
   });
 
@@ -263,9 +198,8 @@ function initApp(){
     };
   }
 
-  // Профіль
   function loadProfile(){
-    if(!currentUser) return alert('Увійдіть!');
+    if(!currentUser)return alert('Увійдіть!');
     const tx=db.transaction('users').objectStore('users');
     tx.get(currentUser).onsuccess=e=>{
       const user=e.target.result;
@@ -289,12 +223,11 @@ function initApp(){
     };
   }
 
-  // Налаштування акаунту
   document.getElementById('save-account').addEventListener('click',()=>{
     const nick=document.getElementById('set-nick').value.trim();
     const pass=document.getElementById('set-pass').value.trim();
     const bio=document.getElementById('set-bio').value.trim();
-    if(!currentUser) return alert('Увійдіть!');
+    if(!currentUser)return alert('Увійдіть!');
     const tx=db.transaction('users','readwrite').objectStore('users');
     tx.get(currentUser).onsuccess=e=>{
       const user=e.target.result;
@@ -308,11 +241,8 @@ function initApp(){
     };
   });
 
-  // Тема
-  document.getElementById('toggle-theme').addEventListener('click',()=>{
-    document.body.classList.toggle('light');
-  });
+  document.getElementById('toggle-theme').addEventListener('click',()=>{document.body.classList.toggle('light');});
 }
-</script>
+  </script>
 </body>
 </html>
