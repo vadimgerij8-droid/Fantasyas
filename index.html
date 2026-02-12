@@ -1,78 +1,77 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>FANTASYAS</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
-* {margin:0; padding:0; box-sizing:border-box;}
-body {font-family:'Manrope',sans-serif; background:#000; color:#fff; min-height:100vh; transition:0.4s;}
-body.light {background:#f8f9fa; color:#111;}
-.top-bar {position:fixed; top:0; left:0; right:0; height:70px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; background:rgba(0,0,0,0.5); backdrop-filter:blur(8px); z-index:1000; transition:0.3s;}
-body.light .top-bar {background:rgba(255,255,255,0.8);}
-.site-name {font-size:1.7rem; font-weight:800; background:linear-gradient(90deg,#fff,#aaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent;}
-body.light .site-name {background:linear-gradient(90deg,#000,#444);}
-.burger {width:30px; height:22px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer; transition:0.3s;}
-.burger span {height:3px; width:100%; background:#fff; border-radius:3px; transition:0.4s;}
-body.light .burger span {background:#000;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Manrope',sans-serif;}
+body{background:#000;color:#fff;min-height:100vh;transition:0.4s;}
+body.light{background:#fff;color:#111;}
+.top-bar{position:fixed;top:0;left:0;right:0;height:70px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:1000;transition:0.3s;}
+body.light .top-bar{background:rgba(255,255,255,0.9);}
+.site-name{font-size:1.7rem;font-weight:800;background:linear-gradient(90deg,#fff,#aaa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;transition:0.3s;}
+body.light .site-name{background:linear-gradient(90deg,#000,#444);}
+.burger{width:30px;height:22px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:0.3s;}
+.burger span{height:3px;width:100%;background:#fff;border-radius:3px;transition:0.4s;}
+body.light .burger span{background:#000;}
 .burger.active span:nth-child(1){transform:rotate(45deg) translate(5px,5px);}
 .burger.active span:nth-child(2){opacity:0;}
 .burger.active span:nth-child(3){transform:rotate(-45deg) translate(6px,-6px);}
-.sidebar {position:fixed; top:0; left:-280px; width:280px; height:100%; background:#111; padding:100px 30px; border-right:1px solid rgba(255,255,255,0.1); transition:0.4s; z-index:900;}
-body.light .sidebar {background:#fff; border-right:1px solid rgba(0,0,0,0.08);}
-.sidebar.active {left:0;}
-.sidebar a {display:block; color:#aaa; text-decoration:none; font-size:1.2rem; font-weight:600; margin:1.2rem 0; transition:0.3s;}
-body.light .sidebar a {color:#555;}
-.sidebar a:hover{color:#fff; transform:translateX(6px);}
-body.light .sidebar a:hover {color:#000;}
-.main-content {margin-top:80px; padding:20px;}
-.section {display:none;}
-.section.active {display:block;}
-.login-box, .new-post, .settings, .profile-edit-form {margin-bottom:20px; display:flex; flex-direction:column; gap:12px; background:rgba(255,255,255,0.05); border-radius:14px; padding:18px; transition:0.3s;}
-body.light .login-box, body.light .new-post, body.light .settings, body.light .profile-edit-form {background:rgba(0,0,0,0.03);}
-input, textarea {padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.08); color:#fff; outline:none; font-family:'Manrope',sans-serif; resize:vertical;}
-body.light input, body.light textarea {background:#fff; color:#000; border:1px solid #ddd;}
-input::placeholder, textarea::placeholder {color:#aaa;}
-button {padding:10px 18px; border:none; border-radius:10px; cursor:pointer; font-weight:700; transition:0.2s;}
-button:hover {opacity:0.9;}
-.danger-btn {background:#c53030; color:#fff;}
-.danger-btn:hover {background:#a71d2a;}
-.feed {display:flex; flex-direction:column; gap:16px; transition:0.3s;}
-.post {background:rgba(255,255,255,0.05); border-radius:12px; padding:16px; border:1px solid rgba(255,255,255,0.1); transition:0.3s;}
-body.light .post {background:rgba(0,0,0,0.03);}
-.post-header {display:flex; align-items:center; gap:12px; margin-bottom:10px;}
-.avatar {width:45px; height:45px; border-radius:50%; background:#444; background-size:cover; background-position:center;}
-body.light .avatar {background:#ccc;}
-.username {font-weight:700;}
-.post-content {margin-bottom:8px;}
-.post-footer {display:flex; gap:15px;}
-.post-footer button {background:none; border:none; color:#aaa; cursor:pointer; display:flex; align-items:center; gap:6px;}
-body.light .post-footer button {color:#666;}
-.post-footer button:hover {color:#fff;}
-body.light .post-footer button:hover {color:#000;}
-.modal {position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:2000; transition:0.3s;}
-.modal.active {display:flex;}
-.modal-content {background:#111; width:90%; max-width:500px; border-radius:16px; padding:24px; position:relative; border:1px solid rgba(255,255,255,0.15);}
-body.light .modal-content {background:#fff; color:#000;}
-.close-modal {position:absolute; top:12px; right:16px; font-size:1.8rem; cursor:pointer; color:#aaa;}
-body.light .close-modal {color:#555;}
-.profile-avatar {width:100px; height:100px; border-radius:50%; background:#333; background-size:cover;}
-body.light .profile-avatar {background:#ddd;}
-.profile-edit-form input[type="file"] {padding:6px; cursor:pointer;}
-.hashtag {color:#1da1f2; font-weight:600; text-decoration:none;}
-body.light .hashtag {color:#1a8cd8;}
-.hashtag:hover {text-decoration:underline;}
-@media(max-width:900px){.sidebar{width:100%; left:-100%; border-right:none;}}
+.sidebar{position:fixed;top:0;left:-280px;width:280px;height:100%;background:#111;padding:100px 30px;border-right:1px solid rgba(255,255,255,0.1);transition:0.4s;z-index:900;}
+body.light .sidebar{background:#fff;border-right:1px solid rgba(0,0,0,0.08);}
+.sidebar.active{left:0;}
+.sidebar a{display:block;color:#aaa;text-decoration:none;font-size:1.2rem;font-weight:600;margin:1.2rem 0;transition:0.3s;}
+body.light .sidebar a{color:#555;}
+.sidebar a:hover{color:#fff;transform:translateX(6px);}
+body.light .sidebar a:hover{color:#000;}
+.main-content{margin-top:80px;padding:20px;}
+.section{display:none;opacity:0;transform:translateY(10px);transition:0.3s;}
+.section.active{display:block;opacity:1;transform:translateY(0);}
+.login-box,.new-post,.settings,.profile-edit-form{margin-bottom:20px;display:flex;flex-direction:column;gap:12px;background:rgba(255,255,255,0.05);border-radius:14px;padding:18px;transition:0.3s;}
+body.light .login-box, body.light .new-post, body.light .settings, body.light .profile-edit-form{background:rgba(0,0,0,0.03);}
+input,textarea{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;outline:none;resize:vertical;}
+body.light input,body.light textarea{background:#fff;color:#000;border:1px solid #ddd;}
+input::placeholder,textarea::placeholder{color:#aaa;}
+button{padding:10px 18px;border:none;border-radius:10px;cursor:pointer;font-weight:700;transition:0.2s;background:#444;color:#fff;}
+button:hover{opacity:0.9;}
+.danger-btn{background:#c53030;color:#fff;}
+.danger-btn:hover{background:#a71d2a;}
+.feed{display:flex;flex-direction:column;gap:16px;transition:0.3s;}
+.post{background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.1);transition:0.3s;}
+body.light .post{background:rgba(0,0,0,0.03);}
+.post-header{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.avatar{width:45px;height:45px;border-radius:50%;background:#444;background-size:cover;background-position:center;}
+body.light .avatar{background:#ccc;}
+.username{font-weight:700;}
+.post-content{margin-bottom:8px;}
+.post-footer{display:flex;gap:15px;}
+.post-footer button{background:none;border:none;color:#aaa;cursor:pointer;display:flex;align-items:center;gap:6px;}
+body.light .post-footer button{color:#666;}
+.post-footer button:hover{color:#fff;}
+body.light .post-footer button:hover{color:#000;}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:2000;transition:0.3s;}
+.modal.active{display:flex;}
+.modal-content{background:#111;width:90%;max-width:500px;border-radius:16px;padding:24px;position:relative;border:1px solid rgba(255,255,255,0.15);}
+body.light .modal-content{background:#fff;color:#000;}
+.close-modal{position:absolute;top:12px;right:16px;font-size:1.8rem;cursor:pointer;color:#aaa;}
+body.light .close-modal{color:#555;}
+.profile-avatar{width:100px;height:100px;border-radius:50%;background:#333;background-size:cover;}
+body.light .profile-avatar{background:#ddd;}
+.profile-edit-form input[type="file"]{padding:6px;cursor:pointer;}
+.hashtag{color:#aaa;font-weight:600;text-decoration:none;}
+.hashtag:hover{text-decoration:underline;}
+@media(max-width:900px){.sidebar{width:100%;left:-100%;border-right:none;}}
 </style>
 </head>
 <body>
 
 <div class="top-bar">
   <div class="burger" id="burger"><span></span><span></span><span></span></div>
-  <div class="site-name">FANTASYAS Live</div>
+  <div class="site-name">FANTASYAS</div>
 </div>
 
 <nav class="sidebar" id="sidebar">
@@ -117,6 +116,18 @@ body.light .hashtag {color:#1a8cd8;}
     <textarea id="dmText" placeholder="Напиши повідомлення..." rows="2"></textarea>
     <button id="sendDm">Відправити</button>
   </div>
+
+  <!-- Групи -->
+  <div id="groups" class="section">
+    <h2>Групи</h2>
+    <p>Тут будуть твої групи</p>
+  </div>
+
+  <!-- Налаштування -->
+  <div id="settings" class="section">
+    <h2>Налаштування</h2>
+    <button id="toggleTheme">Світла/Темна тема</button>
+  </div>
 </main>
 
 <!-- Модалка редагування профілю -->
@@ -126,7 +137,7 @@ body.light .hashtag {color:#1a8cd8;}
     <h2>Редагувати профіль</h2>
     <div class="profile-edit-form">
       <input type="file" id="editAvatarFile"/>
-      <textarea id="editBio" rows="4"></textarea>
+      <textarea id="editBio" rows="4" placeholder="Опис профілю..."></textarea>
       <button id="saveProfileEdit">Зберегти</button>
     </div>
   </div>
@@ -135,44 +146,49 @@ body.light .hashtag {color:#1a8cd8;}
 <script>
 // ───── Firebase конфіг ─────
 const firebaseConfig = {
-  apiKey: "ТУТ_ВАШ_API_KEY",
-  authDomain: "ТУТ_ВАШ_PROJECT.firebaseapp.com",
-  databaseURL: "https://ТУТ_ВАШ_PROJECT.firebaseio.com",
-  projectId: "ТУТ_ВАШ_PROJECT",
-  storageBucket: "ТУТ_ВАШ_PROJECT.appspot.com",
-  messagingSenderId: "ТУТ_ВАШ_ID",
-  appId: "ТУТ_ВАШ_APPID"
+  apiKey: "ВАШ_API_KEY",
+  authDomain: "ВАШ_PROJECT.firebaseapp.com",
+  databaseURL: "https://ВАШ_PROJECT.firebaseio.com",
+  projectId: "ВАШ_PROJECT",
+  storageBucket: "ВАШ_PROJECT.appspot.com",
+  messagingSenderId: "ВАШ_ID",
+  appId: "ВАШ_APPID"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ───── Глобальні змінні ─────
+// ───── Змінні ─────
 let username = localStorage.getItem('fantasyasUsername') || '';
 let userData = {avatar:'', bio:''};
 
 // ───── Бургер меню ─────
-const burger = document.getElementById('burger');
-const sidebar = document.getElementById('sidebar');
-burger.addEventListener('click',()=>{burger.classList.toggle('active'); sidebar.classList.toggle('active');});
+const burger=document.getElementById('burger');
+const sidebar=document.getElementById('sidebar');
+burger.addEventListener('click',()=>{burger.classList.toggle('active');sidebar.classList.toggle('active');});
 
 // ───── Показ секцій ─────
-document.querySelectorAll('[data-section]').forEach(el=>{
-  el.addEventListener('click',()=>{sections.forEach(s=>s.classList.remove('active')); document.getElementById(el.dataset.section).classList.add('active'); sidebar.classList.remove('active'); burger.classList.remove('active');});
-});
 const sections=document.querySelectorAll('.section');
+document.querySelectorAll('[data-section]').forEach(el=>{
+  el.addEventListener('click',()=>{
+    sections.forEach(s=>s.classList.remove('active'));
+    document.getElementById(el.dataset.section).classList.add('active');
+    sidebar.classList.remove('active'); burger.classList.remove('active');
+  });
+});
 
 // ───── Авторизація ─────
 const loginBox=document.getElementById('loginBox');
 const newPostBox=document.getElementById('newPostBox');
-if(username){loginBox.style.display='none'; newPostBox.style.display='flex';}
+if(username){loginBox.style.display='none';newPostBox.style.display='flex';}
 document.getElementById('saveUsername').addEventListener('click',()=>{
   const val=document.getElementById('usernameInput').value.trim();
   if(!val)return alert('Введи ім’я');
   username=val; localStorage.setItem('fantasyasUsername',username);
   loginBox.style.display='none'; newPostBox.style.display='flex';
+  document.getElementById('profileUsernameDisplay').innerText=username;
 });
 
-// ───── Пост ─────
+// ───── Новий пост ─────
 document.getElementById('addPost').addEventListener('click',()=>{
   const text=document.getElementById('postText').value.trim();
   if(!text || !username)return;
@@ -180,8 +196,7 @@ document.getElementById('addPost').addEventListener('click',()=>{
   if(file){
     const reader=new FileReader();
     reader.onload=e=>{
-      const img=e.target.result;
-      db.ref('posts').push({username,text,image:img,time:Date.now()});
+      db.ref('posts').push({username,text,image:e.target.result,time:Date.now()});
       document.getElementById('postText').value=''; document.getElementById('postImage').value='';
     };
     reader.readAsDataURL(file);
@@ -206,11 +221,34 @@ db.ref('posts').on('value',snapshot=>{
         <div class="avatar" style="background-image:url('${p.avatar||''}')"></div>
         <div class="username">${p.username}</div>
       </div>
-      <div class="post-content">${p.text}${p.image?`<img src="${p.image}"/>`:''}</div>
+      <div class="post-content">${p.text}${p.image?`<img src="${p.image}" style="max-width:100%;margin-top:8px;border-radius:8px;"/>`:''}</div>
     `;
     feed.appendChild(div);
   });
 });
+
+// ───── Модалка редагування профілю ─────
+const editModal=document.getElementById('editProfileModal');
+document.getElementById('editProfileBtn').addEventListener('click',()=>editModal.classList.add('active'));
+document.getElementById('closeModal').addEventListener('click',()=>editModal.classList.remove('active'));
+document.getElementById('saveProfileEdit').addEventListener('click',()=>{
+  const file=document.getElementById('editAvatarFile').files[0];
+  const bio=document.getElementById('editBio').value;
+  if(file){
+    const reader=new FileReader();
+    reader.onload=e=>{
+      userData.avatar=e.target.result; 
+      document.getElementById('profileAvatar').style.backgroundImage=`url('${userData.avatar}')`;
+      editModal.classList.remove('active');
+    };
+    reader.readAsDataURL(file);
+  }
+  userData.bio=bio;
+  document.getElementById('profileBio').innerText=bio||'Немає опису';
+});
+
+// ───── Тема ─────
+document.getElementById('toggleTheme').addEventListener('click',()=>document.body.classList.toggle('light'));
 </script>
 </body>
 </html>
