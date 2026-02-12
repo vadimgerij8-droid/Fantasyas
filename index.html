@@ -1,902 +1,206 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FANTASYAS</title>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"/>
-  <!-- Підключення Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
-  <style>
-    :root {
-      --bg: #000;
-      --text: #ffffff;
-      --text-secondary: #cccccc;
-      --card-bg: rgba(255,255,255,0.06);
-      --card-border: rgba(255,255,255,0.12);
-      --input-bg: rgba(255,255,255,0.08);
-      --input-border: rgba(255,255,255,0.18);
-      --btn-bg: #555;
-      --accent: #0af;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FANTASYAS</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;800&display=swap" rel="stylesheet">
 
-    body.light {
-      --bg: #ffffff;
-      --text: #111111;
-      --text-secondary: #555555;
-      --card-bg: rgba(0,0,0,0.04);
-      --card-border: rgba(0,0,0,0.10);
-      --input-bg: #ffffff;
-      --input-border: #d0d0d0;
-      --btn-bg: #444444;
-      --accent: #0066cc;
-    }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Manrope', sans-serif;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      transition: background 0.4s, color 0.4s;
-    }
-
-    .top-bar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 1000;
-      transition: background 0.3s;
-    }
-    body.light .top-bar { background: rgba(255,255,255,0.92); }
-
-    .site-name {
-      font-size: 1.8rem;
-      font-weight: 800;
-      background: linear-gradient(90deg, #ffffff, #bbbbbb);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      -webkit-text-fill-color: transparent;
-    }
-    body.light .site-name {
-      background: linear-gradient(90deg, #111111, #444444);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .burger {
-      width: 32px;
-      height: 24px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      cursor: pointer;
-    }
-    .burger span {
-      height: 3px;
-      width: 100%;
-      background: var(--text);
-      border-radius: 2px;
-      transition: all 0.35s ease;
-    }
-    .burger.active span:nth-child(1) { transform: rotate(45deg) translate(7px, 7px); }
-    .burger.active span:nth-child(2) { opacity: 0; }
-    .burger.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); }
-
-    .sidebar {
-      position: fixed;
-      top: 0; left: -300px;
-      width: 280px;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      padding: 90px 28px;
-      border-right: 1px solid var(--card-border);
-      transition: left 0.4s ease;
-      z-index: 900;
-    }
-    body.light .sidebar { background: rgba(255,255,255,0.5); }
-    .sidebar.active { left: 0; }
-
-    .sidebar a {
-      display: block;
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 1.22rem;
-      font-weight: 600;
-      margin: 1.4rem 0;
-      transition: all 0.25s;
-    }
-    .sidebar a:hover {
-      color: var(--text);
-      transform: translateX(8px);
-    }
-
-    .main-content {
-      margin-top: 90px;
-      padding: 20px;
-      max-width: 720px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .section {
-      display: none;
-      opacity: 0;
-      transform: translateY(12px);
-      transition: opacity 0.35s, transform 0.35s;
-    }
-    .section.active {
-      display: block;
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 20px;
-      margin-bottom: 20px;
-      transition: all 0.2s;
-    }
-
-    input, textarea {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid var(--input-border);
-      background: var(--input-bg);
-      color: var(--text);
-      font-size: 1rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    input:focus, textarea:focus {
-      border-color: var(--accent);
-    }
-    textarea { resize: vertical; min-height: 96px; }
-    ::placeholder { color: var(--text-secondary); opacity: 0.7; }
-
-    button {
-      padding: 11px 20px;
-      border: none;
-      border-radius: 10px;
-      background: var(--btn-bg);
-      color: white;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.22s;
-    }
-    button:hover {
-      opacity: 0.92;
-      transform: scale(1.03);
-    }
-
-    .feed {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .post {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 16px;
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity 0.5s, transform 0.5s;
-    }
-    .post.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .post-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: #555;
-      background-size: cover;
-      background-position: center;
-      flex-shrink: 0;
-      border: 1px solid var(--card-border);
-    }
-    body.light .avatar { background: #ccc; }
-
-    .username {
-      font-weight: 700;
-      font-size: 1.05rem;
-    }
-
-    .post-content {
-      line-height: 1.5;
-      word-break: break-word;
-      color: var(--text);
-    }
-
-    .post-footer {
-      display: flex;
-      gap: 24px;
-      margin-top: 12px;
-    }
-    .post-footer button {
-      background: none;
-      color: var(--text-secondary);
-      font-size: 0.95rem;
-      padding: 0;
-    }
-    .post-footer button:hover {
-      color: var(--text);
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.75);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 2000;
-    }
-    body.light .modal { background: rgba(255,255,255,0.75); }
-    .modal.active { display: flex; }
-
-    .modal-content {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      color: var(--text);
-      width: 92%;
-      max-width: 520px;
-      border-radius: 16px;
-      padding: 28px 24px;
-      position: relative;
-    }
-
-    .modal-content h2 {
-      color: var(--text);
-      margin-bottom: 20px;
-    }
-
-    .close-modal {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      font-size: 2rem;
-      cursor: pointer;
-      color: var(--text-secondary);
-    }
-
-    .profile-header {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 24px;
-      align-items: flex-start;
-      margin-bottom: 32px;
-    }
-
-    .profile-avatar {
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      background: #444;
-      background-size: cover;
-      background-position: center;
-      border: 2px solid var(--card-border);
-      cursor: pointer;
-    }
-    body.light .profile-avatar { background: #ddd; }
-
-    .reaction-badge {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 2px 8px;
-      margin-right: 6px;
-      font-size: 0.9rem;
-    }
-
-    /* Нові стилі для пошуку та месенджера */
-    .search-input { margin-bottom: 20px; }
-    .user-list { display: flex; flex-direction: column; gap: 12px; }
-    .user-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px;
-      border-radius: 10px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      cursor: pointer;
-    }
-    .user-item:hover { background: var(--input-bg); }
-    .user-item .avatar { width: 50px; height: 50px; }
-    .user-item .name { font-weight: 600; }
-    .user-item .status { color: var(--text-secondary); font-size: 0.9rem; }
-
-    .chat-list { display: flex; flex-direction: column; gap: 12px; }
-    .chat-item { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--card-border); cursor: pointer; }
-    .chat-item:hover { background: var(--input-bg); }
-
-    .chat-window { display: none; flex-direction: column; height: 400px; border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; }
-    .chat-header { padding: 12px; border-bottom: 1px solid var(--card-border); display: flex; align-items: center; gap: 8px; }
-    .chat-messages { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-    .message { padding: 8px 12px; border-radius: 10px; max-width: 80%; }
-    .message.sent { background: var(--accent); color: white; align-self: flex-end; }
-    .message.received { background: var(--input-bg); align-self: flex-start; }
-    .chat-input { display: flex; padding: 12px; border-top: 1px solid var(--card-border); }
-    .chat-input input { flex: 1; margin-right: 8px; }
-
-    @media (max-width: 900px) {
-      .sidebar { width: 100%; left: -100%; border-right: none; }
-      .main-content { padding: 16px; margin-top: 80px; }
-      .profile-header { flex-direction: column; align-items: center; text-align: center; }
-    }
-  </style>
+<style>
+body{
+margin:0;
+background:#000;
+color:#fff;
+font-family:Manrope,sans-serif;
+}
+.container{
+max-width:700px;
+margin:80px auto;
+padding:20px;
+}
+.card{
+background:rgba(255,255,255,0.06);
+border:1px solid rgba(255,255,255,0.12);
+padding:20px;
+border-radius:14px;
+margin-bottom:20px;
+}
+input,textarea{
+width:100%;
+padding:12px;
+margin:8px 0;
+border-radius:10px;
+border:1px solid #333;
+background:#111;
+color:#fff;
+}
+button{
+padding:10px 16px;
+border:none;
+border-radius:10px;
+background:#444;
+color:#fff;
+cursor:pointer;
+font-weight:700;
+}
+.post{
+border:1px solid rgba(255,255,255,0.1);
+padding:15px;
+border-radius:12px;
+margin-bottom:15px;
+}
+.username{
+font-weight:800;
+margin-bottom:6px;
+}
+.search-item{
+padding:10px;
+border:1px solid #333;
+border-radius:10px;
+margin:6px 0;
+cursor:pointer;
+}
+</style>
 </head>
 <body>
 
-<div class="top-bar">
-  <div class="burger" id="burger"><span></span><span></span><span></span></div>
-  <div class="site-name">FANTASYAS</div>
+<div class="container">
+
+<div id="authBox" class="card">
+<h2>Вхід</h2>
+<input id="loginNick" placeholder="Псевдонім">
+<input id="loginPass" type="password" placeholder="Пароль">
+<button id="loginBtn">Увійти</button>
+<hr>
+<h3>Реєстрація</h3>
+<input id="regNick" placeholder="Новий псевдонім">
+<input id="regPass" type="password" placeholder="Пароль">
+<button id="registerBtn">Зареєструватися</button>
 </div>
 
-<nav class="sidebar" id="sidebar">
-  <a data-section="home">Головна</a>
-  <a data-section="search">Пошук</a>
-  <a data-section="profile">Профіль</a>
-  <a data-section="messages">Повідомлення</a>
-  <a data-section="groups">Групи</a>
-  <a data-section="settings">Налаштування</a>
-</nav>
+<div id="app" style="display:none;">
 
-<main class="main-content">
+<div class="card">
+<textarea id="postText" placeholder="Що у тебе на думці?"></textarea>
+<button id="addPost">Опублікувати</button>
+</div>
 
-  <div id="home" class="section active">
-    <div class="card" id="authBox">
-      <div id="loginForm">
-        <input type="text" id="loginNickname" placeholder="Псевдонім" autocomplete="off"/>
-        <input type="password" id="loginPassword" placeholder="Пароль"/>
-        <button id="loginBtn">Увійти</button>
-        <p style="margin-top:12px;">Немає акаунта? <span id="toRegister" style="color:var(--accent);cursor:pointer;">Зареєструватися</span></p>
-      </div>
+<div class="card">
+<input id="searchInput" placeholder="Пошук користувачів...">
+<div id="searchResults"></div>
+</div>
 
-      <div id="registerForm" style="display:none;">
-        <input type="text" id="registerNickname" placeholder="Псевдонім" autocomplete="off"/>
-        <input type="password" id="registerPassword" placeholder="Пароль"/>
-        <button id="registerBtn">Зареєструватися</button>
-        <p style="margin-top:12px;">Вже є акаунт? <span id="toLogin" style="color:var(--accent);cursor:pointer;">Увійти</span></p>
-      </div>
-    </div>
+<div id="feed"></div>
 
-    <div class="card" id="newPostBox" style="display:none;">
-      <textarea id="postText" placeholder="Що у тебе на думці?..."></textarea>
-      <button id="addPost" style="margin-top:12px;">Опублікувати</button>
-    </div>
+</div>
 
-    <div class="feed" id="feed"></div>
-  </div>
-
-  <div id="search" class="section">
-    <input type="text" id="searchInput" class="search-input" placeholder="Пошук користувачів..."/>
-    <div class="user-list" id="userList"></div>
-  </div>
-
-  <div id="profile" class="section">
-    <div class="card profile-header">
-      <div class="profile-avatar" id="profileAvatar"></div>
-      <input type="file" id="avatarInput" accept="image/*" style="display:none;"/>
-      <div style="flex:1;">
-        <h2 id="profileUsernameDisplay"></h2>
-        <p id="profileBio" style="margin:8px 0;color:var(--text-secondary);">Немає опису</p>
-        <div style="display:flex;gap:20px;font-weight:600;color:var(--text-secondary);">
-          <span id="postsCount">Пости: 0</span>
-          <span id="followersCount">Підписники: 0</span>
-          <span id="followingCount">Підписки: 0</span>
-        </div>
-      </div>
-      <button id="editProfileBtn">Редагувати профіль</button>
-    </div>
-  </div>
-
-  <div id="messages" class="section">
-    <div class="chat-list" id="chatList"></div>
-    <div class="chat-window" id="chatWindow" style="display:none;">
-      <div class="chat-header" id="chatHeader"></div>
-      <div class="chat-messages" id="chatMessages"></div>
-      <div class="chat-input">
-        <input type="text" id="chatText" placeholder="Напишіть повідомлення..."/>
-        <button id="sendMessage">Відправити</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="settings" class="section card">
-    <h2>Налаштування</h2>
-    <button id="toggleTheme" style="margin-top:16px;">Перемкнути тему</button>
-  </div>
-
-</main>
-
-<div class="modal" id="editProfileModal">
-  <div class="modal-content">
-    <span class="close-modal" id="closeModal">×</span>
-    <h2>Редагувати профіль</h2>
-    <textarea id="editBio" placeholder="Розкажи про себе..." rows="5"></textarea>
-    <button id="saveProfileEdit" style="margin-top:16px;">Зберегти</button>
-  </div>
 </div>
 
 <script>
-// Supabase ініціалізація
-const supabaseUrl = 'https://cubpfcdnlyznoibvcukh.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1YnBmY2RubHl6bm9pYnZjdWtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MDQ1NDcsImV4cCI6MjA4NjQ4MDU0N30.8z6JGRr-R-8LUEpGJ9LORrZDQpxmrvNRVbqboTywL-8';
+const SUPABASE_URL = "https://cubpfcdnlyznoibvcukh.supabase.co";
+const SUPABASE_KEY = "YOUR_ANON_KEY";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const supabase = Supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-// Глобальні змінні
 let currentUser = null;
-let currentUserId = null;
 
-// Перевірка сесії при завантаженні
-supabase.auth.getSession().then(({ data: { session } }) => {
-  if (session) {
-    currentUserId = session.user.id;
-    currentUser = session.user.user_metadata.nickname;
-    authBox.style.display = 'none';
-    newPostBox.style.display = 'block';
-    document.getElementById('profileUsernameDisplay').textContent = currentUser;
-    updateProfile();
-    loadPosts();
-    loadChatList();
-  }
+// РЕЄСТРАЦІЯ
+document.getElementById("registerBtn").onclick = async () => {
+const nick = regNick.value.trim();
+const pass = regPass.value.trim();
+if(!nick || !pass) return alert("Заповни поля");
+
+const { data: existing } = await supabase
+.from("users")
+.select("id")
+.eq("nickname", nick)
+.single();
+
+if(existing) return alert("Нік зайнятий");
+
+await supabase.from("users").insert([
+{ nickname:nick, password:pass }
+]);
+
+alert("Готово. Тепер увійди.");
+};
+
+// ЛОГІН
+document.getElementById("loginBtn").onclick = async () => {
+const nick = loginNick.value.trim();
+const pass = loginPass.value.trim();
+
+const { data, error } = await supabase
+.from("users")
+.select("*")
+.eq("nickname", nick)
+.eq("password", pass)
+.single();
+
+if(error || !data) return alert("Невірні дані");
+
+currentUser = data;
+
+authBox.style.display="none";
+app.style.display="block";
+
+loadPosts();
+};
+
+// ДОДАТИ ПОСТ
+document.getElementById("addPost").onclick = async () => {
+const text = postText.value.trim();
+if(!text) return;
+
+await supabase.from("posts").insert([
+{ user_id:currentUser.id, text }
+]);
+
+postText.value="";
+loadPosts();
+};
+
+// ЗАВАНТАЖЕННЯ ПОСТІВ
+async function loadPosts(){
+feed.innerHTML="";
+
+const { data } = await supabase
+.from("posts")
+.select("*, users(nickname)")
+.order("created_at",{ascending:false});
+
+data.forEach(p=>{
+const div=document.createElement("div");
+div.className="post";
+div.innerHTML=`
+<div class="username">@${p.users.nickname}</div>
+<div>${p.text}</div>
+`;
+feed.appendChild(div);
 });
+}
 
-// ──────────────────────────────────────────────
-// Основні елементи
-// ──────────────────────────────────────────────
+// ПОШУК
+searchInput.oninput = async (e)=>{
+const q=e.target.value;
+searchResults.innerHTML="";
 
-const burger = document.getElementById('burger');
-const sidebar = document.getElementById('sidebar');
-burger.onclick = () => {
-  burger.classList.toggle('active');
-  sidebar.classList.toggle('active');
-};
+if(!q) return;
 
-document.querySelectorAll('[data-section]').forEach(link => {
-  link.onclick = () => {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById(link.dataset.section).classList.add('active');
-    sidebar.classList.remove('active');
-    burger.classList.remove('active');
-    if (link.dataset.section === 'search') loadSearchUsers();
-    if (link.dataset.section === 'messages') loadChatList();
-  };
+const { data } = await supabase
+.from("users")
+.select("nickname")
+.ilike("nickname",`%${q}%`);
+
+data.forEach(u=>{
+const div=document.createElement("div");
+div.className="search-item";
+div.textContent="@"+u.nickname;
+searchResults.appendChild(div);
 });
-
-const authBox     = document.getElementById('authBox');
-const loginForm   = document.getElementById('loginForm');
-const registerForm= document.getElementById('registerForm');
-const newPostBox  = document.getElementById('newPostBox');
-const feed        = document.getElementById('feed');
-
-document.getElementById('toRegister').onclick = () => {
-  loginForm.style.display = 'none';
-  registerForm.style.display = 'block';
 };
-document.getElementById('toLogin').onclick = () => {
-  registerForm.style.display = 'none';
-  loginForm.style.display = 'block';
-};
-
-// ──────────────────────────────────────────────
-// Реєстрація / Логін через Supabase Auth
-// ──────────────────────────────────────────────
-
-document.getElementById('registerBtn').onclick = async () => {
-  const nick = document.getElementById('registerNickname').value.trim();
-  const pass = document.getElementById('registerPassword').value.trim();
-  if (!nick || !pass) return alert('Заповніть усі поля');
-
-  const { data, error } = await supabase.auth.signUp({
-    email: nick + '@fantasyas.com',
-    password: pass,
-    options: {
-      data: { nickname: nick }
-    }
-  });
-
-  if (error) return alert('Помилка реєстрації: ' + error.message);
-  alert('Реєстрація успішна! Тепер увійдіть.');
-  registerForm.style.display = 'none';
-  loginForm.style.display = 'block';
-};
-
-document.getElementById('loginBtn').onclick = async () => {
-  const nick = document.getElementById('loginNickname').value.trim();
-  const pass = document.getElementById('loginPassword').value.trim();
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: nick + '@fantasyas.com',
-    password: pass
-  });
-
-  if (error) return alert('Невірний псевдонім або пароль: ' + error.message);
-
-  currentUserId = data.user.id;
-  currentUser = data.user.user_metadata.nickname;
-  authBox.style.display = 'none';
-  newPostBox.style.display = 'block';
-  document.getElementById('profileUsernameDisplay').textContent = currentUser;
-  updateProfile();
-  loadPosts();
-};
-
-// ──────────────────────────────────────────────
-// Створення поста через Supabase
-// ──────────────────────────────────────────────
-
-document.getElementById('addPost').onclick = async () => {
-  const text = document.getElementById('postText').value.trim();
-  if (!text) return alert('Напишіть текст поста');
-  if (!currentUser) return alert('Спочатку увійдіть');
-
-  const { error } = await supabase.from('posts').insert({
-    user_id: currentUserId,
-    text: text,
-    likes: [],
-    comments: [],
-    reactions: {}
-  });
-
-  if (error) return alert('Помилка публікації: ' + error.message);
-
-  document.getElementById('postText').value = '';
-  loadPosts();
-  updateProfile();
-};
-
-// ──────────────────────────────────────────────
-// Завантаження постів з Supabase
-// ──────────────────────────────────────────────
-
-async function loadPosts() {
-  feed.innerHTML = '';
-
-  const { data: posts, error } = await supabase
-    .from('posts')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error(error);
-    return alert('Помилка завантаження постів');
-  }
-
-  posts.forEach((p, i) => {
-    const post = document.createElement('div');
-    post.className = 'post';
-    post.dataset.postId = p.id;
-    post.dataset.author = p.user_id;
-
-    let reactionsHtml = '';
-    Object.entries(p.reactions || {}).forEach(([emoji, usersArr]) => {
-      if (usersArr.length > 0) reactionsHtml += `<span class="reaction-badge">${emoji} ${usersArr.length}</span>`;
-    });
-
-    post.innerHTML = `
-      <div class="post-header">
-        <div class="avatar"></div>
-        <div class="username">@${p.user_id}</div>
-        <div style="margin-left:auto; position:relative;">
-          <button class="more-btn" style="background:none;border:none;font-size:1.4rem;color:var(--text-secondary);cursor:pointer;">⋯</button>
-          <div class="reaction-menu" style="display:none;position:absolute;right:0;top:30px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;padding:8px;z-index:10;display:flex;flex-wrap:wrap;gap:6px;width:180px;">
-            <button class="emoji-btn" data-emoji="❤️">❤️</button>
-            <button class="emoji-btn" data-emoji="😂">😂</button>
-            <button class="emoji-btn" data-emoji="😮">😮</button>
-            <button class="emoji-btn" data-emoji="😢">😢</button>
-            <button class="emoji-btn" data-emoji="👍">👍</button>
-            <button class="emoji-btn" data-emoji="🔥">🔥</button>
-          </div>
-        </div>
-      </div>
-      <div class="post-content">${p.text.replace(/\n/g, '<br>')}</div>
-
-      <div class="post-footer" style="justify-content:space-between;align-items:center;">
-        <div style="display:flex;gap:24px;">
-          <button class="like-btn" style="background:none;border:none;color:${p.likes.includes(currentUserId)?'red':'var(--text-secondary)'};cursor:pointer;">
-            ${p.likes.includes(currentUserId) ? '❤️' : '♡'} ${p.likes.length}
-          </button>
-          <button class="comment-btn" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;">
-            💬 ${p.comments.length}
-          </button>
-        </div>
-        <div class="reactions-preview" style="font-size:0.9rem;">${reactionsHtml}</div>
-      </div>
-
-      <div class="comments-section" style="margin-top:12px;display:none;border-top:1px solid var(--card-border);padding-top:12px;">
-        <div class="comments-list"></div>
-        <div style="margin-top:8px;display:flex;gap:8px;">
-          <input type="text" class="comment-input" placeholder="Напишіть відповідь..." style="flex:1;background:var(--input-bg);border:1px solid var(--input-border);border-radius:10px;padding:8px;color:var(--text);"/>
-          <button class="send-comment" style="background:var(--btn-bg);color:white;padding:8px 16px;border-radius:10px;cursor:pointer;">Відправити</button>
-        </div>
-      </div>
-    `;
-
-    feed.appendChild(post);
-    setTimeout(() => post.classList.add('show'), 50 * i);
-
-    // Лайк
-    post.querySelector('.like-btn').onclick = async () => {
-      let likes = p.likes || [];
-      if (likes.includes(currentUserId)) {
-        likes = likes.filter(u => u !== currentUserId);
-      } else {
-        likes.push(currentUserId);
-      }
-      const { error } = await supabase.from('posts').update({ likes }).eq('id', p.id);
-      if (error) alert('Помилка лайку');
-      loadPosts();
-    };
-
-    // Реакції
-    const menu = post.querySelector('.reaction-menu');
-    post.querySelector('.more-btn').onclick = (e) => {
-      e.stopPropagation();
-      menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
-    };
-
-    menu.querySelectorAll('.emoji-btn').forEach(btn => {
-      btn.onclick = async () => {
-        const emoji = btn.dataset.emoji;
-        let reactions = p.reactions || {};
-        reactions[emoji] = reactions[emoji] || [];
-        if (reactions[emoji].includes(currentUserId)) {
-          reactions[emoji] = reactions[emoji].filter(u => u !== currentUserId);
-          if (!reactions[emoji].length) delete reactions[emoji];
-        } else {
-          reactions[emoji].push(currentUserId);
-        }
-        const { error } = await supabase.from('posts').update({ reactions }).eq('id', p.id);
-        if (error) alert('Помилка реакції');
-        loadPosts();
-      };
-    });
-
-    // Коментарі
-    const commentsSec = post.querySelector('.comments-section');
-    post.querySelector('.comment-btn').onclick = () => {
-      commentsSec.style.display = commentsSec.style.display === 'none' ? 'block' : 'none';
-      renderComments(post, p);
-    };
-
-    post.querySelector('.send-comment').onclick = async () => {
-      const txt = post.querySelector('.comment-input').value.trim();
-      if (!txt) return;
-      let comments = p.comments || [];
-      comments.push({ user: currentUser, text: txt, createdAt: Date.now() });
-      const { error } = await supabase.from('posts').update({ comments }).eq('id', p.id);
-      if (error) alert('Помилка коментаря');
-      post.querySelector('.comment-input').value = '';
-      loadPosts();
-    };
-  });
-}
-
-function renderComments(post, p) {
-  const list = post.querySelector('.comments-list');
-  list.innerHTML = '';
-  (p.comments || []).forEach(c => {
-    const div = document.createElement('div');
-    div.innerHTML = `<strong>@${c.user}</strong>: ${c.text}`;
-    list.appendChild(div);
-  });
-}
-
-// ──────────────────────────────────────────────
-// Профіль
-// ──────────────────────────────────────────────
-
-async function updateProfile() {
-  if (!currentUserId) return;
-  const { data: user, error } = await supabase.from('profiles').select('*').eq('id', currentUserId).single();
-  if (error || !user) return;
-
-  document.getElementById('postsCount').textContent = `Пости: ${user.posts_count || 0}`;
-  document.getElementById('followersCount').textContent = `Підписники: ${user.followers.length || 0}`;
-  document.getElementById('followingCount').textContent = `Підписки: ${user.following.length || 0}`;
-  document.getElementById('profileBio').textContent = user.bio || 'Немає опису';
-  document.getElementById('profileAvatar').style.backgroundImage = user.avatar ? `url(${user.avatar})` : 'none';
-}
-
-// ─── Аватарка ────────────────────────────────────
-
-document.getElementById('profileAvatar').onclick = () => {
-  document.getElementById('avatarInput').click();
-};
-
-document.getElementById('avatarInput').onchange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const { data, error } = await supabase.storage.from('avatars').upload(`${currentUserId}/${file.name}`, file);
-  if (error) return alert('Помилка завантаження аватарки');
-  const url = supabase.storage.from('avatars').getPublicUrl(data.path).data.publicUrl;
-  await supabase.from('profiles').update({ avatar: url }).eq('id', currentUserId);
-  updateProfile();
-  loadPosts();
-};
-
-// ─── Модалка редагування ─────────────────────────
-
-const modal = document.getElementById('editProfileModal');
-document.getElementById('editProfileBtn').onclick = () => modal.classList.add('active');
-document.getElementById('closeModal').onclick = () => modal.classList.remove('active');
-document.getElementById('saveProfileEdit').onclick = async () => {
-  const bio = document.getElementById('editBio').value.trim();
-  await supabase.from('profiles').update({ bio }).eq('id', currentUserId);
-  modal.classList.remove('active');
-  updateProfile();
-};
-
-// ─── Тема ────────────────────────────────────────
-
-document.getElementById('toggleTheme').onclick = () => {
-  document.body.classList.toggle('light');
-  localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
-};
-
-// ─── Ініціалізація ───────────────────────────────
-
-if (localStorage.getItem('theme') === 'light') {
-  document.body.classList.add('light');
-}
-
-// ──────────────────────────────────────────────
-// Пошук користувачів через Supabase
-// ──────────────────────────────────────────────
-
-async function loadSearchUsers(query = '') {
-  const userList = document.getElementById('userList');
-  userList.innerHTML = '';
-
-  const { data: usersData, error } = await supabase.from('profiles').select('*').ilike('nickname', `%${query}%`);
-
-  if (error) return alert('Помилка пошуку');
-
-  usersData.forEach(u => {
-    const item = document.createElement('div');
-    item.className = 'user-item';
-    item.innerHTML = `
-      <div class="avatar" style="${u.avatar ? `background-image: url(${u.avatar});` : ''}"></div>
-      <div>
-        <div class="name">@${u.nickname}</div>
-        <div class="status">У мережі</div>
-      </div>
-    `;
-    item.onclick = () => openChat(u.nickname);
-    userList.appendChild(item);
-  });
-}
-
-document.getElementById('searchInput').oninput = (e) => loadSearchUsers(e.target.value);
-
-// ──────────────────────────────────────────────
-// Месенджер через Supabase realtime
-// ──────────────────────────────────────────────
-
-let currentChatUser = null;
-
-async function loadChatList() {
-  const chatList = document.getElementById('chatList');
-  chatList.innerHTML = '';
-
-  const { data: messages, error } = await supabase.from('messages').select('*').or(`from.eq.${currentUserId},to.eq.${currentUserId}`).order('created_at', { ascending: false });
-
-  if (error) return alert('Помилка завантаження чатів');
-
-  const chats = {};
-  messages.forEach(m => {
-    const other = m.from === currentUserId ? m.to : m.from;
-    if (!chats[other]) chats[other] = [];
-    chats[other].push(m);
-  });
-
-  for (const other in chats) {
-    const lastMsg = chats[other][0];
-    const item = document.createElement('div');
-    item.className = 'chat-item';
-    item.innerHTML = `
-      <div class="avatar"></div>
-      <div>
-        <div class="name">@${other}</div>
-        <div class="status">${lastMsg.text.slice(0, 20)}...</div>
-      </div>
-    `;
-    item.onclick = () => openChat(other);
-    chatList.appendChild(item);
-  }
-}
-
-function openChat(otherUser) {
-  currentChatUser = otherUser;
-  document.getElementById('chatWindow').style.display = 'flex';
-  document.getElementById('chatHeader').innerHTML = `
-    <div class="avatar"></div>
-    <div class="name">@${otherUser}</div>
-  `;
-  renderChatMessages();
-
-  // Realtime підписка
-  supabase.channel('messages').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, renderChatMessages).subscribe();
-}
-
-async function renderChatMessages() {
-  const chatMessages = document.getElementById('chatMessages');
-  chatMessages.innerHTML = '';
-
-  const { data: msgs, error } = await supabase.from('messages').select('*').or(`(from.eq.${currentUserId},to.eq.${currentChatUser}),(from.eq.${currentChatUser},to.eq.${currentUserId})`).order('created_at', { ascending: true });
-
-  if (error) return;
-
-  msgs.forEach(m => {
-    const div = document.createElement('div');
-    div.className = `message ${m.from === currentUserId ? 'sent' : 'received'}`;
-    div.textContent = m.text;
-    chatMessages.appendChild(div);
-  });
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-document.getElementById('sendMessage').onclick = async () => {
-  const text = document.getElementById('chatText').value.trim();
-  if (!text || !currentChatUser) return;
-
-  const { error } = await supabase.from('messages').insert({
-    from: currentUserId,
-    to: currentChatUser,
-    text: text
-  });
-
-  if (error) return alert('Помилка відправки');
-  document.getElementById('chatText').value = '';
-  renderChatMessages();
-};
-
-// Ініціалізація
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN') {
-    currentUserId = session.user.id;
-    currentUser = session.user.user_metadata.nickname;
-    loadPosts();
-  }
-});
-
 </script>
+
 </body>
 </html>
