@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>FANTASYAS</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"/>
@@ -11,23 +11,47 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Manrope',sans-serif;}
 body{background:#000;color:#fff;min-height:100vh;transition:0.4s;}
 body.light{background:#fff;color:#111;}
+
+/* Верхня панель */
 .top-bar{position:fixed;top:0;left:0;right:0;height:70px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:1000;transition:0.3s;}
 body.light .top-bar{background:rgba(255,255,255,0.9);}
 .site-name{font-size:1.7rem;font-weight:800;background:linear-gradient(90deg,#fff,#aaa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;transition:0.3s;}
 body.light .site-name{background:linear-gradient(90deg,#000,#444);}
+
+/* Бургер меню */
 .burger{width:30px;height:22px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:0.3s;}
 .burger span{height:3px;width:100%;background:#fff;border-radius:3px;transition:0.4s;}
 body.light .burger span{background:#000;}
 .burger.active span:nth-child(1){transform:rotate(45deg) translate(5px,5px);}
 .burger.active span:nth-child(2){opacity:0;}
 .burger.active span:nth-child(3){transform:rotate(-45deg) translate(6px,-6px);}
-.sidebar{position:fixed;top:0;left:-280px;width:280px;height:100%;background:#111;padding:100px 30px;border-right:1px solid rgba(255,255,255,0.1);transition:0.4s;z-index:900;}
-body.light .sidebar{background:#fff;border-right:1px solid rgba(0,0,0,0.08);}
+
+/* Скляне бокове меню */
+.sidebar{
+  position: fixed;
+  top:0;
+  left:-280px;
+  width:280px;
+  height:100%;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(10px);
+  padding:100px 30px;
+  border-right:1px solid rgba(255,255,255,0.1);
+  transition:0.4s;
+  z-index:900;
+}
+body.light .sidebar{
+  background: rgba(255,255,255,0.4);
+  backdrop-filter: blur(10px);
+  border-right:1px solid rgba(0,0,0,0.08);
+}
 .sidebar.active{left:0;}
 .sidebar a{display:block;color:#aaa;text-decoration:none;font-size:1.2rem;font-weight:600;margin:1.2rem 0;transition:0.3s;}
 body.light .sidebar a{color:#555;}
 .sidebar a:hover{color:#fff;transform:translateX(6px);}
 body.light .sidebar a:hover{color:#000;}
+
+/* Контент */
 .main-content{margin-top:80px;padding:20px;}
 .section{display:none;opacity:0;transform:translateY(10px);transition:0.3s;}
 .section.active{display:block;opacity:1;transform:translateY(0);}
@@ -36,12 +60,17 @@ body.light .login-box, body.light .new-post, body.light .settings, body.light .p
 input,textarea{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;outline:none;resize:vertical;}
 body.light input,body.light textarea{background:#fff;color:#000;border:1px solid #ddd;}
 input::placeholder,textarea::placeholder{color:#aaa;}
-button{padding:10px 18px;border:none;border-radius:10px;cursor:pointer;font-weight:700;transition:0.2s;background:#444;color:#fff;}
-button:hover{opacity:0.9;}
+
+/* Кнопки */
+button{padding:10px 18px;border:none;border-radius:10px;cursor:pointer;font-weight:700;transition:0.2s, transform 0.2s;background:#444;color:#fff;}
+button:hover{opacity:0.9;transform:scale(1.05);}
 .danger-btn{background:#c53030;color:#fff;}
 .danger-btn:hover{background:#a71d2a;}
+
+/* Пости */
 .feed{display:flex;flex-direction:column;gap:16px;transition:0.3s;}
-.post{background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.1);transition:0.3s;}
+.post{background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.1);opacity:0;transform:translateY(20px);transition:0.4s;}
+.post.show{opacity:1;transform:translateY(0);}
 body.light .post{background:rgba(0,0,0,0.03);}
 .post-header{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
 .avatar{width:45px;height:45px;border-radius:50%;background:#444;background-size:cover;background-position:center;}
@@ -53,6 +82,8 @@ body.light .avatar{background:#ccc;}
 body.light .post-footer button{color:#666;}
 .post-footer button:hover{color:#fff;}
 body.light .post-footer button:hover{color:#000;}
+
+/* Модалка */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:2000;transition:0.3s;}
 .modal.active{display:flex;}
 .modal-content{background:#111;width:90%;max-width:500px;border-radius:16px;padding:24px;position:relative;border:1px solid rgba(255,255,255,0.15);}
@@ -83,7 +114,6 @@ body.light .profile-avatar{background:#ddd;}
 </nav>
 
 <main class="main-content">
-  <!-- Головна -->
   <div id="home" class="section active">
     <div class="login-box" id="loginBox">
       <input type="text" id="usernameInput" placeholder="Введіть ім'я">
@@ -97,7 +127,6 @@ body.light .profile-avatar{background:#ddd;}
     <div class="feed" id="feed"></div>
   </div>
 
-  <!-- Профіль -->
   <div id="profile" class="section">
     <div class="profile-header">
       <div class="profile-avatar" id="profileAvatar"></div>
@@ -109,7 +138,6 @@ body.light .profile-avatar{background:#ddd;}
     </div>
   </div>
 
-  <!-- Повідомлення -->
   <div id="messages" class="section">
     <h2>Чати</h2>
     <div id="messagesList"></div>
@@ -117,20 +145,17 @@ body.light .profile-avatar{background:#ddd;}
     <button id="sendDm">Відправити</button>
   </div>
 
-  <!-- Групи -->
   <div id="groups" class="section">
     <h2>Групи</h2>
     <p>Тут будуть твої групи</p>
   </div>
 
-  <!-- Налаштування -->
   <div id="settings" class="section">
     <h2>Налаштування</h2>
     <button id="toggleTheme">Світла/Темна тема</button>
   </div>
 </main>
 
-<!-- Модалка редагування профілю -->
 <div class="modal" id="editProfileModal">
   <div class="modal-content">
     <span class="close-modal" id="closeModal">&times;</span>
@@ -144,7 +169,7 @@ body.light .profile-avatar{background:#ddd;}
 </div>
 
 <script>
-// ───── Firebase конфіг ─────
+// Firebase
 const firebaseConfig = {
   apiKey: "ВАШ_API_KEY",
   authDomain: "ВАШ_PROJECT.firebaseapp.com",
@@ -157,16 +182,16 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ───── Змінні ─────
+// Змінні
 let username = localStorage.getItem('fantasyasUsername') || '';
 let userData = {avatar:'', bio:''};
 
-// ───── Бургер меню ─────
+// Бургер меню
 const burger=document.getElementById('burger');
 const sidebar=document.getElementById('sidebar');
 burger.addEventListener('click',()=>{burger.classList.toggle('active');sidebar.classList.toggle('active');});
 
-// ───── Показ секцій ─────
+// Секції
 const sections=document.querySelectorAll('.section');
 document.querySelectorAll('[data-section]').forEach(el=>{
   el.addEventListener('click',()=>{
@@ -176,10 +201,10 @@ document.querySelectorAll('[data-section]').forEach(el=>{
   });
 });
 
-// ───── Авторизація ─────
+// Авторизація
 const loginBox=document.getElementById('loginBox');
 const newPostBox=document.getElementById('newPostBox');
-if(username){loginBox.style.display='none';newPostBox.style.display='flex';}
+if(username){loginBox.style.display='none';newPostBox.style.display='flex'; document.getElementById('profileUsernameDisplay').innerText=username;}
 document.getElementById('saveUsername').addEventListener('click',()=>{
   const val=document.getElementById('usernameInput').value.trim();
   if(!val)return alert('Введи ім’я');
@@ -188,7 +213,7 @@ document.getElementById('saveUsername').addEventListener('click',()=>{
   document.getElementById('profileUsernameDisplay').innerText=username;
 });
 
-// ───── Новий пост ─────
+// Новий пост
 document.getElementById('addPost').addEventListener('click',()=>{
   const text=document.getElementById('postText').value.trim();
   if(!text || !username)return;
@@ -206,7 +231,7 @@ document.getElementById('addPost').addEventListener('click',()=>{
   }
 });
 
-// ───── Вивід постів ─────
+// Показ постів з анімацією
 const feed=document.getElementById('feed');
 db.ref('posts').on('value',snapshot=>{
   feed.innerHTML='';
@@ -224,10 +249,11 @@ db.ref('posts').on('value',snapshot=>{
       <div class="post-content">${p.text}${p.image?`<img src="${p.image}" style="max-width:100%;margin-top:8px;border-radius:8px;"/>`:''}</div>
     `;
     feed.appendChild(div);
+    setTimeout(()=>{div.classList.add('show');},50);
   });
 });
 
-// ───── Модалка редагування профілю ─────
+// Модалка редагування профілю
 const editModal=document.getElementById('editProfileModal');
 document.getElementById('editProfileBtn').addEventListener('click',()=>editModal.classList.add('active'));
 document.getElementById('closeModal').addEventListener('click',()=>editModal.classList.remove('active'));
@@ -237,7 +263,7 @@ document.getElementById('saveProfileEdit').addEventListener('click',()=>{
   if(file){
     const reader=new FileReader();
     reader.onload=e=>{
-      userData.avatar=e.target.result; 
+      userData.avatar=e.target.result;
       document.getElementById('profileAvatar').style.backgroundImage=`url('${userData.avatar}')`;
       editModal.classList.remove('active');
     };
@@ -247,47 +273,8 @@ document.getElementById('saveProfileEdit').addEventListener('click',()=>{
   document.getElementById('profileBio').innerText=bio||'Немає опису';
 });
 
-// ───── Тема ─────
+// Тема
 document.getElementById('toggleTheme').addEventListener('click',()=>document.body.classList.toggle('light'));
 </script>
 </body>
-</html><style>
-/* Анімації для постів */
-.post{opacity:0;transform:translateY(20px);transition:0.4s;}
-.post.show{opacity:1;transform:translateY(0);}
-
-/* Кнопки при наведенні */
-button{transition:0.2s, transform 0.2s;}
-button:hover{transform:scale(1.05);}
-
-/* Секції */
-.section{opacity:0;transform:translateY(10px);transition:0.3s;}
-.section.active{opacity:1;transform:translateY(0);}
-
-/* Бургер меню плавно */
-.burger span{transition:0.4s;}
-</style>
-
-<script>
-// Показ постів з анімацією
-db.ref('posts').on('value',snapshot=>{
-  feed.innerHTML='';
-  const data=snapshot.val();
-  if(!data)return;
-  Object.keys(data).reverse().forEach(key=>{
-    const p=data[key];
-    const div=document.createElement('div');
-    div.className='post';
-    div.innerHTML=`
-      <div class="post-header">
-        <div class="avatar" style="background-image:url('${p.avatar||''}')"></div>
-        <div class="username">${p.username}</div>
-      </div>
-      <div class="post-content">${p.text}${p.image?`<img src="${p.image}" style="max-width:100%;margin-top:8px;border-radius:8px;"/>`:''}</div>
-    `;
-    feed.appendChild(div);
-    // Додаємо клас для анімації після вставки
-    setTimeout(()=>{div.classList.add('show');},50);
-  });
-});
-</script>
+</html>
