@@ -19,6 +19,7 @@
       --btn-bg: linear-gradient(to right,#333,#555);
       --btn-hover: linear-gradient(to right,#444,#666);
       --accent: #0af;
+      --shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
 
     body.light {
@@ -32,16 +33,17 @@
       --btn-bg: linear-gradient(to right,#ddd,#bbb);
       --btn-hover: linear-gradient(to right,#ccc,#aaa);
       --accent: #0066cc;
+      --shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
     * { margin:0; padding:0; box-sizing:border-box; font-family:'Manrope',sans-serif; }
-    body { background:var(--bg); color:var(--text); min-height:100vh; transition:.4s; }
+    body { background:var(--bg); color:var(--text); min-height:100vh; transition:background 0.4s, color 0.4s; }
 
     .top-bar {
       position:fixed; top:0; left:0; right:0; height:70px;
       display:flex; align-items:center; justify-content:space-between;
       padding:0 20px; background:rgba(0,0,0,0.6); backdrop-filter:blur(8px);
-      z-index:1000; transition:.3s;
+      z-index:1000; transition:background 0.3s;
     }
     body.light .top-bar { background:rgba(255,255,255,0.92); }
 
@@ -51,6 +53,8 @@
       -webkit-background-clip:text; color:transparent; -webkit-text-fill-color:transparent;
     }
     body.light .site-name { background:linear-gradient(90deg,#111,#444); }
+
+    .theme-toggle { cursor:pointer; font-size:1.5rem; margin-left:20px; }
 
     .burger { width:32px; height:24px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer; }
     .burger span { height:3px; width:100%; background:var(--text); border-radius:2px; transition:all .35s; }
@@ -75,86 +79,99 @@
 
     .main-content { margin-top:90px; padding:20px; max-width:720px; margin-left:auto; margin-right:auto; }
 
-    .section { display:none; opacity:0; transform:translateY(12px); transition:.35s; }
+    .section { display:none; opacity:0; transform:translateY(12px); transition:opacity 0.35s, transform 0.35s; }
     .section.active { display:block; opacity:1; transform:translateY(0); }
 
-    .card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px; padding:20px; margin-bottom:20px; transition:.2s; }
+    .card { background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px; padding:20px; margin-bottom:20px; transition:.2s; box-shadow:var(--shadow); }
+    .card:hover { transform:scale(1.02); }
 
     input, textarea {
       width:100%; padding:12px 14px; border-radius:10px;
       border:1px solid var(--input-border); background:var(--input-bg);
       color:var(--text); font-size:1rem; outline:none; transition:.2s;
     }
-    input:focus, textarea:focus { border-color:var(--accent); }
+    input:focus, textarea:focus { border-color:var(--accent); box-shadow:0 0 8px var(--accent); }
     textarea { resize:vertical; min-height:96px; }
     ::placeholder { color:var(--text-secondary); opacity:.7; }
 
     button {
       padding:11px 20px; border:none; border-radius:10px;
       background:var(--btn-bg); color:white; font-weight:700;
-      cursor:pointer; transition:.22s; box-shadow:0 2px 8px rgba(0,0,0,0.2);
+      cursor:pointer; transition:all .22s; box-shadow:var(--shadow);
     }
-    button:hover { background:var(--btn-hover); opacity:.92; transform:scale(1.03); }
+    button:hover { background:var(--btn-hover); opacity:.92; transform:scale(1.05); }
     button:active { transform:scale(0.97); }
 
     .feed { display:flex; flex-direction:column; gap:18px; }
 
-    .post {
-      background:var(--card-bg); border:1px solid var(--card-border);
-      border-radius:12px; padding:16px; opacity:0; transform:translateY(24px); transition:.5s;
+    .post { background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px; padding:16px; transition:all .5s; box-shadow:var(--shadow); }
+    .post.show { animation: postShow 0.6s ease forwards; }
+
+    @keyframes postShow {
+      0% { opacity:0; transform:translateY(24px) scale(0.97); }
+      60% { opacity:1; transform:translateY(-8px) scale(1.02); }
+      100% { opacity:1; transform:translateY(0) scale(1); }
     }
-    .post.show { opacity:1; transform:translateY(0); }
 
     .post-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
     .avatar {
       width:48px; height:48px; border-radius:50%; background:#555;
       background-size:cover; background-position:center; flex-shrink:0;
-      border:1px solid var(--card-border);
+      border:1px solid var(--card-border); transition:transform 0.2s;
     }
+    .avatar:hover { transform:scale(1.1); }
     body.light .avatar { background:#ccc; }
 
-    .username { font-weight:700; font-size:1.05rem; }
+    .username { font-weight:700; font-size:1.05rem; cursor:pointer; transition:color 0.2s; }
+    .username:hover { color:var(--accent); }
+
     .post-content { line-height:1.5; word-break:break-word; color:var(--text); }
-    .post-media img, .post-media video { width:100%; border-radius:12px; margin-top:12px; }
+
+    .post-media img, .post-media video { width:100%; border-radius:12px; margin-top:12px; box-shadow:var(--shadow); }
 
     .post-footer { display:flex; gap:24px; margin-top:12px; }
-    .post-footer button { background:none; color:var(--text-secondary); font-size:.95rem; padding:0; box-shadow:none; }
+    .post-footer button { background:none; color:var(--text-secondary); font-size:.95rem; padding:0; box-shadow:none; transition:all 0.2s; }
     .post-footer button:hover { color:var(--text); transform:scale(1.1); }
     .post-footer .like-btn { display:flex; align-items:center; gap:4px; }
 
-    .menu-btn { background:none; color:var(--text-secondary); font-size:1.4rem; cursor:pointer; margin-left:auto; }
+    .comments { margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+    .comment { background:var(--input-bg); padding:8px 12px; border-radius:10px; font-size:0.95rem; }
 
     .emoji-panel {
-      position: absolute; bottom: 36px; left: 0;
-      background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 12px; display: flex; gap: 6px; padding: 8px;
-      opacity: 0; transform: scale(0.7); pointer-events: none;
-      transition: all 0.25s; z-index: 100;
+      position:absolute; bottom:40px; left:0; background:var(--card-bg); border:1px solid var(--card-border);
+      border-radius:12px; display:flex; gap:6px; padding:8px; opacity:0; transform:scale(0.7); pointer-events:none;
+      transition:all 0.25s; z-index:100;
     }
-    .emoji-panel.active {
-      opacity: 1; transform: scale(1); pointer-events: auto;
-    }
-    .emoji-panel span {
-      cursor: pointer; font-size: 1.4rem; transition: transform 0.15s;
-    }
-    .emoji-panel span:hover { transform: scale(1.3); }
+    .emoji-panel.active { opacity:1; transform:scale(1); pointer-events:auto; }
+    .emoji-panel span { cursor:pointer; font-size:1.4rem; transition:transform 0.15s; }
+    .emoji-panel span:hover { transform:scale(1.3) rotate(10deg); animation:pulse 0.5s; }
 
-    @keyframes postShow {
-      0%   { opacity:0; transform:translateY(24px) scale(0.97); }
-      60%  { opacity:1; transform:translateY(-8px) scale(1.02); }
-      100% { transform:translateY(0) scale(1); }
-    }
+    @keyframes pulse { 0% { transform:scale(1); } 50% { transform:scale(1.3); } 100% { transform:scale(1); } }
 
-    .modal { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:2000; }
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:2000; opacity:0; transition:opacity 0.3s; }
+    .modal.active { display:flex; opacity:1; }
     body.light .modal { background:rgba(255,255,255,0.75); }
-    .modal.active { display:flex; }
-    .modal-content { background:var(--card-bg); border:1px solid var(--card-border); color:var(--text); width:92%; max-width:520px; border-radius:16px; padding:28px 24px; position:relative; }
+    .modal-content { background:var(--card-bg); border:1px solid var(--card-border); color:var(--text); width:92%; max-width:520px; border-radius:16px; padding:28px 24px; position:relative; transform:scale(0.9); transition:transform 0.3s; }
+    .modal.active .modal-content { transform:scale(1); }
     .modal-content h2 { color:var(--text); margin-bottom:20px; }
-    .close-modal { position:absolute; top:16px; right:20px; font-size:2rem; cursor:pointer; color:var(--text-secondary); }
+    .close-modal { position:absolute; top:16px; right:20px; font-size:2rem; cursor:pointer; color:var(--text-secondary); transition:color 0.2s; }
+    .close-modal:hover { color:var(--text); }
+
+    .chat-window { display:flex; flex-direction:column; height:400px; border:1px solid var(--card-border); border-radius:12px; overflow:hidden; box-shadow:var(--shadow); }
+    .chat-header { padding:12px; border-bottom:1px solid var(--card-border); display:flex; align-items:center; gap:8px; }
+    .chat-messages { flex:1; padding:12px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+    .message { padding:8px 12px; border-radius:10px; max-width:80%; opacity:0; transform:translateY(12px); transition:all 0.3s; }
+    .message.show { opacity:1; transform:translateY(0); }
+    .message.sent { background:var(--accent); color:white; align-self:flex-end; }
+    .message.received { background:var(--input-bg); align-self:flex-start; }
+    .chat-input { display:flex; padding:12px; border-top:1px solid var(--card-border); }
+    .chat-input input { flex:1; margin-right:8px; }
+    .chat-input button { display:flex; align-items:center; gap:4px; }
 
     @media (max-width:900px) {
       .sidebar { width:100%; left:-100%; border-right:none; }
       .main-content { padding:16px; margin-top:80px; }
+      .profile-header { flex-direction:column; align-items:center; text-align:center; }
     }
   </style>
 </head>
@@ -162,28 +179,53 @@
 
   <div class="top-bar">
     <div class="site-name">FANTASYAS</div>
-    <div class="burger">
+    <span class="theme-toggle" onclick="toggleTheme()">🌙/☀️</span>
+    <div class="burger" onclick="toggleSidebar()">
       <span></span><span></span><span></span>
     </div>
   </div>
 
   <div class="sidebar" id="sidebar">
-    <a href="#feed" class="menu-feed">Стрічка</a>
-    <a href="#search" class="menu-search">Пошук</a>
-    <a href="#profile" class="menu-profile">Профіль</a>
-    <a href="#chats" class="menu-chats">Чати</a>
+    <a href="#" onclick="showSection('auth')">Авторизація</a>
+    <a href="#" onclick="showSection('feed')">Стрічка</a>
+    <a href="#" onclick="showSection('search')">Пошук</a>
+    <a href="#" onclick="showSection('profile')">Профіль</a>
+    <a href="#" onclick="showSection('chats')">Чати</a>
+    <a href="#" onclick="signOutUser()">Вийти</a>
   </div>
 
   <div class="main-content">
 
-    <div id="feed" class="section feed active">
-      <!-- пости додаються через JS -->
+    <!-- Авторизація -->
+    <div id="auth" class="section card">
+      <h2>Авторизація</h2>
+      <input id="email" placeholder="Email" type="email">
+      <input id="password" placeholder="Пароль" type="password">
+      <button onclick="signUp()">Зареєструватися</button>
+      <button onclick="signIn()">Увійти</button>
     </div>
 
-    <!-- інші секції (search, profile, chats) додавайте за потребою -->
+    <!-- Стрічка -->
+    <div id="feed" class="section feed active">
+      <div class="card">
+        <textarea id="postText" placeholder="Що нового?"></textarea>
+        <input id="postMedia" type="file" accept="image/*,video/*">
+        <button onclick="createPost()">Опублікувати</button>
+      </div>
+      <div id="postsContainer"></div>
+    </div>
+
+    <!-- Пошук -->
+    <div id="search" class="section">
+      <input id="searchInput" placeholder="Пошук користувачів..." oninput="searchUsers()">
+      <div id="userList" class="user-list"></div>
+    </div>
+
+    <!-- Профіль -->
     <div id="profile" class="section">
       <div class="profile-header">
-        <div class="profile-avatar" id="profileAvatar"></div>
+        <div class="profile-avatar" id="profileAvatar" onclick="document.getElementById('avatarInput').click()"></div>
+        <input id="avatarInput" type="file" accept="image/*" style="display:none" onchange="uploadAvatar()">
         <div>
           <h2 id="profileUsernameDisplay">@username</h2>
           <p id="profileBio">Біографія...</p>
@@ -192,124 +234,377 @@
             <span id="followersCount">Підписники: 0</span> •
             <span id="followingCount">Підписки: 0</span>
           </div>
-          <button id="editProfileBtn">Редагувати профіль</button>
+          <button id="editProfileBtn" onclick="openEditProfileModal()">Редагувати профіль</button>
+          <div id="otherProfileBtns"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- Чати -->
+    <div id="chats" class="section">
+      <div id="chatList" class="chat-list"></div>
+      <div id="chatWindow" class="chat-window" style="display:none;">
+        <div id="chatHeader" class="chat-header"></div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div class="chat-input">
+          <input id="chatInput" placeholder="Повідомлення...">
+          <button onclick="sendMessage()">Надіслати</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модал редагування профілю -->
+    <div id="editProfileModal" class="modal">
+      <div class="modal-content">
+        <span class="close-modal" onclick="closeModal('editProfileModal')">×</span>
+        <h2>Редагувати профіль</h2>
+        <input id="editNickname" placeholder="Нікнейм">
+        <textarea id="editBio" placeholder="Біо"></textarea>
+        <button onclick="saveProfile()">Зберегти</button>
       </div>
     </div>
 
   </div>
 
   <script type="module">
-    // ──────────────────────────────
-    // Важливо: тут лише фронтенд-демо
-    // Для реальної роботи потрібен Firebase (db, auth, storage)
-    // ──────────────────────────────
+    // Firebase Config (заміни на свій)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDoc, setDoc, updateDoc, doc, query, orderBy, onSnapshot, arrayUnion, arrayRemove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
-    let currentUser = null;           // симуляція
-    let currentChatPartner = null;
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    let currentUser = null;
     let unsubscribeFeed = null;
     let unsubscribeChat = null;
+    let currentChatPartner = null;
+    let currentProfileUid = null;
 
-    // Імітація авторизованого користувача
-    currentUser = { uid: "demoUser123", displayName: "Вадим", nickname: "vadym" };
+    // Тема
+    function toggleTheme() {
+      document.body.classList.toggle('light');
+      localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+    }
+    if (localStorage.getItem('theme') === 'light') toggleTheme();
 
-    // ──────────────────────────────
-    // Анімація постів
-    // ──────────────────────────────
-    function showPostAnimation(postEl, delay = 0) {
-      postEl.style.animation = `postShow 0.6s ease forwards`;
-      postEl.style.animationDelay = `${delay}ms`;
+    // Сайдбар
+    function toggleSidebar() {
+      document.querySelector('.burger').classList.toggle('active');
+      document.getElementById('sidebar').classList.toggle('active');
     }
 
-    // ──────────────────────────────
-    // Імітація завантаження стрічки
-    // ──────────────────────────────
+    // Показ секції
+    function showSection(sectionId) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(sectionId).classList.add('active');
+      toggleSidebar();
+      if (sectionId === 'profile') openUserProfile(currentUser.uid);
+      if (sectionId === 'chats') loadChats();
+    }
+
+    // Авторизація
+    onAuthStateChanged(auth, user => {
+      currentUser = user;
+      if (user) {
+        document.getElementById('auth').style.display = 'none';
+        showSection('feed');
+        subscribeToFeed();
+      } else {
+        showSection('auth');
+      }
+    });
+
+    window.signUp = async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, 'users', cred.user.uid), {
+          nickname: email.split('@')[0],
+          bio: '',
+          avatar: '',
+          followers: [],
+          following: [],
+          posts: []
+        });
+      } catch (e) { alert(e.message); }
+    };
+
+    window.signIn = async () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (e) { alert(e.message); }
+    };
+
+    window.signOutUser = () => signOut(auth);
+
+    // Стрічка постів
     function subscribeToFeed() {
-      const feed = document.getElementById('feed');
-      feed.innerHTML = '';
+      if (unsubscribeFeed) unsubscribeFeed();
+      const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+      unsubscribeFeed = onSnapshot(q, snapshot => {
+        const container = document.getElementById('postsContainer');
+        container.innerHTML = '';
+        let delay = 0;
+        snapshot.forEach(docSnap => {
+          const post = docSnap.data();
+          const postEl = document.createElement('div');
+          postEl.className = 'post';
+          postEl.innerHTML = `
+            <div class="post-header">
+              <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" onclick="openUserProfile('${post.authorUid}')"></div>
+              <div class="username" onclick="openUserProfile('${post.authorUid}')">@${post.authorNickname}</div>
+              ${post.authorUid === currentUser.uid ? `<button class="menu-btn">⋯</button>` : ''}
+            </div>
+            <div class="post-content">${post.text.replace(/\n/g, '<br>')}</div>
+            ${post.mediaUrl ? (post.mediaType === 'video' ? `<video src="${post.mediaUrl}" controls class="post-media"></video>` : `<img src="${post.mediaUrl}" class="post-media">`) : ''}
+            <div class="post-footer">
+              <button class="like-btn ${post.likes?.includes(currentUser.uid) ? 'liked' : ''}" onclick="toggleLike('${docSnap.id}')">
+                ❤️ ${post.likes?.length || 0}
+              </button>
+              <button onclick="toggleComments('${docSnap.id}')">💬 ${post.comments?.length || 0}</button>
+              <button class="emoji-btn">😀</button>
+            </div>
+            <div class="emoji-panel"></div>
+            <div id="comments-${docSnap.id}" class="comments" style="display:none;"></div>
+          `;
+          container.appendChild(postEl);
+          postEl.classList.add('show');
+          postEl.style.animationDelay = `${delay}ms`;
+          delay += 80;
 
-      // Приклад фейкових постів (замість firestore)
-      const fakePosts = [
-        { id:"p1", text:"Привіт, це тестовий пост!", author:"demoUser123", likes:[], comments:[] },
-        { id:"p2", text:"Дуже гарний день сьогодні ☀️", author:"otherUser456", likes:["demoUser123"], comments:["Клас!"] }
-      ];
-
-      let delay = 0;
-      fakePosts.forEach(postData => {
-        const postEl = document.createElement('div');
-        postEl.className = 'post';
-        postEl.innerHTML = `
-          <div class="post-header">
-            <div class="avatar"></div>
-            <div class="username">@${postData.author === currentUser.uid ? currentUser.nickname : 'інший'}</div>
-            ${postData.author === currentUser.uid ? `<button class="menu-btn">⋯</button>` : ''}
-          </div>
-          <div class="post-content">${postData.text.replace(/\n/g,'<br>')}</div>
-          <div class="post-footer">
-            <button class="like-btn ${postData.likes.includes(currentUser.uid) ? 'liked' : ''}">
-              <lottie-player src="https://lottie.host/4c45f979-7b26-4d5b-a930-90d4f5a1f7a6/5W9G0tXg7x.json" background="transparent" speed="1" style="width:24px;height:24px;"></lottie-player>
-              ${postData.likes.length}
-            </button>
-            <button>💬 ${postData.comments.length}</button>
-            <button>🔗 Поділитися</button>
-            <button class="emoji-btn">😀 Емоджі</button>
-          </div>
-          <div class="emoji-panel"></div>
-        `;
-
-        feed.appendChild(postEl);
-        showPostAnimation(postEl, delay);
-        delay += 80;
-
-        // клік по емодзі-кнопці
-        postEl.querySelector('.emoji-btn').onclick = (e) => {
-          let panel = postEl.querySelector('.emoji-panel');
-          if (!panel.innerHTML) {
-            panel.innerHTML = ['😀','😂','😍','😢','😡','👍','👎'].map(em => `<span>${em}</span>`).join('');
-            panel.querySelectorAll('span').forEach(sp => {
-              sp.onclick = () => {
-                alert(`Обрано: ${sp.textContent}`);
-                panel.classList.remove('active');
-              };
-            });
-          }
-          panel.classList.toggle('active');
-        };
+          // Емодзі
+          const emojiBtn = postEl.querySelector('.emoji-btn');
+          emojiBtn.onclick = () => {
+            const panel = postEl.querySelector('.emoji-panel');
+            if (!panel.innerHTML) {
+              panel.innerHTML = ['😀','😂','😍','😢','😡','👍','👎'].map(em => `<span onclick="addReaction('${docSnap.id}', '${em}')">${em}</span>`).join('');
+            }
+            panel.classList.toggle('active');
+          };
+        });
       });
     }
 
-    // ──────────────────────────────
-    // Відкриття профілю (демо)
-    // ──────────────────────────────
-    function openUserProfile(uid) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.getElementById('profile').classList.add('active');
-
-      document.getElementById('profileUsernameDisplay').textContent = `@${uid === currentUser.uid ? currentUser.nickname : 'гість'}`;
-      document.getElementById('profileAvatar').style.backgroundImage = `url(https://i.pravatar.cc/150?u=${uid})`;
-    }
-
-    // ──────────────────────────────
-    // Бургер-меню
-    // ──────────────────────────────
-    document.querySelector('.burger').onclick = () => {
-      document.querySelector('.burger').classList.toggle('active');
-      document.getElementById('sidebar').classList.toggle('active');
+    window.toggleLike = async (postId) => {
+      const postRef = doc(db, 'posts', postId);
+      const snap = await getDoc(postRef);
+      const likes = snap.data().likes || [];
+      if (likes.includes(currentUser.uid)) {
+        await updateDoc(postRef, { likes: arrayRemove(currentUser.uid) });
+      } else {
+        await updateDoc(postRef, { likes: arrayUnion(currentUser.uid) });
+      }
     };
 
-    // ──────────────────────────────
-    // Ініціалізація
-    // ──────────────────────────────
-    subscribeToFeed();
+    window.addReaction = async (postId, emoji) => {
+      const postRef = doc(db, 'posts', postId);
+      await updateDoc(postRef, { reactions: arrayUnion({ uid: currentUser.uid, emoji }) });
+      // Тут можна оновити UI реакцій
+    };
 
-    // Приклад: клік по імені → профіль
-    document.addEventListener('click', e => {
-      const username = e.target.closest('.username, .avatar');
-      if (username) {
-        // тут має бути uid автора поста
-        openUserProfile("someUserId");
+    // Створення поста
+    window.createPost = async () => {
+      const text = document.getElementById('postText').value;
+      if (!text) return alert('Введіть текст');
+      let mediaUrl = '', mediaType = '';
+      const file = document.getElementById('postMedia').files[0];
+      if (file) {
+        const storageRef = ref(storage, `media/${currentUser.uid}/${Date.now()}`);
+        await uploadBytes(storageRef, file);
+        mediaUrl = await getDownloadURL(storageRef);
+        mediaType = file.type.startsWith('video') ? 'video' : 'image';
       }
-    });
+      const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+      const user = userSnap.data();
+      await addDoc(collection(db, 'posts'), {
+        text,
+        authorUid: currentUser.uid,
+        authorNickname: user.nickname,
+        authorAvatar: user.avatar,
+        mediaUrl,
+        mediaType,
+        likes: [],
+        comments: [],
+        reactions: [],
+        createdAt: serverTimestamp()
+      });
+      document.getElementById('postText').value = '';
+      document.getElementById('postMedia').value = '';
+    };
+
+    // Коментарі (приклад, розширь за потребою)
+    window.toggleComments = (postId) => {
+      const commentsDiv = document.getElementById(`comments-${postId}`);
+      commentsDiv.style.display = commentsDiv.style.display === 'none' ? 'block' : 'none';
+      // Завантаж коментарі з підколекції і додай форму додавання
+    };
+
+    // Профіль
+    window.openUserProfile = async (uid) => {
+      currentProfileUid = uid;
+      showSection('profile');
+      const userSnap = await getDoc(doc(db, 'users', uid));
+      const data = userSnap.data();
+      document.getElementById('profileUsernameDisplay').textContent = `@${data.nickname}`;
+      document.getElementById('profileBio').textContent = data.bio || 'Немає біо';
+      document.getElementById('profileAvatar').style.backgroundImage = `url(${data.avatar || ''})`;
+      document.getElementById('postsCount').textContent = `Пости: ${data.posts?.length || 0}`;
+      document.getElementById('followersCount').textContent = `Підписники: ${data.followers?.length || 0}`;
+      document.getElementById('followingCount').textContent = `Підписки: ${data.following?.length || 0}`;
+
+      if (uid === currentUser.uid) {
+        document.getElementById('editProfileBtn').style.display = 'block';
+        const btns = document.getElementById('otherProfileBtns');
+        if (btns) btns.innerHTML = '';
+      } else {
+        document.getElementById('editProfileBtn').style.display = 'none';
+        let btnContainer = document.getElementById('otherProfileBtns');
+        if (!btnContainer) {
+          btnContainer = document.createElement('div');
+          btnContainer.id = 'otherProfileBtns';
+          btnContainer.style.display = 'flex';
+          btnContainer.style.gap = '12px';
+          btnContainer.style.marginTop = '12px';
+          document.querySelector('.profile-header').appendChild(btnContainer);
+        }
+        btnContainer.innerHTML = '';
+        const followBtn = document.createElement('button');
+        const isFollowing = data.followers.includes(currentUser.uid);
+        followBtn.textContent = isFollowing ? 'Відписатися' : 'Підписатися';
+        followBtn.onclick = async () => {
+          await toggleFollow(uid);
+          openUserProfile(uid);
+        };
+        btnContainer.appendChild(followBtn);
+
+        const messageBtn = document.createElement('button');
+        messageBtn.textContent = 'Написати';
+        messageBtn.onclick = () => openChat(data.nickname, uid);
+        btnContainer.appendChild(messageBtn);
+      }
+    };
+
+    window.toggleFollow = async (uid) => {
+      const userRef = doc(db, 'users', uid);
+      const myRef = doc(db, 'users', currentUser.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.data().followers.includes(currentUser.uid)) {
+        await updateDoc(userRef, { followers: arrayRemove(currentUser.uid) });
+        await updateDoc(myRef, { following: arrayRemove(uid) });
+      } else {
+        await updateDoc(userRef, { followers: arrayUnion(currentUser.uid) });
+        await updateDoc(myRef, { following: arrayUnion(uid) });
+      }
+    };
+
+    window.openEditProfileModal = () => {
+      const modal = document.getElementById('editProfileModal');
+      modal.classList.add('active');
+      document.getElementById('editNickname').value = document.getElementById('profileUsernameDisplay').textContent.slice(1);
+      document.getElementById('editBio').value = document.getElementById('profileBio').textContent;
+    };
+
+    window.closeModal = (id) => document.getElementById(id).classList.remove('active');
+
+    window.saveProfile = async () => {
+      const nickname = document.getElementById('editNickname').value;
+      const bio = document.getElementById('editBio').value;
+      await updateDoc(doc(db, 'users', currentUser.uid), { nickname, bio });
+      closeModal('editProfileModal');
+      openUserProfile(currentUser.uid);
+    };
+
+    window.uploadAvatar = async () => {
+      const file = document.getElementById('avatarInput').files[0];
+      if (file) {
+        const storageRef = ref(storage, `avatars/${currentUser.uid}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        await updateDoc(doc(db, 'users', currentUser.uid), { avatar: url });
+        openUserProfile(currentUser.uid);
+      }
+    };
+
+    // Пошук користувачів
+    window.searchUsers = async () => {
+      const queryText = document.getElementById('searchInput').value.toLowerCase();
+      const q = query(collection(db, 'users'));
+      const snapshot = await getDocs(q);
+      const list = document.getElementById('userList');
+      list.innerHTML = '';
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.nickname.toLowerCase().includes(queryText)) {
+          const item = document.createElement('div');
+          item.className = 'user-item';
+          item.innerHTML = `
+            <div class="avatar" style="background-image:url(${data.avatar || ''})"></div>
+            <div class="name">@${data.nickname}</div>
+          `;
+          item.onclick = () => openUserProfile(docSnap.id);
+          list.appendChild(item);
+        }
+      });
+    };
+
+    // Чати
+    function loadChats() {
+      // Завантаж список чатів (приклад: з following)
+    }
+
+    window.openChat = (name, uid) => {
+      currentChatPartner = uid;
+      document.getElementById('chatWindow').style.display = 'flex';
+      document.getElementById('chatHeader').innerHTML = `<div class="name">@${name}</div>`;
+      subscribeToChat(uid);
+    };
+
+    function subscribeToChat(otherUid) {
+      if (unsubscribeChat) unsubscribeChat();
+      const chatId = [currentUser.uid, otherUid].sort().join('_');
+      const q = query(collection(db, `chats/${chatId}/messages`), orderBy('createdAt'));
+      const messagesDiv = document.getElementById('chatMessages');
+      unsubscribeChat = onSnapshot(q, snap => {
+        messagesDiv.innerHTML = '';
+        snap.forEach(m => {
+          const msg = m.data();
+          const div = document.createElement('div');
+          div.className = `message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
+          div.textContent = msg.text;
+          messagesDiv.appendChild(div);
+          setTimeout(() => div.classList.add('show'), 50);
+        });
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      });
+    }
+
+    window.sendMessage = async () => {
+      const text = document.getElementById('chatInput').value;
+      if (!text) return;
+      const chatId = [currentUser.uid, currentChatPartner].sort().join('_');
+      await addDoc(collection(db, `chats/${chatId}/messages`), {
+        text,
+        from: currentUser.uid,
+        createdAt: serverTimestamp()
+      });
+      document.getElementById('chatInput').value = '';
+    };
 
   </script>
 </body>
