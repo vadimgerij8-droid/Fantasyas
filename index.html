@@ -23,6 +23,7 @@
       --accent: #888888;
       --hover: #2c2c2c;
       --shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
+      --font-scale: 1;
     }
 
     body.light {
@@ -37,11 +38,16 @@
       --shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
     }
 
+    body.tv {
+      --font-scale: 1.3;
+    }
+
     body {
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       transition: background 0.25s, color 0.25s;
+      font-size: calc(1rem * var(--font-scale));
     }
 
     /* Топбар */
@@ -211,6 +217,7 @@
       gap: 14px;
       margin-bottom: 18px;
       position: relative;
+      flex-wrap: wrap;
     }
     .avatar {
       width: 52px;
@@ -243,6 +250,33 @@
     }
     .menu-btn:hover { color: var(--text); transform: scale(1.2); background: none; border: none; }
 
+    /* Анімована кнопка підписки під постом */
+    .subscribe-post-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 6px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-left: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .subscribe-post-btn:hover {
+      background: var(--accent);
+      color: black;
+      border-color: var(--accent);
+      transform: scale(1.05);
+    }
+    .subscribe-post-btn:active {
+      animation: pulse 0.3s ease;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
     .post-content {
       font-size: 1.05rem;
       line-height: 1.6;
@@ -274,24 +308,6 @@
       color: var(--text-sec);
     }
     .post-footer button:hover { background: var(--hover); color: var(--text); border: none; }
-
-    /* Кнопка підписки під постом */
-    .subscribe-post-btn {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 30px;
-      padding: 6px 16px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      margin-left: 16px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .subscribe-post-btn:hover {
-      background: var(--accent);
-      color: black;
-      border-color: var(--accent);
-    }
 
     /* Коментарі */
     .comments-section {
@@ -556,9 +572,7 @@
   </div>
 
   <!-- ПРОФІЛЬ (динамічний) -->
-  <div id="profile" class="section">
-    <!-- профіль буде заповнюватись динамічно, але поки заглушка -->
-  </div>
+  <div id="profile" class="section"></div>
 
   <!-- ЧАТИ -->
   <div id="chats" class="section">
@@ -577,6 +591,7 @@
   <div id="settings" class="section card">
     <h2>Налаштування</h2>
     <button id="toggleTheme" style="margin:20px 0;">Перемкнути тему 🌙/☀️</button>
+    <button id="toggleTvMode" style="margin:20px 0;">Режим телевізора 📺</button>
     <button id="logoutBtn">Вийти</button>
   </div>
 </main>
@@ -649,7 +664,6 @@
       if (sectionId === 'search') loadSearchUsers();
       if (sectionId === 'chats') loadChatList();
       if (sectionId === 'profile') {
-        // якщо не вибрано іншого користувача, показуємо свій профіль
         if (!viewingProfileUid || viewingProfileUid === currentUser?.uid) {
           viewingProfileUid = currentUser?.uid;
           loadMyProfile();
@@ -783,7 +797,6 @@
         author: currentUser.uid, text, mediaUrl, mediaType,
         createdAt: serverTimestamp(), likes: [], commentsCount: 0
       });
-      // додати пост в масив постів користувача
       await updateDoc(doc(db, "users", currentUser.uid), {
         posts: arrayUnion(postRef.id)
       });
@@ -792,7 +805,7 @@
     } catch (e) { alert(e.message); }
   };
 
-  // стрічка з анімацією
+  // стрічка
   function subscribeToFeed() {
     if (unsubscribeFeed) unsubscribeFeed();
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -806,14 +819,12 @@
         const isOwn = post.author === currentUser?.uid;
         const liked = post.likes?.includes(currentUser?.uid) || false;
 
-        // чи підписаний поточний на автора
         let isFollowing = false;
         if (currentUser && post.author !== currentUser.uid) {
           const currentUserSnap = await getDoc(doc(db, "users", currentUser.uid));
           isFollowing = currentUserSnap.data().following?.includes(post.author) || false;
         }
 
-        // коментарі
         const commentsQuery = query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "desc"));
         const commentsSnap = await getDocs(commentsQuery);
         const comments = [];
@@ -832,11 +843,11 @@
           ${post.mediaUrl ? (post.mediaType==='image' ? `<img src="${post.mediaUrl}" class="post-media">` : `<video src="${post.mediaUrl}" controls class="post-media"></video>`) : ''}
           <div class="post-footer">
             <button class="like-btn ${liked ? 'liked' : ''}" data-post-id="${postId}">
-              <span style="font-size:1.4rem;">${liked ? '❤️' : '🤍'}</span>
+              <span style="font-size:1.4rem;">${liked ? '♥' : '♡'}</span>
               <span>${post.likes?.length || 0}</span>
             </button>
             <button class="comments-toggle" data-post-id="${postId}">
-              <span style="font-size:1.4rem;">💬</span> <span>${post.commentsCount || 0}</span>
+              <span style="font-size:1.4rem;">✉</span> <span>${post.commentsCount || 0}</span>
             </button>
           </div>
           <div class="comments-section" id="comments-${postId}" style="display:none;">
@@ -852,7 +863,6 @@
           </div>
         `;
 
-        // вставити коментарі
         const listDiv = postEl.querySelector(`#comments-list-${postId}`);
         if (listDiv) {
           listDiv.innerHTML = comments.reverse().map(c => `
@@ -871,9 +881,9 @@
     });
   }
 
-  // лайки, коментарі, меню, підписка, клік на аватар/ім'я
+  // Обробник подій на стрічці
   document.getElementById('feed').addEventListener('click', async (e) => {
-    // лайк
+    // Лайк
     if (e.target.closest('.like-btn')) {
       const btn = e.target.closest('.like-btn');
       const postId = btn.dataset.postId;
@@ -887,7 +897,7 @@
       }
     }
 
-    // меню поста (редагування/видалення)
+    // Меню поста
     if (e.target.closest('.menu-btn')) {
       const postId = e.target.closest('.menu-btn').dataset.postId;
       const action = prompt('1 - редагувати, 2 - видалити');
@@ -899,23 +909,23 @@
         document.getElementById('editPostModal').classList.add('active');
       } else if (action === '2') {
         if (confirm('Видалити пост?')) {
-          await deleteDoc(doc(db, "posts", postId));
-          // видалити з масиву постів автора
+          const postRef = doc(db, "posts", postId);
           const postSnap = await getDoc(postRef);
           const author = postSnap.data().author;
+          await deleteDoc(postRef);
           await updateDoc(doc(db, "users", author), { posts: arrayRemove(postId) });
         }
       }
     }
 
-    // показати/сховати коментарі
+    // Показати коментарі
     if (e.target.closest('.comments-toggle')) {
       const postId = e.target.closest('.comments-toggle').dataset.postId;
       const sec = document.getElementById(`comments-${postId}`);
       sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
     }
 
-    // відправити коментар
+    // Відправити коментар
     if (e.target.closest('.send-comment')) {
       const btn = e.target.closest('.send-comment');
       const postId = btn.dataset.postId;
@@ -927,13 +937,11 @@
       await addDoc(collection(db, "posts", postId, "comments"), {
         author: currentUser.uid, authorNickname: userData.nickname, authorAvatar: userData.avatar || '', text, createdAt: serverTimestamp()
       });
-      // збільшити лічильник коментарів
-      const postRef = doc(db, "posts", postId);
-      await updateDoc(postRef, { commentsCount: arrayUnion('dummy') }); // просто тригер
+      await updateDoc(doc(db, "posts", postId), { commentsCount: arrayUnion('dummy') });
       textarea.value = '';
     }
 
-    // показати панель емодзі для коментаря
+    // Показати емодзі для коментаря
     if (e.target.closest('.emoji-comment-btn')) {
       const btn = e.target.closest('.emoji-comment-btn');
       const postId = btn.dataset.postId;
@@ -941,7 +949,7 @@
       picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
     }
 
-    // вибрати емодзі
+    // Вибрати емодзі
     if (e.target.closest('.emoji-panel span')) {
       const span = e.target.closest('.emoji-panel span');
       const picker = span.closest('.emoji-panel');
@@ -951,20 +959,19 @@
       picker.style.display = 'none';
     }
 
-    // підписка з поста
+    // Підписка з поста
     if (e.target.closest('.subscribe-post-btn')) {
       const btn = e.target.closest('.subscribe-post-btn');
       const authorUid = btn.dataset.authorUid;
       await toggleFollow(authorUid);
-      // оновити текст кнопки
       const isFollowing = (await getDoc(doc(db, "users", currentUser.uid))).data().following.includes(authorUid);
       btn.textContent = isFollowing ? 'Відписатися' : 'Підписатися';
+      // анімація пульсу спрацює через CSS :active
     }
 
-    // клік на аватар або ім'я
-    if (e.target.closest('.avatar, .username, .comment-author')) {
+    // Клік на аватар або ім'я
+    if (e.target.closest('[data-uid]')) {
       const el = e.target.closest('[data-uid]');
-      if (!el) return;
       const uid = el.dataset.uid;
       if (uid === currentUser.uid) {
         viewingProfileUid = currentUser.uid;
@@ -973,7 +980,6 @@
         viewingProfileUid = uid;
         loadUserProfile(uid);
       }
-      // перейти на секцію профілю
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById('profile').classList.add('active');
       document.getElementById('sidebar').classList.remove('active');
@@ -981,7 +987,7 @@
     }
   });
 
-  // редагування поста
+  // Редагування поста
   document.getElementById('savePostEdit').onclick = async () => {
     if (!currentEditPostId) return;
     const newText = document.getElementById('editPostText').value.trim();
@@ -994,7 +1000,7 @@
     currentEditPostId = null;
   };
 
-  // пошук (миттєвий, нижній регістр)
+  // Пошук
   async function loadSearchUsers() {
     const val = document.getElementById('searchInput').value.trim().toLowerCase();
     const userList = document.getElementById('userList');
@@ -1021,7 +1027,6 @@
         loadSearchUsers();
       };
       div.onclick = () => {
-        // відкрити профіль користувача
         viewingProfileUid = d.id;
         loadUserProfile(d.id);
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -1098,10 +1103,9 @@
     if (!isOwn && currentUser) {
       document.getElementById('profileFollowBtn').onclick = async () => {
         await toggleFollow(uid);
-        loadUserProfile(uid); // перезавантажити профіль
+        loadUserProfile(uid);
       };
       document.getElementById('profileMessageBtn').onclick = () => {
-        // відкрити чат з цим користувачем
         openChat(data.nickname, uid);
         document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
         document.getElementById('chats').classList.add('active');
@@ -1131,7 +1135,7 @@
     }
   }
 
-  // редагування профілю
+  // Редагування профілю
   document.getElementById('closeModal').onclick = () => document.getElementById('editProfileModal').classList.remove('active');
   document.getElementById('saveProfileEdit').onclick = async () => {
     const nickname = document.getElementById('editNickname').value.trim();
@@ -1142,7 +1146,7 @@
     document.getElementById('editProfileModal').classList.remove('active');
   };
 
-  // чати
+  // Чати
   async function loadChatList() {
     const list = document.getElementById('chatList');
     list.innerHTML = '';
@@ -1168,7 +1172,6 @@
       <div class="avatar" style="background-image:url(${''})"></div>
       <span>@${name}</span>
     `;
-    // завантажити аватар співрозмовника
     getDoc(doc(db, "users", uid)).then(snap => {
       if (snap.exists()) {
         document.querySelector('#chatHeader .avatar').style.backgroundImage = `url(${snap.data().avatar || ''})`;
@@ -1205,17 +1208,22 @@
     document.getElementById('chatText').value = '';
   };
 
-  // тема
+  // Тема
   document.getElementById('toggleTheme').onclick = () => {
     document.body.classList.toggle('light');
     localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
   };
   if (localStorage.getItem('theme') === 'light') document.body.classList.add('light');
 
-  // вихід
+  // Режим телевізора (збільшення шрифту)
+  document.getElementById('toggleTvMode').onclick = () => {
+    document.body.classList.toggle('tv');
+  };
+
+  // Вихід
   document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-  // приховати чат спочатку
+  // Приховати чат спочатку
   document.getElementById('chatWindow').style.display = 'none';
 </script>
 </body>
