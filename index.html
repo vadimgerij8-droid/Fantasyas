@@ -3,211 +3,152 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FANTASYAS</title>
+<title>FANTASYAS — Реакції на постах</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
 <style>
 :root{
 --bg:#0a0a0a;
---glass:rgba(20,20,20,.55);
---card:#121212ee;
+--glass:rgba(20,20,20,.6);
+--card:#141414ee;
 --text:#f2f2f2;
 --muted:#9a9a9a;
 --border:#222;
---shadow:0 20px 60px rgba(0,0,0,.6);
+--accent:#00d4ff;
 }
-body.light{
---bg:#f2f2f2;
---glass:rgba(255,255,255,.7);
---card:#ffffffee;
---text:#111;
---muted:#666;
---border:#ddd;
---shadow:0 20px 40px rgba(0,0,0,.15);
-}
-
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Manrope,sans-serif;background:var(--bg);color:var(--text);transition:.4s}
+body{font-family:Manrope,sans-serif;background:var(--bg);color:var(--text);}
+.top{position:fixed;top:0;left:0;right:0;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--glass);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:1000;}
+.sidebar{position:fixed;top:0;left:-80px;width:80px;height:100%;background:var(--glass);backdrop-filter:blur(20px);border-right:1px solid var(--border);padding-top:90px;display:flex;flex-direction:column;align-items:center;gap:16px;transition:.4s;}
+.sidebar.active{left:0;}
+.sidebar button{width:48px;height:48px;border-radius:14px;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;}
+.sidebar button.active,.sidebar button:hover{background:rgba(255,255,255,.08);color:var(--text);}
+main{padding:90px 20px;max-width:900px;margin:auto;}
+.section{display:none;}
+.section.active{display:block;}
+.card{background:var(--card);border-radius:22px;padding:18px;border:1px solid var(--border);margin-bottom:20px;}
 
-.top-bar{
-position:fixed;top:0;left:0;right:0;height:64px;
-display:flex;align-items:center;justify-content:space-between;
-padding:0 22px;background:var(--glass);
-backdrop-filter:blur(20px);
-border-bottom:1px solid var(--border);
-z-index:1000;
-}
-
-.site-name{font-weight:800;font-size:1.7rem}
-
-.burger{width:30px;height:22px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
-.burger span{height:3px;background:var(--text);border-radius:3px;transition:.4s}
-.burger.active span:nth-child(1){transform:rotate(45deg) translate(6px,6px)}
-.burger.active span:nth-child(2){opacity:0}
-.burger.active span:nth-child(3){transform:rotate(-45deg) translate(6px,-6px)}
-
-.sidebar{
-position:fixed;top:0;left:-280px;width:280px;height:100%;
-background:var(--glass);backdrop-filter:blur(24px);
-padding:90px 22px;border-right:1px solid var(--border);
-transition:.45s cubic-bezier(.22,1,.36,1);z-index:900;
-}
-.sidebar.active{left:0}
-.sidebar a{
-display:flex;align-items:center;gap:12px;
-padding:14px;border-radius:16px;
-color:var(--muted);text-decoration:none;margin-bottom:10px;
-}
-.sidebar a.active,.sidebar a:hover{
-background:rgba(255,255,255,.08);color:var(--text)
-}
-
-main{padding:90px 20px;max-width:900px;margin:auto}
-.section{display:none}.section.active{display:block}
-
-.card{
-background:var(--card);
-border-radius:24px;padding:22px;
-border:1px solid var(--border);
-box-shadow:var(--shadow);
-margin-bottom:26px;
-animation:fade .4s ease;
-}
-@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
-
-textarea,input{
-width:100%;padding:14px;border-radius:16px;
-border:1px solid var(--border);
-background:rgba(0,0,0,.25);
-color:var(--text);resize:none
-}
-
-button{
-background:var(--text);color:var(--bg);
-border:none;padding:10px 16px;
-border-radius:14px;font-weight:600;
-cursor:pointer;transition:.25s
-}
-button:hover{transform:scale(1.05)}
-
-.post{padding:16px}
-.post-header{display:flex;gap:12px;align-items:center}
-.avatar{width:40px;height:40px;border-radius:50%;background:#444;display:flex;align-items:center;justify-content:center}
-.reactions{display:flex;gap:8px;margin-top:8px;font-size:.9rem}
-.reactions span{cursor:pointer;opacity:.7}
-.reactions span.active{opacity:1}
-
-.reply{margin-left:20px;margin-top:10px;border-left:2px solid var(--border);padding-left:12px}
-
-.notify{
-background:#fff;color:#000;font-size:.8rem;
-padding:2px 6px;border-radius:10px;margin-left:auto
-}
+/* POST */
+.post-header{display:flex;justify-content:space-between;align-items:center;}
+.menu{position:relative;}
+.menu-box{position:absolute;right:0;top:24px;background:var(--glass);border:1px solid var(--border);border-radius:12px;display:none;flex-direction:column;}
+.menu-box button{text-align:left;cursor:pointer;border:none;background:none;color:var(--text);padding:6px 10px;}
+.menu-box button:hover{background:rgba(255,255,255,.08);}
+textarea,input{width:100%;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:14px;padding:10px;color:var(--text);}
+button{background:none;border:1px solid var(--border);border-radius:12px;padding:6px 12px;color:var(--text);cursor:pointer;margin-top:4px;}
+.reactions{display:flex;gap:10px;margin-top:6px;}
+.reactions span{cursor:pointer;padding:4px 8px;border-radius:10px;background:rgba(255,255,255,.05);font-size:0.9rem;transition:.2s;}
+.reactions span:hover{background:rgba(255,255,255,.12);}
+.emoji-menu{position:absolute;bottom:28px;left:0;display:flex;gap:6px;background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:4px;display:none;z-index:10;}
+.emoji-menu span{cursor:pointer;padding:6px 8px;font-size:1.1rem;}
 </style>
 </head>
-
 <body>
 
-<div class="top-bar">
-<div class="burger" id="burger"><span></span><span></span><span></span></div>
-<div class="site-name">FANTASYAS</div>
+<div class="top"><b>FANTASYAS</b></div>
+<div class="sidebar" id="sidebar">
+<button onclick="openSection('feed')" class="active"><i class="fa-solid fa-house"></i></button>
+<button onclick="openSection('profile')"><i class="fa-solid fa-user"></i></button>
 </div>
 
-<nav class="sidebar" id="sidebar">
-<a data-section="home" class="active">📰 Головна</a>
-<a data-section="profile">👤 Профіль</a>
-<a data-section="settings">⚙️ Налаштування <span id="notif" class="notify" style="display:none">!</span></a>
-</nav>
-
 <main>
-
-<section id="home" class="section active">
+<section id="feed" class="section active">
 <div class="card">
 <textarea id="postText" placeholder="Що нового?"></textarea>
 <button onclick="addPost()">Опублікувати</button>
 </div>
-<div id="feed"></div>
+<div id="feedPosts"></div>
 </section>
 
 <section id="profile" class="section">
 <div class="card">
-<h3>@you <span style="color:#0f0">● online</span></h3>
-<textarea placeholder="Біо"></textarea>
+<b>Профіль</b>
 </div>
 </section>
-
-<section id="settings" class="section">
-<div class="card">
-<button onclick="toggleTheme()">🌗 Тема</button>
-</div>
-</section>
-
 </main>
 
 <script>
-const burger=document.getElementById('burger');
-const sidebar=document.getElementById('sidebar');
-burger.onclick=()=>{burger.classList.toggle('active');sidebar.classList.toggle('active')};
+const currentUser='you';
+let posts=[];
 
-document.querySelectorAll('.sidebar a').forEach(a=>{
-a.onclick=()=>{
-document.querySelectorAll('.sidebar a').forEach(x=>x.classList.remove('active'));
-a.classList.add('active');
+function toggleSidebar(){sidebar.classList.toggle('active');}
+function openSection(id){
 document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-document.getElementById(a.dataset.section).classList.add('active');
-sidebar.classList.remove('active');burger.classList.remove('active');
-};
-});
-
-const feed=document.getElementById('feed');
-let posts=JSON.parse(localStorage.getItem('posts')||'[]');
-
-function save(){localStorage.setItem('posts',JSON.stringify(posts))}
+document.getElementById(id).classList.add('active');
+document.querySelectorAll('.sidebar button').forEach(b=>b.classList.remove('active'));
+event.target.closest('button').classList.add('active');
+sidebar.classList.remove('active');
+}
 
 function addPost(){
-const text=postText.value.trim();
-if(!text)return;
-posts.unshift({text,likes:{},replies:[]});
-save();render();postText.value='';
-}
-
-function react(i,r){
-posts[i].likes[r]=(posts[i].likes[r]||0)+1;
-notify();save();render();
-}
-
-function reply(i){
-const t=prompt('Відповідь');
+const t=postText.value.trim();
 if(!t)return;
-posts[i].replies.push(t);
-notify();save();render();
+posts.unshift({text:t,author:currentUser,comments:[],reactions:{}});
+postText.value='';
+render();
 }
 
-function notify(){
-document.getElementById('notif').style.display='inline';
+function toggleMenu(id){
+document.querySelectorAll('.menu-box').forEach(m=>m.style.display='none');
+document.getElementById(id).style.display='flex';
+}
+
+function deletePost(i){
+posts.splice(i,1);
+render();
+}
+
+function toggleEmojiMenu(i){
+const el=document.getElementById('emoji-'+i);
+el.style.display=el.style.display==='flex'?'none':'flex';
+}
+
+function addReaction(i,e){
+if(!posts[i].reactions[e]) posts[i].reactions[e]=[];
+const userIndex=posts[i].reactions[e].indexOf(currentUser);
+if(userIndex===-1) posts[i].reactions[e].push(currentUser);
+else posts[i].reactions[e].splice(userIndex,1);
+render();
 }
 
 function render(){
-feed.innerHTML='';
+feedPosts.innerHTML='';
 posts.forEach((p,i)=>{
-feed.innerHTML+=`
-<div class="card post">
-<div class="post-header"><div class="avatar">🙂</div><b>@you</b></div>
-<p>${p.text}</p>
-<div class="reactions">
-<span onclick="react(${i},'❤️')">❤️ ${p.likes['❤️']||0}</span>
-<span onclick="react(${i},'😂')">😂 ${p.likes['😂']||0}</span>
-<span onclick="reply(${i})">💬</span>
+let reactionsHTML='';
+for(const em in p.reactions){
+if(p.reactions[em].length>0) reactionsHTML+=`<span>${em} ${p.reactions[em].length}</span>`;
+}
+feedPosts.innerHTML+=`
+<div class="card">
+<div class="post-header">
+<b>@${p.author}</b>
+${p.author===currentUser?`
+<div class="menu">
+<button onclick="toggleMenu('m-${i}')"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+<div class="menu-box" id="m-${i}">
+<button onclick="deletePost(${i})">Видалити</button>
 </div>
-${p.replies.map(r=>`<div class="reply">${r}</div>`).join('')}
+</div>`:''}
+</div>
+<p>${p.text}</p>
+
+<div style="position:relative">
+<button onclick="toggleEmojiMenu(${i})">😊 Реакції</button>
+<div class="emoji-menu" id="emoji-${i}">
+<span onclick="addReaction(${i},'❤️')">❤️</span>
+<span onclick="addReaction(${i},'😂')">😂</span>
+<span onclick="addReaction(${i},'😮')">😮</span>
+<span onclick="addReaction(${i},'😢')">😢</span>
+<span onclick="addReaction(${i},'👍')">👍</span>
+</div>
+<div class="reactions">${reactionsHTML}</div>
+</div>
+
 </div>`;
 });
 }
-render();
-
-function toggleTheme(){document.body.classList.toggle('light')}
 </script>
-
 </body>
 </html>
