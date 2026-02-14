@@ -98,6 +98,10 @@
       border-bottom: 1px solid var(--border);
       box-shadow: var(--shadow);
       z-index: 1000;
+      transition: all 0.3s ease;
+    }
+    .top-bar:hover {
+      background: var(--hover);
     }
 
     .site-name {
@@ -108,6 +112,12 @@
       background-clip: text;
       color: transparent;
       letter-spacing: -0.5px;
+      animation: gradient-shift 5s infinite;
+    }
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
     body.light .site-name { background: linear-gradient(145deg, #111, #555); -webkit-background-clip: text; }
 
@@ -171,7 +181,7 @@
     }
     .sidebar a:hover .icon-svg {
       stroke: var(--text);
-      transform: scale(1.1);
+      transform: scale(1.1) rotate(5deg);
     }
     .sidebar a:hover {
       color: var(--text);
@@ -197,6 +207,12 @@
       font-size: 0.8rem;
       margin-left: 8px;
       display: inline-block;
+      animation: pulse-badge 1.5s infinite;
+    }
+    @keyframes pulse-badge {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
     }
 
     .main-content {
@@ -222,7 +238,7 @@
       -webkit-backdrop-filter: var(--blur);
       transition: 0.25s;
     }
-    .card:hover { border-color: var(--accent); }
+    .card:hover { border-color: var(--accent); transform: translateY(-5px); }
 
     input, textarea {
       width: 100%;
@@ -236,7 +252,7 @@
       transition: 0.2s;
       backdrop-filter: var(--blur);
     }
-    input:focus, textarea:focus { border-color: var(--accent); background: var(--card); }
+    input:focus, textarea:focus { border-color: var(--accent); background: var(--card); transform: scale(1.01); }
     ::placeholder { color: var(--text-sec); opacity: 0.5; }
 
     button {
@@ -251,6 +267,24 @@
       transition: 0.2s;
       box-shadow: var(--shadow);
       backdrop-filter: var(--blur);
+      position: relative;
+      overflow: hidden;
+    }
+    button::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.5s, height 0.5s;
+    }
+    button:active::before {
+      width: 200%;
+      height: 200%;
     }
     button:hover {
       background: var(--hover);
@@ -287,11 +321,13 @@
       font-size: 1.1rem;
       padding: 12px 20px;
       backdrop-filter: var(--blur);
+      transition: all 0.3s ease;
     }
     .feed-header button.active {
       background: var(--accent);
       color: black;
       border-color: var(--accent);
+      transform: scale(1.05);
     }
 
     .popular-search { margin-bottom: 20px; }
@@ -303,12 +339,16 @@
       border-radius: 28px;
       padding: var(--post-padding);
       opacity: 0;
-      transform: translateY(30px);
-      transition: opacity 0.6s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1);
+      transform: translateY(30px) scale(0.98);
+      transition: opacity 0.6s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.3s;
       backdrop-filter: var(--blur);
       box-shadow: var(--shadow);
     }
-    .post.show { opacity: 1; transform: translateY(0); }
+    .post.show { opacity: 1; transform: translateY(0) scale(1); }
+    .post:hover {
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      border-color: var(--accent);
+    }
 
     .post-header {
       display: flex;
@@ -328,8 +368,9 @@
       border: 2px solid var(--border);
       cursor: pointer;
       transition: 0.2s;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
     }
-    .avatar:hover { border-color: var(--accent); }
+    .avatar:hover { border-color: var(--accent); transform: scale(1.05) rotate(5deg); box-shadow: 0 0 15px rgba(255,255,255,0.2); }
     .post-user {
       display: flex;
       flex-direction: column;
@@ -340,8 +381,9 @@
       cursor: pointer;
       text-decoration: none;
       color: var(--text);
+      transition: color 0.2s;
     }
-    .username:hover { text-decoration: underline; }
+    .username:hover { text-decoration: underline; color: var(--accent); }
     .user-id-small {
       color: var(--accent);
       font-size: 0.85rem;
@@ -360,7 +402,7 @@
     }
     .edit-post-btn:hover svg {
       stroke: var(--text);
-      transform: scale(1.1);
+      transform: scale(1.1) rotate(10deg);
     }
     .menu-btn {
       margin-left: 8px;
@@ -371,8 +413,9 @@
       color: var(--text-sec);
       padding: 0 8px;
       cursor: pointer;
+      transition: transform 0.2s, color 0.2s;
     }
-    .menu-btn:hover { color: var(--text); transform: scale(1.2); background: none; border: none; }
+    .menu-btn:hover { color: var(--text); transform: scale(1.2) rotate(90deg); background: none; border: none; }
 
     .subscribe-post-btn {
       background: var(--surface);
@@ -390,7 +433,7 @@
       background: var(--accent);
       color: black;
       border-color: var(--accent);
-      transform: scale(1.05);
+      transform: scale(1.05) rotate(2deg);
     }
     .subscribe-post-btn:active {
       animation: pulse 0.3s ease;
@@ -406,6 +449,10 @@
       line-height: 1.6;
       margin-bottom: 16px;
       word-break: break-word;
+      transition: all 0.3s ease;
+    }
+    .post-content:hover {
+      transform: translateX(5px);
     }
 
     .truncated + .show-more {
@@ -415,12 +462,21 @@
       font-weight: 600;
       padding: 4px 8px;
       cursor: pointer;
+      transition: color 0.2s;
+    }
+    .truncated + .show-more:hover {
+      color: var(--text);
     }
 
     .post-media {
       width: 100%;
       border-radius: 24px;
       margin: 16px 0;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .post-media:hover {
+      transform: scale(1.02);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     }
 
     .post-footer {
@@ -438,21 +494,30 @@
       padding: 6px 12px;
       border-radius: 40px;
       color: var(--text-sec);
+      transition: all 0.3s ease;
     }
-    .post-footer button:hover { background: var(--hover); color: var(--text); border: none; }
+    .post-footer button:hover { background: var(--hover); color: var(--text); border: none; transform: scale(1.1); }
 
     .like-btn lottie-player {
       width: 32px;
       height: 32px;
+      transition: filter 0.3s ease;
     }
     .like-btn.liked lottie-player {
       filter: drop-shadow(0 0 6px #ff4444);
+      animation: heartbeat 0.6s ease;
+    }
+    @keyframes heartbeat {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
     }
 
     .comments-section {
       margin-top: 24px;
       border-top: 1px solid var(--border);
       padding-top: 20px;
+      transition: height 0.3s ease;
     }
     .comment {
       display: flex;
@@ -472,9 +537,13 @@
       flex: 1;
       border: 1px solid var(--border);
       backdrop-filter: var(--blur);
+      transition: transform 0.2s ease;
+    }
+    .comment-content:hover {
+      transform: translateY(-3px);
     }
     .comment-author { font-weight: 700; margin-right: 8px; cursor: pointer; }
-    .comment-author:hover { text-decoration: underline; }
+    .comment-author:hover { text-decoration: underline; color: var(--accent); }
 
     .comment-input-area {
       display: flex;
@@ -486,6 +555,10 @@
       min-height: 44px;
       border-radius: 30px;
       padding: 12px 18px;
+      transition: box-shadow 0.3s ease;
+    }
+    .comment-input-area textarea:focus {
+      box-shadow: 0 0 10px var(--accent);
     }
 
     .emoji-panel {
@@ -505,13 +578,17 @@
       transition: 0.15s;
       filter: grayscale(20%);
     }
-    .emoji-panel span:hover { transform: scale(1.3); filter: grayscale(0); }
+    .emoji-panel span:hover { transform: scale(1.3) rotate(15deg); filter: grayscale(0); }
 
     /* Пошук */
     .search-input {
       margin-bottom: 24px;
       padding: 18px 24px;
       font-size: 1.1rem;
+      transition: box-shadow 0.3s ease;
+    }
+    .search-input:focus {
+      box-shadow: 0 0 15px var(--accent);
     }
     .user-item {
       display: flex;
@@ -527,7 +604,7 @@
       backdrop-filter: var(--blur);
       box-shadow: var(--shadow);
     }
-    .user-item:hover { border-color: var(--accent); transform: translateX(6px); }
+    .user-item:hover { border-color: var(--accent); transform: translateX(6px) scale(1.02); }
     .user-id { color: var(--accent); font-size: 0.9rem; }
     .follow-btn {
       margin-left: auto;
@@ -537,6 +614,10 @@
       padding: 8px 22px;
       border-radius: 40px;
       border: none;
+      transition: all 0.3s ease;
+    }
+    .follow-btn:hover {
+      transform: scale(1.05) rotate(-3deg);
     }
 
     /* Чат */
@@ -546,37 +627,48 @@
       background: var(--card); border: 1px solid var(--border); cursor: pointer; transition: 0.2s;
       backdrop-filter: var(--blur);
     }
-    .chat-item:hover { background: var(--hover); border-color: var(--accent); }
+    .chat-item:hover { background: var(--hover); border-color: var(--accent); transform: translateY(-3px); }
     .chat-item.unread { background: rgba(255,255,255,0.05); border-left: 4px solid var(--accent); }
-    .chat-avatar { width: 56px; height: 56px; border-radius: 50%; background-size: cover; border: 2px solid var(--border); }
+    .chat-avatar { width: 56px; height: 56px; border-radius: 50%; background-size: cover; border: 2px solid var(--border); transition: transform 0.3s ease; }
+    .chat-avatar:hover { transform: scale(1.1); }
     .chat-info { flex: 1; min-width: 0; }
     .chat-name { font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
     .chat-userid { color: var(--accent); font-size: 0.85rem; }
     .chat-last { color: var(--text-sec); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .chat-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .chat-time { color: var(--text-sec); font-size: 0.75rem; }
-    .chat-badge { background: var(--accent); color: black; border-radius: 50%; min-width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; }
+    .chat-badge { background: var(--accent); color: black; border-radius: 50%; min-width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; animation: bounce 0.5s ease; }
+    @keyframes bounce {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+      100% { transform: translateY(0); }
+    }
 
     .chat-window {
       display: none; flex-direction: column; height: 70vh; border: 1px solid var(--border); border-radius: 32px;
       overflow: hidden; background: var(--card); margin-top: 20px;
       backdrop-filter: var(--blur);
       box-shadow: var(--shadow);
+      transition: transform 0.3s ease;
+    }
+    .chat-window:hover {
+      transform: translateY(-5px);
     }
     .chat-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--surface); }
-    .chat-header .avatar { width: 40px; height: 40px; }
     .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-    .message { max-width: 75%; padding: 12px 18px; border-radius: 26px; animation: messagePop 0.3s; word-break: break-word; backdrop-filter: var(--blur); }
+    .message { max-width: 75%; padding: 12px 18px; border-radius: 26px; animation: messagePop 0.3s; word-break: break-word; backdrop-filter: var(--blur); transition: transform 0.2s ease; }
+    .message:hover { transform: scale(1.02); }
     .message.sent { background: var(--accent); color: black; align-self: flex-end; border-bottom-right-radius: 6px; }
     .message.received { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 6px; }
     .chat-input { display: flex; padding: 16px; border-top: 1px solid var(--border); background: var(--surface); }
-    .chat-input input { flex: 1; margin-right: 16px; border-radius: 40px; }
+    .chat-input input { flex: 1; margin-right: 16px; border-radius: 40px; transition: box-shadow 0.3s ease; }
+    .chat-input input:focus { box-shadow: 0 0 10px var(--accent); }
 
     /* Профіль */
     .profile-header { display: flex; flex-wrap: wrap; gap: 28px; align-items: center; position: relative; }
     .profile-header.sticky { position: sticky; top: 70px; background: var(--surface); backdrop-filter: var(--blur); z-index: 900; padding: 16px; border-radius: 28px; }
-    .profile-avatar { width: 120px; height: 120px; border-radius: 50%; background: #333; background-size: cover; border: 3px solid var(--border); cursor: pointer; transition: 0.2s; }
-    .profile-avatar:hover { border-color: var(--accent); transform: scale(1.02); }
+    .profile-avatar { width: 120px; height: 120px; border-radius: 50%; background: #333; background-size: cover; border: 3px solid var(--border); cursor: pointer; transition: 0.2s; box-shadow: 0 0 15px rgba(255,255,255,0.1); }
+    .profile-avatar:hover { border-color: var(--accent); transform: scale(1.02) rotate(5deg); box-shadow: 0 0 20px rgba(255,255,255,0.2); }
     .edit-profile-btn {
       background: none;
       border: none;
@@ -587,8 +679,9 @@
       width: 28px;
       height: 28px;
       stroke: var(--text-sec);
+      transition: stroke 0.2s, transform 0.2s;
     }
-    .edit-profile-btn:hover svg { stroke: var(--text); }
+    .edit-profile-btn:hover svg { stroke: var(--text); transform: rotate(90deg); }
 
     .profile-tabs {
       display: flex;
@@ -609,6 +702,7 @@
     .profile-tab.active {
       background: var(--accent);
       color: black;
+      transform: scale(1.05);
     }
 
     /* Модалки */
@@ -623,10 +717,11 @@
       backdrop-filter: var(--blur);
     }
     @keyframes modalPop {
-      from { opacity: 0; transform: scale(0.9); }
-      to { opacity: 1; transform: scale(1); }
+      from { opacity: 0; transform: scale(0.9) rotate(-5deg); }
+      to { opacity: 1; transform: scale(1) rotate(0); }
     }
-    .close-modal { float: right; font-size: 2.5rem; line-height: 1; cursor: pointer; color: var(--text-sec); }
+    .close-modal { float: right; font-size: 2.5rem; line-height: 1; cursor: pointer; color: var(--text-sec); transition: transform 0.2s; }
+    .close-modal:hover { transform: rotate(90deg); }
 
     .feed-end-sentinel {
       height: 20px;
