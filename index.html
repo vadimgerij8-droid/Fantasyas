@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
-  <title>FANTASYAS · мобільна версія</title>
+  <title>FANTASYAS · крутий веб-додаток</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
-    /* ========== ОПТИМІЗОВАНИЙ ТА ОНОВЛЕНИЙ ЧОРНО-БІЛИЙ СТИЛЬ З АНІМАЦІЯМИ ========== */
+    /* ========== ОПТИМІЗОВАНИЙ ЧОРНО-БІЛИЙ СТИЛЬ З АНІМАЦІЯМИ ТА НОВИМИ ФІЧАМИ ========== */
     * {
       margin: 0;
       padding: 0;
@@ -17,21 +17,25 @@
 
     :root {
       --bg: #000000;
-      --surface: rgba(17, 17, 17, 0.7); /* Покращено прозорість для кращого вигляду */
+      --surface: rgba(17, 17, 17, 0.7);
       --card: rgba(26, 26, 26, 0.6);
       --border: rgba(255, 255, 255, 0.15);
       --text: #ffffff;
-      --text-sec: #bbbbbb; /* Трохи світліший для кращої читабельності */
+      --text-sec: #bbbbbb;
       --accent: #999999;
       --hover: rgba(50, 50, 50, 0.8);
-      --shadow: 0 6px 24px rgba(0, 0, 0, 0.4); /* Оптимізовано для продуктивності */
+      --shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
       --blur: blur(12px);
       --font-scale: 1;
       --post-padding: 20px;
       --avatar-size: 48px;
       --font-size-base: 1rem;
-      --transition-fast: 0.2s ease; /* Стандартизовані переходи для оптимізації */
+      --transition-fast: 0.2s ease;
       --transition-slow: 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+      --toast-bg: rgba(30,30,30,0.9);
+      --toast-color: #fff;
+      --fab-bg: var(--accent);
+      --fab-color: #000;
     }
 
     body.light {
@@ -44,6 +48,8 @@
       --accent: #777777;
       --hover: rgba(220, 220, 220, 0.8);
       --shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+      --toast-bg: rgba(240,240,240,0.9);
+      --toast-color: #111;
     }
 
     body.tv {
@@ -78,7 +84,8 @@
       min-height: 100vh;
       transition: background var(--transition-fast), color var(--transition-fast);
       font-size: calc(var(--font-size-base) * var(--font-scale));
-      will-change: background, color; /* Оптимізація для анімацій */
+      will-change: background, color;
+      overscroll-behavior: none; /* для pull-to-refresh */
     }
 
     .top-bar {
@@ -103,7 +110,7 @@
     .site-name {
       font-size: 1.8rem;
       font-weight: 800;
-      background: linear-gradient(145deg, #ddd, #999); /* Чорно-білий градієнт */
+      background: linear-gradient(145deg, #ddd, #999);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
@@ -336,6 +343,7 @@
       transition: opacity var(--transition-slow), transform var(--transition-slow), box-shadow var(--transition-fast);
       backdrop-filter: var(--blur);
       box-shadow: var(--shadow);
+      cursor: pointer;
     }
     .post.show { opacity: 1; transform: translateY(0) scale(1); }
     .post:hover {
@@ -461,7 +469,8 @@
       border-radius: 20px;
       margin: 14px 0;
       transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-      loading: lazy; /* Оптимізація завантаження */
+      loading: lazy;
+      cursor: zoom-in;
     }
     .post-media:hover {
       transform: scale(1.015);
@@ -507,6 +516,10 @@
       fill: #ff3040;
       stroke: #ff3040;
       animation: heartPop 0.4s ease;
+    }
+    @keyframes heartPop {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.3); }
     }
 
     .comments-toggle svg {
@@ -643,6 +656,23 @@
     .chat-time { color: var(--text-sec); font-size: 0.7rem; }
     .chat-badge { background: var(--accent); color: black; border-radius: 50%; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; animation: bounce 0.4s ease; }
 
+    /* Онлайн-статус */
+    .online-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4caf50;
+      margin-left: 6px;
+      box-shadow: 0 0 8px #4caf50;
+      animation: pulse-online 1.5s infinite;
+    }
+    @keyframes pulse-online {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
     .chat-window {
       display: none; flex-direction: column; height: 65vh; border: 1px solid var(--border); border-radius: 28px;
       overflow: hidden; background: var(--card); margin-top: 16px;
@@ -659,6 +689,18 @@
     .message:hover { transform: scale(1.015); }
     .message.sent { background: var(--accent); color: black; align-self: flex-end; border-bottom-right-radius: 5px; }
     .message.received { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; border-bottom-left-radius: 5px; }
+    .typing-indicator {
+      font-size: 0.8rem;
+      color: var(--text-sec);
+      padding: 4px 8px;
+      font-style: italic;
+      animation: blink 1.4s infinite;
+    }
+    @keyframes blink {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
     .chat-input { display: flex; padding: 14px; border-top: 1px solid var(--border); background: var(--surface); }
     .chat-input input { flex: 1; margin-right: 14px; border-radius: 36px; transition: box-shadow var(--transition-fast); }
     .chat-input input:focus { box-shadow: 0 0 8px var(--accent); }
@@ -719,6 +761,160 @@
     .feed-end-sentinel {
       height: 15px;
       width: 100%;
+    }
+
+    /* ========== НОВІ ЕЛЕМЕНТИ ========== */
+    /* Toast-повідомлення */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--toast-bg);
+      color: var(--toast-color);
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-weight: 500;
+      box-shadow: var(--shadow);
+      backdrop-filter: var(--blur);
+      border: 1px solid var(--border);
+      z-index: 5000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      white-space: nowrap;
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #toast.show {
+      opacity: 1;
+    }
+
+    /* Pull-to-refresh індикатор */
+    #ptr-indicator {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: var(--surface);
+      backdrop-filter: var(--blur);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      z-index: 2000;
+      transform: translateY(-100%);
+      transition: transform 0.2s;
+      color: var(--text);
+    }
+    #ptr-indicator.active {
+      transform: translateY(0);
+    }
+    #ptr-indicator .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Кнопка «Вгору» */
+    #scroll-top-btn {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: black;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+      z-index: 1500;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.2s;
+      pointer-events: none;
+    }
+    #scroll-top-btn.visible {
+      opacity: 0.8;
+      pointer-events: auto;
+    }
+    #scroll-top-btn:hover {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+
+    /* Плаваюча кнопка нового посту */
+    #fab {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: black;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      cursor: pointer;
+      z-index: 1500;
+      transition: transform 0.2s, background 0.2s;
+    }
+    #fab:hover {
+      transform: scale(1.1) rotate(90deg);
+      background: var(--hover);
+    }
+
+    /* Lightbox для зображень */
+    #lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 4000;
+      cursor: zoom-out;
+    }
+    #lightbox.active {
+      display: flex;
+    }
+    #lightbox img, #lightbox video {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+    }
+    #lightbox .close {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-size: 40px;
+      color: white;
+      cursor: pointer;
+    }
+
+    /* Індикатор друкування в чаті */
+    .typing-badge {
+      font-size: 0.7rem;
+      color: var(--accent);
+      margin-left: 8px;
     }
 
     @media (max-width: 700px) {
@@ -842,8 +1038,10 @@
         <div class="avatar" id="chatAvatar"></div>
         <span id="chatName"></span>
         <span class="user-id-small" id="chatUserId"></span>
+        <span id="onlineIndicator" class="online-indicator" style="display:none;"></span>
       </div>
       <div class="chat-messages" id="chatMessages"></div>
+      <div class="typing-indicator" id="typingIndicator" style="display:none;">Співрозмовник друкує...</div>
       <div class="chat-input">
         <input type="text" id="chatText" placeholder="Напишіть повідомлення..."/>
         <button id="sendMessage">Надіслати</button>
@@ -884,12 +1082,30 @@
   </div>
 </div>
 
+<!-- НОВІ ЕЛЕМЕНТИ -->
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Pull-to-refresh індикатор -->
+<div id="ptr-indicator">
+  <div class="spinner"></div> Оновлення...
+</div>
+
+<!-- Кнопка вгору -->
+<div id="scroll-top-btn" title="Вгору">↑</div>
+
+<!-- Плаваюча кнопка нового посту -->
+<div id="fab" title="Новий пост">✏️</div>
+
+<!-- Lightbox для медіа -->
+<div id="lightbox">
+  <span class="close">&times;</span>
+  <img id="lightbox-img" src="" alt="" style="display:none;">
+  <video id="lightbox-video" controls style="display:none;"></video>
+</div>
+
 <script type="module">
-  // ================= Firebase з виправленим authDomain (використовуємо правильний домен для редиректу) =================
-  // Щоб виправити помилку 400: redirect_uri_mismatch, додайте в Google Cloud Console (Credentials -> Web client для вашого проекту) 
-  // наступний redirect URI: https://fantasyasapp.firebaseapp.com/flowName=GeneralOAuthFlow
-  // Якщо домен відрізняється (наприклад, через кастомний домен), додайте відповідний URI з вашим доменом.
-  // Це дозволить SDK використовувати цей ендпоінт. Якщо проблема в типо в домені, перевірте, чи projectId і authDomain збігаються з вашим проектом у Firebase консолі.
+  // ================= Firebase з виправленим authDomain =================
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, OAuthProvider, signInWithRedirect, getRedirectResult, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, getDocs, increment, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -897,7 +1113,7 @@
 
   const firebaseConfig = {
     apiKey: "AIzaSyDRzC-QDE0-UXd-XL0i3iqayFiKcc6wmvc",
-    authDomain: "fantasyasapp.firebaseapp.com", // Перевірте, чи це правильний домен. Якщо проект називається "fantasyasaapp", виправте на "fantasyasaapp.firebaseapp.com" і оновіть в консолі.
+    authDomain: "fantasyasapp.firebaseapp.com",
     projectId: "fantasyasapp",
     storageBucket: "fantasyasapp.appspot.com",
     messagingSenderId: "721763921060",
@@ -922,6 +1138,26 @@
   let lastVisible = null;
   let loading = false;
   let hasMore = true;
+
+  // Для збережених постів (bookmarks)
+  let savedPosts = new Set();
+
+  // Для онлайн-статусу
+  let onlineUsers = new Set();
+  let typingTimeout = null;
+
+  // Toast функція
+  function showToast(message, duration = 3000) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), duration);
+  }
+
+  // Вібрація (якщо підтримується)
+  function vibrate(pattern) {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+  }
 
   const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
 
@@ -959,19 +1195,18 @@
             avatar: user.photoURL || '',
             posts: [],
             likedPosts: [],
+            savedPosts: [],
             followers: [],
             following: [],
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            lastOnline: serverTimestamp()
           });
         }
+        showToast('Успішний вхід через ' + result.providerId);
       }
     } catch (error) {
       console.error("Помилка після редиректу:", error);
-      if (error.code === 'auth/account-exists-with-different-credential') {
-        alert('Цей email вже використовується з іншим методом входу. Спробуйте увійти через email/пароль.');
-      } else {
-        alert('Помилка входу: ' + error.message);
-      }
+      showToast('Помилка входу: ' + error.message);
     }
   }
 
@@ -1047,14 +1282,16 @@
         avatar: '',
         posts: [],
         likedPosts: [],
+        savedPosts: [],
         followers: [],
         following: [],
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        lastOnline: serverTimestamp()
       });
-      alert('Реєстрація успішна');
+      showToast('Реєстрація успішна');
       document.getElementById('toLogin').click();
       document.getElementById('loginNickname').value = nickname;
-    } catch (e) { alert(e.message); }
+    } catch (e) { showToast(e.message); }
   };
 
   document.getElementById('loginBtn').onclick = async () => {
@@ -1065,6 +1302,7 @@
       const safeNick = nickname.toLowerCase().replace(/[^a-z0-9]/g, '');
       const email = `${safeNick}@fantasyas.local`;
       await signInWithEmailAndPassword(auth, email, password);
+      showToast('Ласкаво просимо!');
     } catch { alert('Невірний псевдонім або пароль'); }
   };
 
@@ -1085,9 +1323,9 @@
     if (email) {
       try {
         await sendPasswordResetEmail(auth, email);
-        alert('Лист для скидання пароля відправлено');
+        showToast('Лист для скидання пароля відправлено');
       } catch (err) {
-        alert('Помилка: ' + err.message);
+        showToast('Помилка: ' + err.message);
       }
     }
   };
@@ -1097,6 +1335,10 @@
       currentUser = user;
       document.getElementById('authBox').style.display = 'none';
       document.getElementById('newPostBox').style.display = 'block';
+      // Оновлюємо lastOnline кожні 30 секунд
+      setInterval(() => {
+        updateDoc(doc(db, "users", currentUser.uid), { lastOnline: serverTimestamp() });
+      }, 30000);
       resetPagination();
       loadMyProfile();
       if (unsubscribeChatList) unsubscribeChatList();
@@ -1176,7 +1418,7 @@
       const userData = userSnap.data();
       
       const postDoc = await addDoc(collection(db, "posts"), {
-        author: currentUser.uid;
+        author: currentUser.uid,
         authorName: userData.nickname,
         authorUserId: userData.userId,
         authorAvatar: userData.avatar || '',
@@ -1186,15 +1428,72 @@
         createdAt: serverTimestamp(),
         likes: [],
         likesCount: 0,
-        commentsCount: 0
+        commentsCount: 0,
+        saves: []
       });
       
       await updateDoc(doc(db, "users", currentUser.uid), { posts: arrayUnion(postDoc.id) });
       
       document.getElementById('postText').value = '';
       document.getElementById('postMedia').value = '';
-    } catch (e) { alert(e.message); }
+      showToast('Пост опубліковано!');
+    } catch (e) { showToast(e.message); }
   };
+
+  // Додаємо кнопку "Зберегти" до постів
+  function addSaveButtonToPost(postEl, postId, saved) {
+    const footer = postEl.querySelector('.post-footer');
+    if (!footer) return;
+    const saveBtn = document.createElement('button');
+    saveBtn.className = `save-btn ${saved ? 'saved' : ''}`;
+    saveBtn.dataset.postId = postId;
+    saveBtn.innerHTML = saved ? '🔖 Збережено' : '📌 Зберегти';
+    saveBtn.onclick = async (e) => {
+      e.stopPropagation();
+      if (!currentUser) return;
+      const userRef = doc(db, "users", currentUser.uid);
+      const postRef = doc(db, "posts", postId);
+      if (saved) {
+        await updateDoc(userRef, { savedPosts: arrayRemove(postId) });
+        await updateDoc(postRef, { saves: arrayRemove(currentUser.uid) });
+        savedPosts.delete(postId);
+        saveBtn.classList.remove('saved');
+        saveBtn.innerHTML = '📌 Зберегти';
+        showToast('Видалено із збережених');
+      } else {
+        await updateDoc(userRef, { savedPosts: arrayUnion(postId) });
+        await updateDoc(postRef, { saves: arrayUnion(currentUser.uid) });
+        savedPosts.add(postId);
+        saveBtn.classList.add('saved');
+        saveBtn.innerHTML = '🔖 Збережено';
+        showToast('Додано до збережених');
+      }
+      saved = !saved;
+    };
+    footer.appendChild(saveBtn);
+  }
+
+  // Додаємо кнопку "Поділитися"
+  function addShareButtonToPost(postEl, post) {
+    const footer = postEl.querySelector('.post-footer');
+    if (!footer) return;
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'share-btn';
+    shareBtn.innerHTML = '↗️ Поділитися';
+    shareBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (navigator.share) {
+        navigator.share({
+          title: 'Пост від ' + post.authorName,
+          text: post.text,
+          url: window.location.href // можна зробити пряме посилання на пост
+        }).catch(err => console.log('Помилка шерингу', err));
+      } else {
+        navigator.clipboard.writeText(post.text).then(() => showToast('Текст скопійовано'));
+      }
+    };
+    footer.appendChild(shareBtn);
+  }
 
   async function loadMorePosts() {
     if (loading || !hasMore || !currentUser) return;
@@ -1238,6 +1537,7 @@
       
       const isOwn = post.author === currentUser?.uid;
       const liked = post.likes?.includes(currentUser?.uid) || false;
+      const saved = post.saves?.includes(currentUser?.uid) || false;
       
       let isFollowing = false;
       if (currentUser && post.author !== currentUser.uid) {
@@ -1298,8 +1598,41 @@
       `;
       
       feed.appendChild(postEl);
+      addSaveButtonToPost(postEl, post.id, saved);
+      addShareButtonToPost(postEl, post);
       setTimeout(() => postEl.classList.add('show'), 50);
       
+      // Додаємо обробник подвійного дотику для лайку
+      postEl.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        const likeBtn = postEl.querySelector('.like-btn');
+        if (likeBtn && currentUser) {
+          likeBtn.click();
+          vibrate(50);
+        }
+      });
+      
+      // Обробник для збільшення медіа
+      const media = postEl.querySelector('.post-media');
+      if (media) {
+        media.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const lightbox = document.getElementById('lightbox');
+          const img = document.getElementById('lightbox-img');
+          const video = document.getElementById('lightbox-video');
+          if (media.tagName === 'IMG') {
+            img.src = media.src;
+            img.style.display = 'block';
+            video.style.display = 'none';
+          } else {
+            video.src = media.src;
+            video.style.display = 'block';
+            img.style.display = 'none';
+          }
+          lightbox.classList.add('active');
+        });
+      }
+
       const commentsToggle = postEl.querySelector('.comments-toggle');
       commentsToggle.addEventListener('click', async () => {
         const commentsDiv = document.getElementById(`comments-${post.id}`);
@@ -1356,11 +1689,12 @@
           await updateDoc(doc(db, "users", currentUser.uid), {
             likedPosts: arrayUnion(postId)
           });
+          vibrate(30); // вібрація при лайку
         }
       } catch (e) {
         btn.classList.toggle('liked');
         countSpan.textContent = oldCount;
-        alert('Помилка');
+        showToast('Помилка');
       }
     }
     
@@ -1386,6 +1720,7 @@
         newContent.className = 'post-content';
         newContent.innerHTML = newText.replace(/\n/g,'<br>');
         textarea.replaceWith(newContent);
+        showToast('Пост оновлено');
       };
       
       textarea.addEventListener('blur', saveEdit);
@@ -1406,6 +1741,7 @@
         await deleteDoc(postRef);
         await updateDoc(doc(db, "users", author), { posts: arrayRemove(postId) });
         e.target.closest('.post').remove();
+        showToast('Пост видалено');
       }
     }
     
@@ -1437,6 +1773,7 @@
       });
       await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
       textarea.value = '';
+      showToast('Коментар додано');
     }
     
     if (e.target.closest('.emoji-comment-btn')) {
@@ -1461,6 +1798,7 @@
       await toggleFollow(authorUid);
       const isFollowing = (await getDoc(doc(db, "users", currentUser.uid))).data().following.includes(authorUid);
       btn.textContent = isFollowing ? 'Відписатися' : 'Підписатися';
+      showToast(isFollowing ? 'Відписано' : 'Підписано');
     }
     
     if (e.target.closest('[data-uid]')) {
@@ -1581,6 +1919,7 @@
             <span>${data.posts?.length || 0} постів</span>
             <span>${data.followers?.length || 0} підписників</span>
             <span>${data.following?.length || 0} підписок</span>
+            <span>${data.savedPosts?.length || 0} збережено</span>
           </div>
           ${!isOwn && currentUser ? `
             <div style="margin-top:16px; display:flex; gap:10px;">
@@ -1594,6 +1933,7 @@
         <button class="profile-tab active" data-tab="posts">Пости</button>
         <button class="profile-tab" data-tab="likes">Лайки</button>
         <button class="profile-tab" data-tab="media">Медіа</button>
+        <button class="profile-tab" data-tab="saved">Збережене</button>
       </div>
       <div class="feed" id="profileFeed"></div>
     `;
@@ -1633,7 +1973,8 @@
           const url = await getDownloadURL(storageRef);
           await updateDoc(doc(db, "users", currentUser.uid), { avatar: url });
           avatar.style.backgroundImage = `url(${url})`;
-        } catch { alert('Помилка'); }
+          showToast('Аватар оновлено');
+        } catch { showToast('Помилка'); }
       };
       
       const editBtn = document.querySelector('.edit-profile-btn');
@@ -1670,12 +2011,22 @@
       const q = query(collection(db, "posts"), where("author", "==", uid), where("mediaUrl", "!=", ""));
       const snap = await getDocs(q);
       snap.forEach(doc => posts.push({ id: doc.id, ...doc.data() }));
+    } else if (tab === 'saved') {
+      const userSnap = await getDoc(doc(db, "users", uid));
+      const savedIds = userSnap.data().savedPosts || [];
+      for (const id of savedIds.slice(0, 20)) {
+        const postSnap = await getDoc(doc(db, "posts", id));
+        if (postSnap.exists()) posts.push({ id: postSnap.id, ...postSnap.data() });
+      }
     }
     
     posts.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     
     for (const post of posts) {
-      feed.innerHTML += `<div class="post">${post.text}</div>`;
+      const postEl = document.createElement('div');
+      postEl.className = 'post';
+      postEl.innerHTML = `<div class="post-content">${post.text || 'Медіа'}</div>`;
+      feed.appendChild(postEl);
     }
   }
 
@@ -1700,6 +2051,7 @@
     });
     loadMyProfile();
     document.getElementById('editProfileModal').classList.remove('active');
+    showToast('Профіль оновлено');
   };
 
   // ========== ЧАТИ ==========
@@ -1718,6 +2070,10 @@
         const lastMsg = chat.lastMessage || '';
         const time = chat.updatedAt ? new Date(chat.updatedAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         
+        // Перевірка онлайн
+        const lastOnline = user.lastOnline?.seconds || 0;
+        const isOnline = (Date.now() / 1000 - lastOnline) < 60; // онлайн, якщо був активний останню хвилину
+        
         const item = document.createElement('div');
         item.className = `chat-item ${unread > 0 ? 'unread' : ''}`;
         item.dataset.chatId = docSnap.id;
@@ -1725,7 +2081,7 @@
         item.innerHTML = `
           <div class="chat-avatar" style="background-image:url(${user.avatar || ''})"></div>
           <div class="chat-info">
-            <div class="chat-name">${user.nickname} <span class="chat-userid">${user.userId || ''}</span></div>
+            <div class="chat-name">${user.nickname} ${isOnline ? '<span class="online-indicator" title="Онлайн"></span>' : ''} <span class="chat-userid">${user.userId || ''}</span></div>
             <div class="chat-last">${lastMsg}</div>
           </div>
           <div class="chat-meta">
@@ -1748,6 +2104,12 @@
     const chatRef = doc(db, "chats", chatId);
     await updateDoc(chatRef, { [`unread.${currentUser.uid}`]: 0 });
     subscribeToChat(chatId);
+    
+    // Перевірка онлайн
+    const userSnap = await getDoc(doc(db, "users", otherUid));
+    const lastOnline = userSnap.data().lastOnline?.seconds || 0;
+    const isOnline = (Date.now() / 1000 - lastOnline) < 60;
+    document.getElementById('onlineIndicator').style.display = isOnline ? 'inline-block' : 'none';
   }
 
   function openChat(otherName, otherUid, otherUserId) {
@@ -1758,6 +2120,9 @@
     getDoc(doc(db, "users", otherUid)).then(snap => {
       if (snap.exists()) {
         document.getElementById('chatAvatar').style.backgroundImage = `url(${snap.data().avatar || ''})`;
+        const lastOnline = snap.data().lastOnline?.seconds || 0;
+        const isOnline = (Date.now() / 1000 - lastOnline) < 60;
+        document.getElementById('onlineIndicator').style.display = isOnline ? 'inline-block' : 'none';
       }
     });
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -1793,7 +2158,29 @@
       });
       messages.scrollTop = messages.scrollHeight;
     });
+
+    // Слухаємо статус друкування співрозмовника
+    const typingRef = doc(db, `chats/${chatId}/typing/${currentChatPartner}`);
+    onSnapshot(typingRef, (doc) => {
+      if (doc.exists() && doc.data().isTyping) {
+        document.getElementById('typingIndicator').style.display = 'block';
+      } else {
+        document.getElementById('typingIndicator').style.display = 'none';
+      }
+    });
   }
+
+  // Індикатор друкування
+  document.getElementById('chatText').addEventListener('input', () => {
+    if (!currentChatPartner) return;
+    const chatId = getChatId(currentUser.uid, currentChatPartner);
+    const typingRef = doc(db, `chats/${chatId}/typing/${currentUser.uid}`);
+    setDoc(typingRef, { isTyping: true }, { merge: true });
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      setDoc(typingRef, { isTyping: false }, { merge: true });
+    }, 2000);
+  });
 
   document.getElementById('sendMessage').onclick = async () => {
     const text = document.getElementById('chatText').value.trim();
@@ -1808,16 +2195,21 @@
       [`unread.${currentChatPartner}`]: increment(1)
     });
     document.getElementById('chatText').value = '';
+    // Вимикаємо індикатор друкування
+    const typingRef = doc(db, `chats/${chatId}/typing/${currentUser.uid}`);
+    setDoc(typingRef, { isTyping: false }, { merge: true });
   };
 
   document.getElementById('toggleTheme').onclick = () => {
     document.body.classList.toggle('light');
     localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+    showToast('Тему змінено');
   };
   if (localStorage.getItem('theme') === 'light') document.body.classList.add('light');
 
   document.getElementById('toggleTvMode').onclick = () => {
     document.body.classList.toggle('tv');
+    showToast('Режим телевізора ' + (document.body.classList.contains('tv') ? 'увімкнено' : 'вимкнено'));
   };
 
   document.getElementById('logoutBtn').onclick = () => signOut(auth);
@@ -1830,18 +2222,85 @@
   }, { threshold: 0.5 });
   observer.observe(sentinel);
 
+  // Кнопка вгору
+  window.addEventListener('scroll', () => {
+    const btn = document.getElementById('scroll-top-btn');
+    if (window.scrollY > 300) {
+      btn.classList.add('visible');
+    } else {
+      btn.classList.remove('visible');
+    }
+  });
+  document.getElementById('scroll-top-btn').onclick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Плаваюча кнопка нового посту
+  document.getElementById('fab').onclick = () => {
+    document.getElementById('newPostBox').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('postText').focus();
+  };
+
+  // Pull-to-refresh
+  let startY = 0;
+  let pulling = false;
+  document.addEventListener('touchstart', (e) => {
+    if (window.scrollY === 0) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+    }
+  }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (pulling && window.scrollY === 0) {
+      const diff = e.touches[0].clientY - startY;
+      if (diff > 50) {
+        document.getElementById('ptr-indicator').classList.add('active');
+      }
+    }
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (pulling && window.scrollY === 0) {
+      const diff = e.changedTouches[0].clientY - startY;
+      if (diff > 70) {
+        resetPagination();
+        showToast('Стрічку оновлено');
+        setTimeout(() => document.getElementById('ptr-indicator').classList.remove('active'), 500);
+      } else {
+        document.getElementById('ptr-indicator').classList.remove('active');
+      }
+      pulling = false;
+    }
+  });
+
+  // Lightbox закриття
+  document.getElementById('lightbox').addEventListener('click', () => {
+    document.getElementById('lightbox').classList.remove('active');
+  });
+  document.querySelector('#lightbox .close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('lightbox').classList.remove('active');
+  });
+
+  // Закриття модалок по Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+      document.getElementById('lightbox').classList.remove('active');
+      document.getElementById('sidebar').classList.remove('active');
+      document.getElementById('burger').classList.remove('active');
+    }
+  });
+
+  // TV-навігація
   let focusableElements = [];
   let currentFocusIndex = -1;
-
   function updateFocusable() {
     const activeSection = document.querySelector('.section.active');
     focusableElements = Array.from(activeSection.querySelectorAll('button, a, input, textarea, [tabindex="0"], .avatar, .username, .post'));
     focusableElements = focusableElements.filter(el => !el.disabled);
   }
-
   document.addEventListener('keydown', (e) => {
     if (!document.body.classList.contains('tv')) return;
-    
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (focusableElements.length === 0) updateFocusable();
@@ -1855,16 +2314,11 @@
     } else if (e.key === 'Enter') {
       e.preventDefault();
       document.activeElement?.click();
-    } else if (e.key === 'Escape') {
-      document.querySelector('.modal.active')?.classList.remove('active');
-      document.getElementById('sidebar')?.classList.remove('active');
     }
   });
 
   document.querySelectorAll('[data-section]').forEach(link => {
-    link.addEventListener('click', () => {
-      setTimeout(updateFocusable, 200);
-    });
+    link.addEventListener('click', () => setTimeout(updateFocusable, 200));
   });
 
   resetPagination();
