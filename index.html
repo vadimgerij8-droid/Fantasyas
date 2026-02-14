@@ -350,6 +350,7 @@
     .post-footer {
       display: flex;
       gap: 16px;
+      flex-wrap: wrap;
     }
 
     .post-footer button {
@@ -374,6 +375,116 @@
 
     .post-footer button.saved {
       color: #f5a623;
+    }
+
+    /* Коментарі */
+    .comments-section {
+      margin-top: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .comment {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .comment-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      flex-shrink: 0;
+    }
+
+    .comment-content {
+      flex: 1;
+      background: var(--surface);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+    }
+
+    .comment-author {
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    .comment-text {
+      font-size: 0.95rem;
+      word-break: break-word;
+    }
+
+    .comment-time {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    .comment-form {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      align-items: center;
+    }
+
+    .comment-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-primary);
+    }
+
+    /* Емоджі-пікер */
+    .emoji-picker-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    .emoji-button {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      color: var(--text-secondary);
+    }
+
+    .emoji-picker {
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+      z-index: 10;
+      box-shadow: var(--shadow-lg);
+      max-width: 200px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .emoji-picker span {
+      font-size: 1.5rem;
+      cursor: pointer;
+      text-align: center;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      transition: background 0.1s;
+    }
+
+    .emoji-picker span:hover {
+      background: var(--surface);
     }
 
     /* Чати */
@@ -501,6 +612,7 @@
       padding: 12px;
       border-top: 1px solid var(--border);
       gap: 8px;
+      align-items: center;
     }
 
     .chat-input-area input {
@@ -732,7 +844,13 @@
         </div>
 
         <div class="card" id="newPostBox" style="display:none;">
-          <textarea id="postText" class="input" placeholder="Що нового?" rows="3"></textarea>
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+            <textarea id="postText" class="input" placeholder="Що нового?" rows="3" style="flex:1;"></textarea>
+            <div class="emoji-picker-container">
+              <button class="emoji-button" id="postEmojiBtn">😊</button>
+              <div class="emoji-picker" id="postEmojiPicker" style="display: none;"></div>
+            </div>
+          </div>
           <input type="file" id="postMedia" accept="image/*,video/*" style="margin:10px 0;"/>
           <button class="btn btn-primary" id="addPost">Опублікувати</button>
         </div>
@@ -770,12 +888,16 @@
               <div id="chatName"></div>
               <div class="chat-meta" id="chatUserId"></div>
             </div>
-            <span id="onlineIndicator" class="online-indicator" style="display:none;">🟢</span>
+            <span id="onlineIndicator" class="online-indicator" style="display:none;"></span>
           </div>
           <div class="chat-messages" id="chatMessages"></div>
           <div class="typing-indicator" id="typingIndicator" style="display:none;">друкує...</div>
           <div class="chat-input-area">
             <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..."/>
+            <div class="emoji-picker-container">
+              <button class="emoji-button" id="chatEmojiBtn">😊</button>
+              <div class="emoji-picker" id="chatEmojiPicker" style="display: none;"></div>
+            </div>
             <button class="btn btn-primary btn-icon" id="sendMessage">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
@@ -801,6 +923,10 @@
           <div class="chat-messages" id="groupChatMessages"></div>
           <div class="chat-input-area">
             <input type="text" id="groupChatText" class="input" placeholder="Напишіть повідомлення..."/>
+            <div class="emoji-picker-container">
+              <button class="emoji-button" id="groupEmojiBtn">😊</button>
+              <div class="emoji-picker" id="groupEmojiPicker" style="display: none;"></div>
+            </div>
             <button class="btn btn-primary btn-icon" id="sendGroupMessage">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
@@ -818,8 +944,14 @@
           <div class="card" id="channelHeader"></div>
           <div class="feed" id="channelFeed"></div>
           <div id="newChannelPostBox" style="display:none; margin-top:20px;">
-            <textarea id="channelPostText" class="input" placeholder="Новий пост..." rows="3"></textarea>
-            <input type="file" id="channelPostMedia" accept="image/*,video/*"/>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <textarea id="channelPostText" class="input" placeholder="Новий пост..." rows="3" style="flex:1;"></textarea>
+              <div class="emoji-picker-container">
+                <button class="emoji-button" id="channelEmojiBtn">😊</button>
+                <div class="emoji-picker" id="channelEmojiPicker" style="display: none;"></div>
+              </div>
+            </div>
+            <input type="file" id="channelPostMedia" accept="image/*,video/*" style="margin:10px 0;"/>
             <button class="btn btn-primary" id="addChannelPost">Опублікувати</button>
           </div>
         </div>
@@ -1008,7 +1140,7 @@
       document.getElementById('pageTitle').textContent = item.textContent.trim();
       
       // Завантаження відповідних даних
-      if (section === 'home' && currentUser) resetPagination();
+      if (section === 'home') resetPagination();
       if (section === 'search' && currentUser) loadSearchUsers();
       if (section === 'chats' && currentUser) loadChatList();
       if (section === 'groups' && currentUser) loadGroups();
@@ -1025,6 +1157,44 @@
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('menuToggle').classList.toggle('active');
   });
+
+  // ================= Емоджі-пікер (універсальний) =================
+  const emojiList = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
+  
+  function setupEmojiPicker(buttonId, pickerId, inputId) {
+    const btn = document.getElementById(buttonId);
+    const picker = document.getElementById(pickerId);
+    const input = document.getElementById(inputId);
+    if (!btn || !picker || !input) return;
+    
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
+    });
+    
+    picker.innerHTML = '';
+    emojiList.forEach(emoji => {
+      const span = document.createElement('span');
+      span.textContent = emoji;
+      span.onclick = (e) => {
+        e.stopPropagation();
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        input.value = text.substring(0, start) + emoji + text.substring(end);
+        input.focus();
+        input.selectionStart = input.selectionEnd = start + emoji.length;
+        picker.style.display = 'none';
+      };
+      picker.appendChild(span);
+    });
+    
+    document.addEventListener('click', (e) => {
+      if (!picker.contains(e.target) && e.target !== btn) {
+        picker.style.display = 'none';
+      }
+    });
+  }
 
   // ================= Авторизація =================
   document.getElementById('toRegister').onclick = () => {
@@ -1192,18 +1362,18 @@
         unreadCount = totalUnread;
         updateUnreadBadge();
       });
+
+      // Налаштування емоджі-пікерів
+      setupEmojiPicker('postEmojiBtn', 'postEmojiPicker', 'postText');
+      setupEmojiPicker('chatEmojiBtn', 'chatEmojiPicker', 'chatText');
+      setupEmojiPicker('groupEmojiBtn', 'groupEmojiPicker', 'groupChatText');
+      setupEmojiPicker('channelEmojiBtn', 'channelEmojiPicker', 'channelPostText');
     } else {
       currentUser = null;
       document.getElementById('authBox').style.display = 'block';
       document.getElementById('newPostBox').style.display = 'none';
       unreadCount = 0;
       updateUnreadBadge();
-      // Очищуємо контент
-      document.getElementById('feed').innerHTML = '';
-      document.getElementById('chatList').innerHTML = '';
-      document.getElementById('groupList').innerHTML = '';
-      document.getElementById('channelList').innerHTML = '';
-      document.getElementById('profileHeader').innerHTML = '';
     }
   });
 
@@ -1292,6 +1462,43 @@
     }
   }
 
+  async function loadComments(postId, container) {
+    const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
+    const snapshot = await getDocs(q);
+    container.innerHTML = '';
+    snapshot.forEach(doc => {
+      const comment = doc.data();
+      const commentEl = document.createElement('div');
+      commentEl.className = 'comment';
+      commentEl.innerHTML = `
+        <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" data-uid="${comment.author}"></div>
+        <div class="comment-content">
+          <div>
+            <span class="comment-author" data-uid="${comment.author}">${comment.authorName}</span>
+            <span class="comment-time">${new Date(comment.createdAt?.seconds * 1000).toLocaleString()}</span>
+          </div>
+          <div class="comment-text">${comment.text}</div>
+        </div>
+      `;
+      container.appendChild(commentEl);
+    });
+  }
+
+  async function addComment(postId, text) {
+    if (!currentUser || !text.trim()) return;
+    const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+    const user = userSnap.data();
+    const commentRef = collection(db, `posts/${postId}/comments`);
+    await addDoc(commentRef, {
+      author: currentUser.uid,
+      authorName: user.nickname,
+      authorAvatar: user.avatar || '',
+      text: text.trim(),
+      createdAt: serverTimestamp()
+    });
+    await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
+  }
+
   function renderPosts(docs) {
     const feed = document.getElementById('feed');
     docs.forEach(docSnap => {
@@ -1316,6 +1523,10 @@
             <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
             <span>${post.likesCount || 0}</span>
           </button>
+          <button class="comment-toggle-btn" data-post-id="${post.id}">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>${post.commentsCount || 0}</span>
+          </button>
           <button class="save-btn ${saved ? 'saved' : ''}" data-post-id="${post.id}">
             <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
@@ -1323,8 +1534,54 @@
             <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           </button>
         </div>
+        <div class="comments-section" id="comments-${post.id}" style="display: none;">
+          <div class="comments-list" id="comments-list-${post.id}"></div>
+          <div class="comment-form">
+            <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Напишіть коментар...">
+            <div class="emoji-picker-container" style="position: relative;">
+              <button class="emoji-button" id="comment-emoji-${post.id}">😊</button>
+              <div class="emoji-picker" id="comment-picker-${post.id}" style="display: none; bottom: 100%; right: 0; position: absolute;"></div>
+            </div>
+            <button class="btn btn-primary btn-icon" id="submit-comment-${post.id}">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
       `;
       feed.appendChild(postEl);
+
+      // Налаштовуємо емоджі-пікер для коментаря цього поста
+      const commentInput = document.getElementById(`comment-input-${post.id}`);
+      if (commentInput) {
+        setupEmojiPicker(`comment-emoji-${post.id}`, `comment-picker-${post.id}`, `comment-input-${post.id}`);
+      }
+
+      // Обробник кнопки коментарів
+      const toggleBtn = postEl.querySelector('.comment-toggle-btn');
+      const commentsSection = postEl.querySelector('.comments-section');
+      toggleBtn.onclick = async () => {
+        if (commentsSection.style.display === 'none') {
+          commentsSection.style.display = 'block';
+          await loadComments(post.id, document.getElementById(`comments-list-${post.id}`));
+        } else {
+          commentsSection.style.display = 'none';
+        }
+      };
+
+      // Обробник відправки коментаря
+      const submitBtn = document.getElementById(`submit-comment-${post.id}`);
+      if (submitBtn) {
+        submitBtn.onclick = async () => {
+          const text = commentInput.value.trim();
+          if (!text) return;
+          await addComment(post.id, text);
+          commentInput.value = '';
+          await loadComments(post.id, document.getElementById(`comments-list-${post.id}`));
+          // Оновлюємо лічильник коментарів
+          const countSpan = toggleBtn.querySelector('span');
+          countSpan.textContent = parseInt(countSpan.textContent) + 1;
+        };
+      }
     });
   }
 
@@ -1578,7 +1835,7 @@
     const userSnap = await getDoc(doc(db, "users", otherUid));
     const lastOnline = userSnap.data().lastOnline?.seconds || 0;
     const isOnline = (Date.now()/1000 - lastOnline) < 60;
-    document.getElementById('onlineIndicator').style.display = isOnline ? 'inline' : 'none';
+    document.getElementById('onlineIndicator').style.display = isOnline ? 'inline-block' : 'none';
   }
 
   function openChat(otherName, otherUid, otherUserId) {
@@ -1593,7 +1850,7 @@
         document.getElementById('chatAvatar').style.backgroundImage = `url(${snap.data().avatar || ''})`;
         const lastOnline = snap.data().lastOnline?.seconds || 0;
         const isOnline = (Date.now()/1000 - lastOnline) < 60;
-        document.getElementById('onlineIndicator').style.display = isOnline ? 'inline' : 'none';
+        document.getElementById('onlineIndicator').style.display = isOnline ? 'inline-block' : 'none';
       }
     });
     
@@ -1775,9 +2032,21 @@
             <div class="chat-name">${user.nickname} (${m.role})</div>
           </div>
           ${(m.uid === currentUser.uid || currentGroup.members.find(mm => mm.uid === currentUser.uid)?.role === 'admin') && m.uid !== currentUser.uid ? `
-            <button class="btn" data-uid="${m.uid}">Видалити</button>
+            <button class="btn remove-member" data-uid="${m.uid}">Видалити</button>
           ` : ''}
         `;
+        div.querySelectorAll('.remove-member').forEach(btn => {
+          btn.onclick = async (e) => {
+            e.stopPropagation();
+            if (confirm('Видалити учасника?')) {
+              await updateDoc(doc(db, "groups", currentGroup.id), {
+                members: arrayRemove({ uid: m.uid, role: m.role })
+              });
+              showToast('Учасника видалено');
+              modal.classList.remove('active');
+            }
+          };
+        });
         list.appendChild(div);
       }
     })();
@@ -2037,13 +2306,6 @@
       const uid = e.target.closest('[data-uid]').dataset.uid;
       viewProfile(uid);
     }
-  });
-
-  // Закриття модалок по кліку на фон
-  document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.remove('active');
-    });
   });
 </script>
 </body>
