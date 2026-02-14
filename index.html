@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FANTASYAS · чорно-білий</title>
+  <title>FANTASYAS · месенджер</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     * {
@@ -142,6 +142,17 @@
     .sidebar a:hover { color: var(--text); transform: translateX(8px); }
     .sidebar a:hover::after { width: 100%; }
 
+    /* Бейдж повідомлень */
+    .badge {
+      background: #ff4444;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      margin-left: 8px;
+      display: inline-block;
+    }
+
     /* Основний контент */
     .main-content {
       margin-top: 90px;
@@ -250,7 +261,7 @@
     }
     .menu-btn:hover { color: var(--text); transform: scale(1.2); background: none; border: none; }
 
-    /* Анімована кнопка підписки під постом */
+    /* Анімована кнопка підписки */
     .subscribe-post-btn {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -290,7 +301,6 @@
       margin: 16px 0;
     }
 
-    /* Футер поста (лайк, коментарі) */
     .post-footer {
       display: flex;
       gap: 28px;
@@ -395,11 +405,53 @@
       border: none;
     }
 
-    /* Чат */
+    /* Чат — новий стиль як у Telegram */
+    .chat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .chat-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border-radius: 24px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: 0.2s;
+      position: relative;
+    }
+    .chat-item:hover { background: var(--hover); border-color: var(--accent); }
+    .chat-item.unread { background: rgba(255,255,255,0.05); border-left: 4px solid var(--accent); }
+    .chat-avatar { width: 56px; height: 56px; border-radius: 50%; background-size: cover; background-position: center; border: 2px solid var(--border); }
+    .chat-info { flex: 1; min-width: 0; }
+    .chat-name { font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+    .chat-last { color: var(--text-sec); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+    .chat-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .chat-time { color: var(--text-sec); font-size: 0.75rem; }
+    .chat-badge {
+      background: var(--accent);
+      color: black;
+      border-radius: 50%;
+      min-width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0 4px;
+    }
+
     .chat-window {
       display: none;
       flex-direction: column;
-      height: 550px;
+      height: 70vh;
       border: 1px solid var(--border);
       border-radius: 32px;
       overflow: hidden;
@@ -413,6 +465,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      background: var(--surface);
     }
     .chat-header .avatar { width: 40px; height: 40px; }
     .chat-messages {
@@ -422,12 +475,14 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      background: var(--card);
     }
     .message {
       max-width: 75%;
       padding: 12px 18px;
       border-radius: 26px;
       animation: messagePop 0.3s;
+      word-break: break-word;
     }
     @keyframes messagePop {
       0% { opacity: 0; transform: scale(0.9); }
@@ -449,11 +504,11 @@
       display: flex;
       padding: 16px;
       border-top: 1px solid var(--border);
-      background: var(--card);
+      background: var(--surface);
     }
     .chat-input input { flex: 1; margin-right: 16px; border-radius: 40px; }
 
-    /* Профіль (свій та чужий) */
+    /* Профіль */
     .profile-header {
       display: flex;
       flex-wrap: wrap;
@@ -523,7 +578,10 @@
   <a data-section="home">Головна</a>
   <a data-section="search">Пошук</a>
   <a data-section="profile">Профіль</a>
-  <a data-section="chats">Чати</a>
+  <a data-section="chats">
+    Повідомлення
+    <span id="unreadBadge" class="badge" style="display:none;">0</span>
+  </a>
   <a data-section="settings">Налаштування</a>
 </nav>
 
@@ -571,17 +629,20 @@
     <div class="user-list" id="userList"></div>
   </div>
 
-  <!-- ПРОФІЛЬ (динамічний) -->
+  <!-- ПРОФІЛЬ -->
   <div id="profile" class="section"></div>
 
-  <!-- ЧАТИ -->
+  <!-- ЧАТИ (оновлені) -->
   <div id="chats" class="section">
     <div class="chat-list" id="chatList"></div>
     <div class="chat-window" id="chatWindow">
-      <div class="chat-header" id="chatHeader"></div>
+      <div class="chat-header" id="chatHeader">
+        <div class="avatar" id="chatAvatar"></div>
+        <span id="chatName"></span>
+      </div>
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-input">
-        <input type="text" id="chatText" placeholder="Повідомлення..."/>
+        <input type="text" id="chatText" placeholder="Напишіть повідомлення..."/>
         <button id="sendMessage">Надіслати</button>
       </div>
     </div>
@@ -596,7 +657,7 @@
   </div>
 </main>
 
-<!-- МОДАЛКА РЕДАГУВАННЯ ПРОФІЛЮ -->
+<!-- МОДАЛКИ -->
 <div class="modal" id="editProfileModal">
   <div class="modal-content">
     <span class="close-modal" id="closeModal">&times;</span>
@@ -607,7 +668,6 @@
   </div>
 </div>
 
-<!-- МОДАЛКА РЕДАГУВАННЯ ПОСТА -->
 <div class="modal" id="editPostModal">
   <div class="modal-content">
     <span class="close-modal" id="closeEditPostModal">&times;</span>
@@ -621,7 +681,7 @@
   // ================= Firebase =================
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, OAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, getDocs, increment } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
   const firebaseConfig = {
@@ -641,11 +701,23 @@
   let currentChatPartner = null;
   let unsubscribeFeed = null;
   let unsubscribeChat = null;
+  let unsubscribeChatList = null;
   let currentEditPostId = null;
-  let viewingProfileUid = null; // uid користувача, чий профіль зараз переглядаємо
+  let viewingProfileUid = null;
+  let unreadCount = 0;
 
-  // helpers
   const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
+
+  // Оновлення бейджа непрочитаних
+  function updateUnreadBadge() {
+    const badge = document.getElementById('unreadBadge');
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
 
   // burger
   document.getElementById('burger').onclick = () => {
@@ -662,7 +734,10 @@
       document.getElementById('sidebar').classList.remove('active');
       document.getElementById('burger').classList.remove('active');
       if (sectionId === 'search') loadSearchUsers();
-      if (sectionId === 'chats') loadChatList();
+      if (sectionId === 'chats') {
+        document.getElementById('chatWindow').style.display = 'none';
+        loadChatList();
+      }
       if (sectionId === 'profile') {
         if (!viewingProfileUid || viewingProfileUid === currentUser?.uid) {
           viewingProfileUid = currentUser?.uid;
@@ -759,11 +834,28 @@
       document.getElementById('newPostBox').style.display = 'block';
       subscribeToFeed();
       loadMyProfile();
+      // Підписка на список чатів для отримання непрочитаних
+      if (unsubscribeChatList) unsubscribeChatList();
+      const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
+      unsubscribeChatList = onSnapshot(q, (snapshot) => {
+        let totalUnread = 0;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.unread && data.unread[currentUser.uid]) {
+            totalUnread += data.unread[currentUser.uid];
+          }
+        });
+        unreadCount = totalUnread;
+        updateUnreadBadge();
+      });
     } else {
       currentUser = null;
       document.getElementById('authBox').style.display = 'block';
       document.getElementById('newPostBox').style.display = 'none';
       if (unsubscribeFeed) unsubscribeFeed();
+      if (unsubscribeChatList) unsubscribeChatList();
+      unreadCount = 0;
+      updateUnreadBadge();
     }
   });
 
@@ -881,9 +973,8 @@
     });
   }
 
-  // Обробник подій на стрічці
+  // Обробник подій
   document.getElementById('feed').addEventListener('click', async (e) => {
-    // Лайк
     if (e.target.closest('.like-btn')) {
       const btn = e.target.closest('.like-btn');
       const postId = btn.dataset.postId;
@@ -897,7 +988,6 @@
       }
     }
 
-    // Меню поста
     if (e.target.closest('.menu-btn')) {
       const postId = e.target.closest('.menu-btn').dataset.postId;
       const action = prompt('1 - редагувати, 2 - видалити');
@@ -918,14 +1008,12 @@
       }
     }
 
-    // Показати коментарі
     if (e.target.closest('.comments-toggle')) {
       const postId = e.target.closest('.comments-toggle').dataset.postId;
       const sec = document.getElementById(`comments-${postId}`);
       sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
     }
 
-    // Відправити коментар
     if (e.target.closest('.send-comment')) {
       const btn = e.target.closest('.send-comment');
       const postId = btn.dataset.postId;
@@ -937,11 +1025,10 @@
       await addDoc(collection(db, "posts", postId, "comments"), {
         author: currentUser.uid, authorNickname: userData.nickname, authorAvatar: userData.avatar || '', text, createdAt: serverTimestamp()
       });
-      await updateDoc(doc(db, "posts", postId), { commentsCount: arrayUnion('dummy') });
+      await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
       textarea.value = '';
     }
 
-    // Показати емодзі для коментаря
     if (e.target.closest('.emoji-comment-btn')) {
       const btn = e.target.closest('.emoji-comment-btn');
       const postId = btn.dataset.postId;
@@ -949,7 +1036,6 @@
       picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
     }
 
-    // Вибрати емодзі
     if (e.target.closest('.emoji-panel span')) {
       const span = e.target.closest('.emoji-panel span');
       const picker = span.closest('.emoji-panel');
@@ -959,17 +1045,14 @@
       picker.style.display = 'none';
     }
 
-    // Підписка з поста
     if (e.target.closest('.subscribe-post-btn')) {
       const btn = e.target.closest('.subscribe-post-btn');
       const authorUid = btn.dataset.authorUid;
       await toggleFollow(authorUid);
       const isFollowing = (await getDoc(doc(db, "users", currentUser.uid))).data().following.includes(authorUid);
       btn.textContent = isFollowing ? 'Відписатися' : 'Підписатися';
-      // анімація пульсу спрацює через CSS :active
     }
 
-    // Клік на аватар або ім'я
     if (e.target.closest('[data-uid]')) {
       const el = e.target.closest('[data-uid]');
       const uid = el.dataset.uid;
@@ -987,7 +1070,7 @@
     }
   });
 
-  // Редагування поста
+  // редагування поста
   document.getElementById('savePostEdit').onclick = async () => {
     if (!currentEditPostId) return;
     const newText = document.getElementById('editPostText').value.trim();
@@ -1000,7 +1083,7 @@
     currentEditPostId = null;
   };
 
-  // Пошук
+  // пошук
   async function loadSearchUsers() {
     const val = document.getElementById('searchInput').value.trim().toLowerCase();
     const userList = document.getElementById('userList');
@@ -1053,7 +1136,7 @@
     }
   }
 
-  // Завантаження свого профілю
+  // профілі
   async function loadMyProfile() {
     if (!currentUser) return;
     const snap = await getDoc(doc(db, "users", currentUser.uid));
@@ -1063,7 +1146,6 @@
     }
   }
 
-  // Завантаження чужого профілю
   async function loadUserProfile(uid) {
     const snap = await getDoc(doc(db, "users", uid));
     if (snap.exists()) {
@@ -1135,7 +1217,7 @@
     }
   }
 
-  // Редагування профілю
+  // редагування профілю
   document.getElementById('closeModal').onclick = () => document.getElementById('editProfileModal').classList.remove('active');
   document.getElementById('saveProfileEdit').onclick = async () => {
     const nickname = document.getElementById('editNickname').value.trim();
@@ -1146,45 +1228,95 @@
     document.getElementById('editProfileModal').classList.remove('active');
   };
 
-  // Чати
+  // ========== НОВА СИСТЕМА ЧАТІВ (як у Telegram) ==========
   async function loadChatList() {
     const list = document.getElementById('chatList');
     list.innerHTML = '';
-    const q = query(collection(db, "users"));
-    onSnapshot(q, snapshot => {
-      list.innerHTML = '';
-      snapshot.forEach(d => {
-        if (d.id === currentUser.uid) return;
-        const data = d.data();
-        const item = document.createElement('div');
-        item.className = 'chat-item';
-        item.innerHTML = `<div class="avatar" style="background-image:url(${data.avatar || ''})"></div><span>@${data.nickname}</span>`;
-        item.onclick = () => openChat(data.nickname, d.id);
-        list.appendChild(item);
-      });
-    });
-  }
 
-  function openChat(name, uid) {
-    currentChatPartner = uid;
-    document.getElementById('chatWindow').style.display = 'flex';
-    document.getElementById('chatHeader').innerHTML = `
-      <div class="avatar" style="background-image:url(${''})"></div>
-      <span>@${name}</span>
-    `;
-    getDoc(doc(db, "users", uid)).then(snap => {
-      if (snap.exists()) {
-        document.querySelector('#chatHeader .avatar').style.backgroundImage = `url(${snap.data().avatar || ''})`;
+    // Отримуємо всі чати, де бере участь поточний користувач
+    const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid), orderBy("updatedAt", "desc"));
+    onSnapshot(q, async (snapshot) => {
+      list.innerHTML = '';
+      for (const docSnap of snapshot.docs) {
+        const chat = docSnap.data();
+        const otherUid = chat.participants.find(uid => uid !== currentUser.uid);
+        const userSnap = await getDoc(doc(db, "users", otherUid));
+        const user = userSnap.data();
+        const unread = chat.unread?.[currentUser.uid] || 0;
+        const lastMsg = chat.lastMessage || '';
+        const time = chat.updatedAt ? new Date(chat.updatedAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+        const item = document.createElement('div');
+        item.className = `chat-item ${unread > 0 ? 'unread' : ''}`;
+        item.dataset.chatId = docSnap.id;
+        item.dataset.otherUid = otherUid;
+        item.innerHTML = `
+          <div class="chat-avatar" style="background-image:url(${user.avatar || ''})"></div>
+          <div class="chat-info">
+            <div class="chat-name">@${user.nickname}</div>
+            <div class="chat-last">${lastMsg}</div>
+          </div>
+          <div class="chat-meta">
+            <div class="chat-time">${time}</div>
+            ${unread > 0 ? `<div class="chat-badge">${unread}</div>` : ''}
+          </div>
+        `;
+        item.onclick = () => openChatFromList(docSnap.id, otherUid, user.nickname, user.avatar);
+        list.appendChild(item);
       }
     });
-    subscribeToChat(uid);
   }
 
-  function subscribeToChat(otherUid) {
-    if (unsubscribeChat) unsubscribeChat();
+  async function openChatFromList(chatId, otherUid, otherName, otherAvatar) {
+    currentChatPartner = otherUid;
+    document.getElementById('chatWindow').style.display = 'flex';
+    document.getElementById('chatName').textContent = `@${otherName}`;
+    document.getElementById('chatAvatar').style.backgroundImage = `url(${otherAvatar || ''})`;
+
+    // Скидаємо лічильник непрочитаних для цього чату
+    const chatRef = doc(db, "chats", chatId);
+    await updateDoc(chatRef, {
+      [`unread.${currentUser.uid}`]: 0
+    });
+
+    subscribeToChat(chatId);
+  }
+
+  function openChat(otherName, otherUid) {
+    // Відкриваємо чат безпосередньо з профілю
+    currentChatPartner = otherUid;
+    document.getElementById('chatWindow').style.display = 'flex';
+    document.getElementById('chatName').textContent = `@${otherName}`;
+    getDoc(doc(db, "users", otherUid)).then(snap => {
+      if (snap.exists()) {
+        document.getElementById('chatAvatar').style.backgroundImage = `url(${snap.data().avatar || ''})`;
+      }
+    });
+
+    // Знаходимо або створюємо чат
     const chatId = getChatId(currentUser.uid, otherUid);
-    const q = query(collection(db, `messages/${chatId}/chat`), orderBy("createdAt"));
-    unsubscribeChat = onSnapshot(q, snap => {
+    const chatRef = doc(db, "chats", chatId);
+    getDoc(chatRef).then(async (docSnap) => {
+      if (!docSnap.exists()) {
+        await setDoc(chatRef, {
+          participants: [currentUser.uid, otherUid],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          lastMessage: '',
+          unread: { [currentUser.uid]: 0, [otherUid]: 0 }
+        });
+      } else {
+        // Скидаємо непрочитані
+        await updateDoc(chatRef, { [`unread.${currentUser.uid}`]: 0 });
+      }
+      subscribeToChat(chatId);
+    });
+  }
+
+  function subscribeToChat(chatId) {
+    if (unsubscribeChat) unsubscribeChat();
+    const q = query(collection(db, `chats/${chatId}/messages`), orderBy("createdAt"));
+    unsubscribeChat = onSnapshot(q, (snap) => {
       const messages = document.getElementById('chatMessages');
       messages.innerHTML = '';
       snap.forEach(m => {
@@ -1201,29 +1333,44 @@
   document.getElementById('sendMessage').onclick = async () => {
     const text = document.getElementById('chatText').value.trim();
     if (!text || !currentChatPartner) return;
+
     const chatId = getChatId(currentUser.uid, currentChatPartner);
-    await addDoc(collection(db, `messages/${chatId}/chat`), {
-      from: currentUser.uid, text, createdAt: serverTimestamp()
+    const chatRef = doc(db, "chats", chatId);
+    const messageRef = collection(db, `chats/${chatId}/messages`);
+
+    // Додаємо повідомлення
+    await addDoc(messageRef, {
+      from: currentUser.uid,
+      text,
+      createdAt: serverTimestamp()
     });
+
+    // Оновлюємо інформацію про чат: останнє повідомлення, час, непрочитані для співрозмовника
+    await updateDoc(chatRef, {
+      lastMessage: text,
+      updatedAt: serverTimestamp(),
+      [`unread.${currentChatPartner}`]: increment(1)
+    });
+
     document.getElementById('chatText').value = '';
   };
 
-  // Тема
+  // тема
   document.getElementById('toggleTheme').onclick = () => {
     document.body.classList.toggle('light');
     localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
   };
   if (localStorage.getItem('theme') === 'light') document.body.classList.add('light');
 
-  // Режим телевізора (збільшення шрифту)
+  // режим телевізора
   document.getElementById('toggleTvMode').onclick = () => {
     document.body.classList.toggle('tv');
   };
 
-  // Вихід
+  // вихід
   document.getElementById('logoutBtn').onclick = () => signOut(auth);
 
-  // Приховати чат спочатку
+  // приховати чат спочатку
   document.getElementById('chatWindow').style.display = 'none';
 </script>
 </body>
