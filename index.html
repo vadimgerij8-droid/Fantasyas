@@ -120,6 +120,7 @@
       height: 100vh;
       overflow-x: hidden;
       width: 100vw;
+      position: relative;
     }
 
     /* Sidebar */
@@ -203,6 +204,8 @@
       overflow: hidden;
       background: var(--bg);
       width: 100%;
+      max-width: 100%;
+      height: 100vh;
     }
 
     .top-bar {
@@ -246,6 +249,7 @@
       overflow-y: auto;
       padding: 20px;
       height: 100%;
+      -webkit-overflow-scrolling: touch;
     }
 
     /* Секції: приховуємо неактивні */
@@ -1336,6 +1340,7 @@
       };
       span.onkeydown = (e) => {
         if (e.key === 'Enter') {
+          e.preventDefault();
           span.click();
         }
       };
@@ -1386,6 +1391,7 @@
         });
         keyDiv.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
+            e.preventDefault();
             keyDiv.click();
           }
         });
@@ -1407,7 +1413,10 @@
       }
     });
     backspace.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') backspace.click();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        backspace.click();
+      }
     });
     const enter = document.createElement('div');
     enter.className = 'key special';
@@ -1424,7 +1433,10 @@
       }
     });
     enter.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') enter.click();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        enter.click();
+      }
     });
     const done = document.createElement('div');
     done.className = 'key special';
@@ -1434,7 +1446,10 @@
       if (activeInput) activeInput.blur();
     });
     done.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') done.click();
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        done.click();
+      }
     });
     specialRow.appendChild(backspace);
     specialRow.appendChild(enter);
@@ -1504,6 +1519,10 @@
       } else {
         focusable[focusable.length - 1].focus();
       }
+    } else if (e.key === 'ArrowRight') {
+      // maybe move to next in horizontal? Not needed for now
+    } else if (e.key === 'ArrowLeft') {
+      // maybe move to previous
     } else if (e.key === 'Enter') {
       if (document.activeElement && document.activeElement.click) {
         document.activeElement.click();
@@ -1767,6 +1786,7 @@
       if (currentFeedType === 'new') {
         q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10));
       } else {
+        // Для популярних потрібен складений індекс у Firestore: likesCount DESC, createdAt DESC
         q = query(collection(db, "posts"), orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
       }
       if (lastVisible) q = query(q, startAfter(lastVisible));
@@ -1798,7 +1818,7 @@
         <div class="comment-content">
           <div>
             <span class="comment-author" data-uid="${comment.author}" tabindex="0">${comment.authorName}</span>
-            <span class="comment-time">${new Date(comment.createdAt?.seconds * 1000).toLocaleString()}</span>
+            <span class="comment-time">${new Date(comment.createdAt?.seconds * 1000).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
           </div>
           <div class="comment-text">${comment.text}</div>
         </div>
@@ -1946,6 +1966,8 @@
       div.querySelector('.message-btn').onclick = (e) => {
         e.stopPropagation();
         openChat(data.nickname, uid, data.userId);
+        // Перейти на вкладку Чати
+        document.querySelector('[data-section="chats"]').click();
       };
       div.onclick = () => viewProfile(uid);
       userList.appendChild(div);
@@ -2017,6 +2039,7 @@
       };
       document.getElementById('profileMessageBtn').onclick = () => {
         openChat(data.nickname, uid, data.userId);
+        document.querySelector('[data-section="chats"]').click();
       };
     }
     if (isOwn) {
@@ -2115,6 +2138,18 @@
       if (avatarUrl) updateData.avatar = avatarUrl;
       
       await updateDoc(doc(db, "users", currentUser.uid), updateData);
+      
+      // Оновлюємо аватарку в усіх постах автора
+      if (avatarUrl) {
+        const postsQuery = query(collection(db, "posts"), where("author", "==", currentUser.uid));
+        const postsSnap = await getDocs(postsQuery);
+        const batch = writeBatch(db);
+        postsSnap.forEach(postDoc => {
+          batch.update(postDoc.ref, { authorAvatar: avatarUrl });
+        });
+        await batch.commit();
+      }
+      
       loadMyProfile();
       document.getElementById('editProfileModal').classList.remove('active');
       showToast('Профіль оновлено');
@@ -2139,12 +2174,16 @@
         if (!otherUid) continue;
         
         const userSnap = await getDoc(doc(db, "users", otherUid));
+        if (!userSnap.exists()) {
+          // Якщо користувача не існує, видаляємо чат
+          await deleteDoc(doc(db, "chats", docSnap.id));
+          continue;
+        }
         const user = userSnap.data();
-        if (!user) continue;
         
         const unread = chat.unread?.[currentUser.uid] || 0;
         const lastMsg = chat.lastMessage || '';
-        const time = chat.updatedAt ? new Date(chat.updatedAt.seconds * 1000).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) : '';
+        const time = chat.updatedAt ? new Date(chat.updatedAt.seconds * 1000).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
         const lastOnline = user.lastOnline?.seconds || 0;
         const isOnline = (Date.now()/1000 - lastOnline) < 60;
         
@@ -2281,6 +2320,11 @@
     
     const typingRef = doc(db, `chats/${chatId}/typing/${currentUser.uid}`);
     setDoc(typingRef, { isTyping: false }, { merge: true });
+    
+    if (tvModeEnabled) {
+      activeInput = null;
+      keyboardElement.classList.remove('active');
+    }
   };
 
   // ================= Групи =================
@@ -2444,6 +2488,11 @@
       updatedAt: serverTimestamp()
     });
     document.getElementById('groupChatText').value = '';
+    
+    if (tvModeEnabled) {
+      activeInput = null;
+      keyboardElement.classList.remove('active');
+    }
   };
 
   // ================= Канали =================
@@ -2658,12 +2707,18 @@
     }
   });
 
+  // Клік на елемент з data-uid (аватар, ім'я автора, коментатора) відкриває профіль
   document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-uid]')) {
-      const uid = e.target.closest('[data-uid]').dataset.uid;
-      viewProfile(uid);
+    const target = e.target.closest('[data-uid]');
+    if (target) {
+      const uid = target.dataset.uid;
+      if (uid) {
+        viewProfile(uid);
+      }
     }
   });
 </script>
+<!-- Важливо: Для роботи популярних постів створіть складений індекс у Firestore:
+   Collection: posts, Fields: likesCount (descending), createdAt (descending) -->
 </body>
 </html>
