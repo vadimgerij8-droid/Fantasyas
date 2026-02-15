@@ -60,6 +60,22 @@
       line-height: 1.5;
     }
 
+    /* Затемнення фону при відкритому меню на мобільних */
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .sidebar-backdrop.active {
+      display: block;
+      opacity: 1;
+    }
+
     /* ========== LAYOUT ========== */
     .app {
       display: flex;
@@ -76,7 +92,7 @@
       flex-direction: column;
       padding: 20px 0;
       overflow-y: auto;
-      transition: transform var(--transition);
+      transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
       z-index: 1000;
     }
 
@@ -159,6 +175,8 @@
       flex-direction: column;
       justify-content: space-between;
       cursor: pointer;
+      position: relative;
+      z-index: 1001;
     }
 
     .menu-toggle span {
@@ -166,7 +184,7 @@
       width: 100%;
       background: var(--text-primary);
       border-radius: 2px;
-      transition: transform var(--transition);
+      transition: transform 0.3s ease, opacity 0.2s ease;
     }
 
     .menu-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 5px); }
@@ -200,6 +218,7 @@
         top: 0;
         bottom: 0;
         transform: translateX(-100%);
+        box-shadow: var(--shadow-lg);
       }
       .sidebar.open {
         transform: translateX(0);
@@ -321,6 +340,7 @@
       box-shadow: var(--shadow-sm);
       transition: transform 0.15s ease, box-shadow 0.15s ease;
       animation: fadeIn 0.3s ease;
+      position: relative;
     }
     .post:hover {
       box-shadow: var(--shadow-md);
@@ -360,6 +380,27 @@
       color: var(--text-tertiary);
       font-size: 0.75rem;
       margin-left: auto;
+    }
+
+    .post-actions {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+    }
+    .post-actions button {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 4px;
+      border-radius: 50%;
+      transition: background var(--transition);
+    }
+    .post-actions button:hover {
+      background: var(--surface);
     }
 
     .post-content {
@@ -640,6 +681,13 @@
       border-bottom-left-radius: 4px;
     }
 
+    .group-message-sender {
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 2px;
+      color: var(--text-secondary);
+    }
+
     .typing-indicator {
       color: var(--text-tertiary);
       font-size: 0.9rem;
@@ -813,6 +861,9 @@
 </head>
 <body>
 <div class="app">
+  <!-- Затемнення фону для мобільного меню -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
   <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -959,6 +1010,7 @@
               <div class="chat-meta" id="groupChatMeta"></div>
             </div>
             <button class="btn" id="groupMembersBtn">Учасники</button>
+            <button class="btn" id="editGroupBtn" style="display:none;">Редагувати</button>
           </div>
           <div class="chat-messages" id="groupChatMessages"></div>
           <div class="chat-input-area">
@@ -1022,9 +1074,21 @@
     </div>
     <input type="text" id="editNickname" class="input" placeholder="Псевдонім"/>
     <textarea id="editBio" class="input" placeholder="Про себе" rows="4" style="margin:14px 0;"></textarea>
-    <!-- Додано поле для вибору аватарки з галереї -->
     <input type="file" id="editAvatar" accept="image/*" style="margin:14px 0;" />
     <button class="btn btn-primary" id="saveProfileEdit">Зберегти</button>
+  </div>
+</div>
+
+<div class="modal" id="editPostModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Редагувати пост</h3>
+      <span class="modal-close" id="closeEditPostModal">&times;</span>
+    </div>
+    <textarea id="editPostText" class="input" placeholder="Текст посту" rows="4"></textarea>
+    <input type="file" id="editPostMedia" accept="image/*,video/*" style="margin:14px 0;" />
+    <button class="btn btn-primary" id="savePostEdit">Зберегти</button>
+    <button class="btn" id="deletePostBtn" style="margin-top:10px; background:#ff3040; color:white;">Видалити пост</button>
   </div>
 </div>
 
@@ -1068,6 +1132,19 @@
   </div>
 </div>
 
+<div class="modal" id="editGroupModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Редагувати групу</h3>
+      <span class="modal-close" id="closeEditGroupModal">&times;</span>
+    </div>
+    <input type="text" id="editGroupName" class="input" placeholder="Назва групи"/>
+    <textarea id="editGroupDesc" class="input" placeholder="Опис" rows="3" style="margin:14px 0;"></textarea>
+    <input type="file" id="editGroupAvatar" accept="image/*"/>
+    <button class="btn btn-primary" id="saveGroupEdit">Зберегти</button>
+  </div>
+</div>
+
 <!-- Privacy Policy Modal -->
 <div class="modal" id="privacyPolicyModal">
   <div class="modal-content">
@@ -1097,7 +1174,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, OAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, getDocs, increment, limit, startAfter, writeBatch } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
 
   // ================= Конфігурація =================
   const firebaseConfig = {
@@ -1119,6 +1196,7 @@
   let currentGroup = null;
   let currentChannel = null;
   let currentProfileUid = null; // хто зараз відображається в профілі
+  let currentEditingPost = null; // пост, який редагуємо
   
   // unsubscribe functions
   let unsubscribeFeed = null;
@@ -1130,7 +1208,7 @@
   let unsubscribeChannels = null;
   let unsubscribeTyping = null;
   let lastOnlineInterval = null;
-  let unsubscribeOnlineStatus = null; // для оновлення статусу онлайн в чаті
+  let unsubscribeOnlineStatus = null;
 
   let unreadCount = 0;
   let currentFeedType = 'new';
@@ -1158,7 +1236,6 @@
     }
   };
 
-  // Очищення всіх підписок
   const cleanupListeners = () => {
     if (unsubscribeFeed) { unsubscribeFeed(); unsubscribeFeed = null; }
     if (unsubscribeChat) { unsubscribeChat(); unsubscribeChat = null; }
@@ -1184,14 +1261,21 @@
       document.getElementById(section).classList.add('active');
       document.getElementById('pageTitle').textContent = item.textContent.trim();
       
-      // Завантаження відповідних даних
       if (section === 'home') resetPagination();
       if (section === 'search' && currentUser) loadSearchUsers();
-      if (section === 'chats' && currentUser) loadChatList();
-      if (section === 'groups' && currentUser) loadGroups();
-      if (section === 'channels' && currentUser) loadChannels();
+      if (section === 'chats' && currentUser) {
+        document.getElementById('chatWindow').style.display = 'none';
+        loadChatList();
+      }
+      if (section === 'groups' && currentUser) {
+        document.getElementById('groupChatWindow').style.display = 'none';
+        loadGroups();
+      }
+      if (section === 'channels' && currentUser) {
+        document.getElementById('channelView').style.display = 'none';
+        loadChannels();
+      }
       if (section === 'profile' && currentUser) {
-        // Якщо профіль, то показуємо того, хто збережений у currentProfileUid (за замовчуванням поточний)
         if (currentProfileUid === currentUser?.uid) {
           loadMyProfile();
         } else {
@@ -1200,15 +1284,36 @@
       }
       
       // Закриваємо sidebar на мобільному
-      document.getElementById('sidebar').classList.remove('open');
-      document.getElementById('menuToggle').classList.remove('active');
+      closeSidebar();
     });
   });
 
-  document.getElementById('menuToggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('menuToggle').classList.toggle('active');
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menuToggle');
+  const backdrop = document.getElementById('sidebarBackdrop');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    menuToggle.classList.add('active');
+    backdrop.classList.add('active');
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    menuToggle.classList.remove('active');
+    backdrop.classList.remove('active');
+  }
+
+  menuToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (sidebar.classList.contains('open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
   });
+
+  backdrop.addEventListener('click', closeSidebar);
 
   // ================= Емоджі-пікер (універсальний) =================
   const emojiList = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
@@ -1390,11 +1495,10 @@
     
     if (user) {
       currentUser = user;
-      currentProfileUid = user.uid; // за замовчуванням показуємо свій профіль
+      currentProfileUid = user.uid;
       document.getElementById('authBox').style.display = 'none';
       document.getElementById('newPostBox').style.display = 'block';
       
-      // Оновлення lastOnline кожні 30 секунд
       lastOnlineInterval = setInterval(() => {
         updateDoc(doc(db, "users", currentUser.uid), { lastOnline: serverTimestamp() });
       }, 30000);
@@ -1402,7 +1506,6 @@
       resetPagination();
       loadMyProfile();
       
-      // Підписка на непрочитані повідомлення
       const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
       unsubscribeChatList = onSnapshot(q, (snapshot) => {
         let totalUnread = 0;
@@ -1416,7 +1519,6 @@
         updateUnreadBadge();
       });
 
-      // Налаштування емоджі-пікерів
       setupEmojiPicker('postEmojiBtn', 'postEmojiPicker', 'postText');
       setupEmojiPicker('chatEmojiBtn', 'chatEmojiPicker', 'chatText');
       setupEmojiPicker('groupEmojiBtn', 'groupEmojiPicker', 'groupChatText');
@@ -1496,7 +1598,6 @@
       if (currentFeedType === 'new') {
         q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10));
       } else {
-        // Для популярних потрібен складений індекс: likesCount DESC, createdAt DESC
         q = query(collection(db, "posts"), orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
       }
       if (lastVisible) q = query(q, startAfter(lastVisible));
@@ -1559,10 +1660,22 @@
       const liked = post.likes?.includes(currentUser?.uid) || false;
       const saved = post.saves?.includes(currentUser?.uid) || false;
       const postTime = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString() : '';
+      const isAuthor = currentUser && post.author === currentUser.uid;
       const postEl = document.createElement('div');
       postEl.className = 'post';
       postEl.dataset.postId = post.id;
+      
+      let actionsHtml = '';
+      if (isAuthor) {
+        actionsHtml = `
+          <div class="post-actions">
+            <button class="edit-post-btn" title="Редагувати">⋯</button>
+          </div>
+        `;
+      }
+      
       postEl.innerHTML = `
+        ${actionsHtml}
         <div class="post-header">
           <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" data-uid="${post.author}"></div>
           <div class="post-author-info">
@@ -1607,13 +1720,15 @@
       `;
       feed.appendChild(postEl);
 
-      // Налаштовуємо емоджі-пікер для коментаря цього поста
+      if (isAuthor) {
+        postEl.querySelector('.edit-post-btn').onclick = () => openEditPostModal(post);
+      }
+
       const commentInput = document.getElementById(`comment-input-${post.id}`);
       if (commentInput) {
         setupEmojiPicker(`comment-emoji-${post.id}`, `comment-picker-${post.id}`, `comment-input-${post.id}`);
       }
 
-      // Обробник кнопки коментарів
       const toggleBtn = postEl.querySelector('.comment-toggle-btn');
       const commentsSection = postEl.querySelector('.comments-section');
       toggleBtn.onclick = async () => {
@@ -1625,7 +1740,6 @@
         }
       };
 
-      // Обробник відправки коментаря
       const submitBtn = document.getElementById(`submit-comment-${post.id}`);
       if (submitBtn) {
         submitBtn.onclick = async () => {
@@ -1634,13 +1748,74 @@
           await addComment(post.id, text);
           commentInput.value = '';
           await loadComments(post.id, document.getElementById(`comments-list-${post.id}`));
-          // Оновлюємо лічильник коментарів
           const countSpan = toggleBtn.querySelector('span');
           countSpan.textContent = parseInt(countSpan.textContent) + 1;
         };
       }
     });
   }
+
+  // ================= Редагування поста =================
+  function openEditPostModal(post) {
+    currentEditingPost = post;
+    document.getElementById('editPostText').value = post.text || '';
+    document.getElementById('editPostMedia').value = '';
+    document.getElementById('editPostModal').classList.add('active');
+  }
+
+  document.getElementById('closeEditPostModal').onclick = () => {
+    document.getElementById('editPostModal').classList.remove('active');
+    currentEditingPost = null;
+  };
+
+  document.getElementById('savePostEdit').onclick = async () => {
+    if (!currentEditingPost || !currentUser) return;
+    const newText = document.getElementById('editPostText').value.trim();
+    const file = document.getElementById('editPostMedia').files[0];
+    try {
+      const postRef = doc(db, "posts", currentEditingPost.id);
+      let updateData = { text: newText };
+      if (file) {
+        // Видаляємо старе медіа, якщо було
+        if (currentEditingPost.mediaUrl) {
+          try {
+            const oldMediaRef = ref(storage, currentEditingPost.mediaUrl);
+            await deleteObject(oldMediaRef);
+          } catch (e) {}
+        }
+        const storageRef = ref(storage, `posts/${currentUser.uid}/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        const mediaUrl = await getDownloadURL(storageRef);
+        const mediaType = file.type.split('/')[0];
+        updateData.mediaUrl = mediaUrl;
+        updateData.mediaType = mediaType;
+      }
+      await updateDoc(postRef, updateData);
+      showToast('Пост оновлено');
+      document.getElementById('editPostModal').classList.remove('active');
+    } catch (e) {
+      showToast('Помилка: ' + e.message);
+    }
+  };
+
+  document.getElementById('deletePostBtn').onclick = async () => {
+    if (!currentEditingPost || !currentUser) return;
+    if (!confirm('Видалити пост?')) return;
+    try {
+      if (currentEditingPost.mediaUrl) {
+        try {
+          const mediaRef = ref(storage, currentEditingPost.mediaUrl);
+          await deleteObject(mediaRef);
+        } catch (e) {}
+      }
+      await deleteDoc(doc(db, "posts", currentEditingPost.id));
+      await updateDoc(doc(db, "users", currentUser.uid), { posts: arrayRemove(currentEditingPost.id) });
+      showToast('Пост видалено');
+      document.getElementById('editPostModal').classList.remove('active');
+    } catch (e) {
+      showToast('Помилка: ' + e.message);
+    }
+  };
 
   // ================= Пошук =================
   async function loadSearchUsers() {
@@ -1709,7 +1884,6 @@
 
   function viewProfile(uid) {
     currentProfileUid = uid;
-    // Активуємо секцію профілю без виклику навігаційного кліку (щоб не перезавантажити зайвий раз)
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.querySelector('[data-section="profile"]').classList.add('active');
     sections.forEach(s => document.getElementById(s).classList.remove('active'));
@@ -1722,9 +1896,7 @@
       loadUserProfile(uid);
     }
     
-    // Закриваємо sidebar на мобільному
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('menuToggle').classList.remove('active');
+    closeSidebar();
   }
 
   async function loadUserProfile(uid) {
@@ -1927,7 +2099,6 @@
     
     subscribeToChat(chatId);
     
-    // Підписка на статус онлайн співрозмовника
     if (unsubscribeOnlineStatus) unsubscribeOnlineStatus();
     unsubscribeOnlineStatus = onSnapshot(doc(db, "users", otherUid), (snap) => {
       const lastOnline = snap.data()?.lastOnline?.seconds || 0;
@@ -1952,7 +2123,6 @@
       }
     });
     
-    // Підписка на статус онлайн
     if (unsubscribeOnlineStatus) unsubscribeOnlineStatus();
     unsubscribeOnlineStatus = onSnapshot(doc(db, "users", otherUid), (snap) => {
       const lastOnline = snap.data()?.lastOnline?.seconds || 0;
@@ -1999,7 +2169,6 @@
       messages.scrollTop = messages.scrollHeight;
     });
     
-    // Стежимо за набором тексту співрозмовника
     if (currentChatPartner) {
       const typingRef = doc(db, `chats/${chatId}/typing/${currentChatPartner}`);
       unsubscribeTyping = onSnapshot(typingRef, (docSnap) => {
@@ -2105,6 +2274,10 @@
     document.getElementById('groupChatAvatar').style.backgroundImage = `url(${group.avatar || ''})`;
     document.getElementById('groupChatMeta').textContent = `${group.members.length} учасників`;
     
+    // Показуємо кнопку редагування, якщо поточний користувач адмін
+    const isAdmin = group.members.find(m => m.uid === currentUser.uid)?.role === 'admin';
+    document.getElementById('editGroupBtn').style.display = isAdmin ? 'inline-block' : 'none';
+    
     if (unsubscribeGroup) unsubscribeGroup();
     const q = query(collection(db, `groups/${groupId}/messages`), orderBy("createdAt"));
     unsubscribeGroup = onSnapshot(q, (snap) => {
@@ -2114,12 +2287,45 @@
         const msg = m.data();
         const div = document.createElement('div');
         div.className = `message ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
-        div.textContent = `${msg.senderName}: ${msg.text}`;
+        div.innerHTML = msg.from !== currentUser.uid ? `<div class="group-message-sender">${msg.senderName}</div>${msg.text}` : msg.text;
         messages.appendChild(div);
       });
       messages.scrollTop = messages.scrollHeight;
     });
   }
+
+  document.getElementById('editGroupBtn').onclick = () => {
+    document.getElementById('editGroupName').value = currentGroup.name;
+    document.getElementById('editGroupDesc').value = currentGroup.description || '';
+    document.getElementById('editGroupAvatar').value = '';
+    document.getElementById('editGroupModal').classList.add('active');
+  };
+
+  document.getElementById('closeEditGroupModal').onclick = () => document.getElementById('editGroupModal').classList.remove('active');
+  
+  document.getElementById('saveGroupEdit').onclick = async () => {
+    if (!currentGroup || !currentUser) return;
+    const name = document.getElementById('editGroupName').value.trim();
+    const desc = document.getElementById('editGroupDesc').value.trim();
+    const file = document.getElementById('editGroupAvatar').files[0];
+    if (!name) return alert('Введіть назву');
+    
+    try {
+      let avatarUrl;
+      if (file) {
+        const storageRef = ref(storage, `groups/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        avatarUrl = await getDownloadURL(storageRef);
+      }
+      const updateData = { name, description: desc };
+      if (avatarUrl) updateData.avatar = avatarUrl;
+      await updateDoc(doc(db, "groups", currentGroup.id), updateData);
+      showToast('Групу оновлено');
+      document.getElementById('editGroupModal').classList.remove('active');
+    } catch (e) {
+      showToast('Помилка: ' + e.message);
+    }
+  };
 
   document.getElementById('groupMembersBtn').onclick = () => {
     const modal = document.getElementById('groupMembersModal');
