@@ -6,7 +6,7 @@
   <title>FANTASYAS · ТВ версія (виправлено)</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
-    /* ========== ГЛОБАЛЬНІ СТИЛІ ========== */
+    /* ========== ГЛОБАЛЬНІ СТИЛІ (не змінені) ========== */
     * {
       margin: 0;
       padding: 0;
@@ -60,7 +60,6 @@
       line-height: 1.5;
     }
 
-    /* Фокус для навігації пультом */
     .focused {
       outline: 3px solid var(--accent) !important;
       outline-offset: 2px;
@@ -1328,6 +1327,7 @@
   // ================= Допоміжні функції =================
   const showToast = (msg) => {
     const toast = document.getElementById('toast');
+    if (!toast) return;
     toast.textContent = msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
@@ -1337,6 +1337,7 @@
 
   const updateUnreadBadge = () => {
     const badge = document.getElementById('unreadBadge');
+    if (!badge) return;
     if (unreadCount > 0) {
       badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
       badge.style.display = 'inline-block';
@@ -1358,7 +1359,7 @@
     if (lastOnlineInterval) { clearInterval(lastOnlineInterval); lastOnlineInterval = null; }
   };
 
-  // ================= НАВІГАЦІЯ ПУЛЬТОМ (ДЛЯ ТВ) =================
+  // ================= НАВІГАЦІЯ ПУЛЬТОМ =================
   let focusableElements = [];
   let currentFocusIndex = -1;
 
@@ -1437,18 +1438,19 @@
   // ================= Навігація по розділах =================
   const sections = ['home','search','profile','chats','groups','channels','settings'];
   const navItems = document.querySelectorAll('.nav-item');
-  navItems.forEach((item, index) => {
+  navItems.forEach((item) => {
     item.addEventListener('click', () => {
       const section = item.dataset.section;
       navItems.forEach(n => n.classList.remove('active'));
       item.classList.add('active');
       sections.forEach(s => document.getElementById(s).classList.remove('active'));
-      document.getElementById(section).classList.add('active');
+      const sectionEl = document.getElementById(section);
+      if (sectionEl) sectionEl.classList.add('active');
       document.getElementById('pageTitle').textContent = item.textContent.trim();
       
       cleanupListeners();
       
-      if (section === 'home') resetPagination();
+      if (section === 'home' && currentUser) resetPagination();
       if (section === 'search' && currentUser) loadSearchUsers();
       if (section === 'chats' && currentUser) {
         document.getElementById('chatWindow').style.display = 'none';
@@ -1504,7 +1506,7 @@
 
   backdrop.addEventListener('click', closeSidebar);
 
-  // ================= Емоджі-пікер (ПОКРАЩЕНИЙ) =================
+  // ================= Емоджі-пікер =================
   const emojiList = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
 
   function closeAllEmojiPickers() {
@@ -1736,11 +1738,13 @@
     if (user) {
       currentUser = user;
       currentProfileUid = user.uid;
-      document.getElementById('authBox').style.display = 'none';
-      document.getElementById('newPostBox').style.display = 'block';
+      const authBox = document.getElementById('authBox');
+      if (authBox) authBox.style.display = 'none';
+      const newPostBox = document.getElementById('newPostBox');
+      if (newPostBox) newPostBox.style.display = 'block';
       
       lastOnlineInterval = setInterval(() => {
-        updateDoc(doc(db, "users", currentUser.uid), { lastOnline: serverTimestamp() });
+        updateDoc(doc(db, "users", currentUser.uid), { lastOnline: serverTimestamp() }).catch(console.error);
       }, 30000);
       
       resetPagination();
@@ -1757,14 +1761,16 @@
         });
         unreadCount = totalUnread;
         updateUnreadBadge();
-        if (document.getElementById('chats').classList.contains('active')) {
+        if (document.getElementById('chats')?.classList.contains('active')) {
           loadChatList();
         }
       }, (error) => {
         console.error('Chat list snapshot error:', error);
+        alert('Помилка в реальному часі (список чатів):\n' + error.message + '\nКод: ' + error.code);
         showToast('Помилка оновлення списку чатів. Перевірте індекси Firestore.');
       });
 
+      // Налаштовуємо емоджі-пікери
       setupEmojiPicker('postEmojiBtn', 'postEmojiPicker', 'postText');
       setupEmojiPicker('chatEmojiBtn', 'chatEmojiPicker', 'chatText');
       setupEmojiPicker('groupEmojiBtn', 'groupEmojiPicker', 'groupChatText');
@@ -1773,8 +1779,10 @@
       setTimeout(() => { updateFocusableElements(); setFocus(0); }, 500);
     } else {
       currentUser = null;
-      document.getElementById('authBox').style.display = 'block';
-      document.getElementById('newPostBox').style.display = 'none';
+      const authBox = document.getElementById('authBox');
+      if (authBox) authBox.style.display = 'block';
+      const newPostBox = document.getElementById('newPostBox');
+      if (newPostBox) newPostBox.style.display = 'none';
       unreadCount = 0;
       updateUnreadBadge();
       setTimeout(() => { updateFocusableElements(); setFocus(0); }, 500);
@@ -1796,7 +1804,8 @@
   function resetPagination() {
     lastVisible = null;
     hasMore = true;
-    document.getElementById('feed').innerHTML = '';
+    const feed = document.getElementById('feed');
+    if (feed) feed.innerHTML = '';
     loadMorePosts();
   }
 
@@ -1840,7 +1849,8 @@
   async function loadMorePosts() {
     if (!currentUser || loading || !hasMore) return;
     loading = true;
-    document.getElementById('skeletonContainer').style.display = 'block';
+    const skeleton = document.getElementById('skeletonContainer');
+    if (skeleton) skeleton.style.display = 'block';
     
     try {
       let q;
@@ -1858,9 +1868,10 @@
       renderPosts(snapshot.docs);
     } catch (e) {
       console.error("Помилка завантаження постів:", e);
+      alert('Помилка завантаження постів:\n' + e.message + '\nКод: ' + e.code);
       showToast("Помилка завантаження. Перевірте індекси Firestore.");
     } finally {
-      document.getElementById('skeletonContainer').style.display = 'none';
+      if (skeleton) skeleton.style.display = 'none';
       loading = false;
       setTimeout(() => { updateFocusableElements(); }, 100);
     }
@@ -1905,6 +1916,7 @@
 
   function renderPosts(docs) {
     const feed = document.getElementById('feed');
+    if (!feed) return;
     docs.forEach(docSnap => {
       const post = { id: docSnap.id, ...docSnap.data() };
       const liked = post.likes?.includes(currentUser?.uid) || false;
@@ -1985,7 +1997,8 @@
       toggleBtn.onclick = async () => {
         if (commentsSection.style.display === 'none') {
           commentsSection.style.display = 'block';
-          await loadComments(post.id, document.getElementById(`comments-list-${post.id}`));
+          const commentsList = document.getElementById(`comments-list-${post.id}`);
+          if (commentsList) await loadComments(post.id, commentsList);
           setTimeout(() => { updateFocusableElements(); }, 100);
         } else {
           commentsSection.style.display = 'none';
@@ -1999,9 +2012,10 @@
           if (!text) return;
           await addComment(post.id, text);
           commentInput.value = '';
-          await loadComments(post.id, document.getElementById(`comments-list-${post.id}`));
+          const commentsList = document.getElementById(`comments-list-${post.id}`);
+          if (commentsList) await loadComments(post.id, commentsList);
           const countSpan = toggleBtn.querySelector('span');
-          countSpan.textContent = parseInt(countSpan.textContent) + 1;
+          if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
         };
       }
     });
@@ -2140,9 +2154,11 @@
   function viewProfile(uid) {
     currentProfileUid = uid;
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.querySelector('[data-section="profile"]').classList.add('active');
+    const profileNav = document.querySelector('[data-section="profile"]');
+    if (profileNav) profileNav.classList.add('active');
     sections.forEach(s => document.getElementById(s).classList.remove('active'));
-    document.getElementById('profile').classList.add('active');
+    const profileSection = document.getElementById('profile');
+    if (profileSection) profileSection.classList.add('active');
     document.getElementById('pageTitle').textContent = 'Профіль';
     
     if (uid === currentUser?.uid) {
@@ -2163,6 +2179,7 @@
 
   function renderProfile(data, uid, isOwn) {
     const header = document.getElementById('profileHeader');
+    if (!header) return;
     const isFollowing = !isOwn && currentUser ? (data.followers?.includes(currentUser.uid) || false) : false;
     header.innerHTML = `
       <div class="avatar large" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
@@ -2185,44 +2202,61 @@
       </div>
     `;
 
-    document.getElementById('followersCount').style.cursor = 'pointer';
-    document.getElementById('followersCount').onclick = () => openFollowersList(uid);
-    document.getElementById('followingCount').style.cursor = 'pointer';
-    document.getElementById('followingCount').onclick = () => openFollowingList(uid);
+    const followersCount = document.getElementById('followersCount');
+    if (followersCount) {
+      followersCount.style.cursor = 'pointer';
+      followersCount.onclick = () => openFollowersList(uid);
+    }
+    const followingCount = document.getElementById('followingCount');
+    if (followingCount) {
+      followingCount.style.cursor = 'pointer';
+      followingCount.onclick = () => openFollowingList(uid);
+    }
 
     if (!isOwn && currentUser) {
-      document.getElementById('profileFollowBtn').onclick = async () => {
-        await toggleFollow(uid);
-        loadUserProfile(uid);
-      };
-      document.getElementById('profileMessageBtn').onclick = () => {
-        openChat(data.nickname, uid, data.userId);
-      };
+      const profileFollowBtn = document.getElementById('profileFollowBtn');
+      if (profileFollowBtn) {
+        profileFollowBtn.onclick = async () => {
+          await toggleFollow(uid);
+          loadUserProfile(uid);
+        };
+      }
+      const profileMessageBtn = document.getElementById('profileMessageBtn');
+      if (profileMessageBtn) {
+        profileMessageBtn.onclick = () => {
+          openChat(data.nickname, uid, data.userId);
+        };
+      }
     }
     if (isOwn) {
-      document.getElementById('editProfileBtn').onclick = () => {
-        document.getElementById('editNickname').value = data.nickname;
-        document.getElementById('editBio').value = data.bio || '';
-        document.getElementById('editAvatar').value = '';
-        document.getElementById('editProfileModal').classList.add('active');
-        setTimeout(() => { updateFocusableElements(); setFocus(0); }, 50);
-      };
+      const editProfileBtn = document.getElementById('editProfileBtn');
+      if (editProfileBtn) {
+        editProfileBtn.onclick = () => {
+          document.getElementById('editNickname').value = data.nickname;
+          document.getElementById('editBio').value = data.bio || '';
+          document.getElementById('editAvatar').value = '';
+          document.getElementById('editProfileModal').classList.add('active');
+          setTimeout(() => { updateFocusableElements(); setFocus(0); }, 50);
+        };
+      }
     }
     
     const tabs = document.getElementById('profileTabs');
-    tabs.innerHTML = `
-      <div class="profile-tab active" data-tab="posts" tabindex="0">Пости</div>
-      <div class="profile-tab" data-tab="likes" tabindex="0">Лайки</div>
-      <div class="profile-tab" data-tab="media" tabindex="0">Медіа</div>
-      <div class="profile-tab" data-tab="saved" tabindex="0">Збережене</div>
-    `;
-    document.querySelectorAll('.profile-tab').forEach(tab => {
-      tab.onclick = () => {
-        document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        loadProfileFeed(uid, tab.dataset.tab);
-      };
-    });
+    if (tabs) {
+      tabs.innerHTML = `
+        <div class="profile-tab active" data-tab="posts" tabindex="0">Пости</div>
+        <div class="profile-tab" data-tab="likes" tabindex="0">Лайки</div>
+        <div class="profile-tab" data-tab="media" tabindex="0">Медіа</div>
+        <div class="profile-tab" data-tab="saved" tabindex="0">Збережене</div>
+      `;
+      document.querySelectorAll('.profile-tab').forEach(tab => {
+        tab.onclick = () => {
+          document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          loadProfileFeed(uid, tab.dataset.tab);
+        };
+      });
+    }
     loadProfileFeed(uid, 'posts');
     setTimeout(() => { updateFocusableElements(); }, 100);
   }
@@ -2230,6 +2264,7 @@
   async function openFollowersList(uid) {
     const modal = document.getElementById('followersModal');
     const list = document.getElementById('followersList');
+    if (!modal || !list) return;
     list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
     modal.classList.add('active');
     
@@ -2269,6 +2304,7 @@
   async function openFollowingList(uid) {
     const modal = document.getElementById('followingModal');
     const list = document.getElementById('followingList');
+    if (!modal || !list) return;
     list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
     modal.classList.add('active');
     
@@ -2317,6 +2353,7 @@
   async function loadProfileFeed(uid, tab) {
     if (!currentUser) return;
     const feed = document.getElementById('profileFeed');
+    if (!feed) return;
     feed.innerHTML = '';
     let posts = [];
     const userSnap = await getDoc(doc(db, "users", uid));
@@ -2406,11 +2443,18 @@
   async function loadChatList() {
     if (!currentUser) return;
     const list = document.getElementById('chatList');
+    if (!list) return;
     list.innerHTML = '';
     
     try {
       const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid), orderBy("updatedAt", "desc"));
       const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        list.innerHTML = '<p style="text-align:center; padding:20px;">Немає чатів</p>';
+        return;
+      }
+      
       const chatPromises = snapshot.docs.map(async (docSnap) => {
         const chat = docSnap.data();
         const otherUid = chat.participants.find(uid => uid !== currentUser.uid);
@@ -2437,8 +2481,14 @@
         };
       });
       
-      const chatItems = await Promise.all(chatPromises);
-      chatItems.filter(item => item !== null).forEach(item => {
+      const chatItems = (await Promise.all(chatPromises)).filter(item => item !== null);
+      
+      if (chatItems.length === 0) {
+        list.innerHTML = '<p style="text-align:center; padding:20px;">Немає чатів</p>';
+        return;
+      }
+      
+      chatItems.forEach(item => {
         const div = document.createElement('div');
         div.className = `chat-item ${item.unread > 0 ? 'unread' : ''}`;
         div.dataset.chatId = item.chatId;
@@ -2458,7 +2508,23 @@
       });
     } catch (error) {
       console.error('Error loading chat list:', error);
+      alert('Помилка завантаження списку чатів:\n' + (error.message || 'Невідома помилка') + '\nКод: ' + (error.code || 'N/A'));
       showToast('Помилка завантаження списку чатів. Перевірте індекси Firestore.');
+      
+      // Діагностичний запит без orderBy
+      try {
+        const testQuery = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
+        const testSnap = await getDocs(testQuery);
+        console.log('Test query без orderBy успішний, знайдено документів:', testSnap.size);
+        if (testSnap.size > 0) {
+          alert('Діагностика: простий запит без orderBy працює. Проблема саме в індексі для сортування за updatedAt.');
+        } else {
+          alert('Діагностика: у колекції chats немає документів з вашим учасником.');
+        }
+      } catch (testError) {
+        console.error('Test query також помилка:', testError);
+        alert('Діагностика: навіть простий запит без orderBy не працює. Це може бути проблема з правами доступу або мережею.\n' + testError.message);
+      }
     }
     setTimeout(() => { updateFocusableElements(); }, 100);
   }
@@ -2469,16 +2535,18 @@
     currentChatPartnerName = otherName;
     currentChatId = chatId;
     
-    document.getElementById('chatWindow').style.display = 'flex';
-    document.getElementById('chatName').textContent = otherName;
-    document.getElementById('chatUserId').textContent = otherUserId || '';
-    document.getElementById('chatAvatar').style.backgroundImage = `url(${otherAvatar || ''})`;
+    const chatWindow = document.getElementById('chatWindow');
+    if (chatWindow) chatWindow.style.display = 'flex';
+    const chatName = document.getElementById('chatName');
+    if (chatName) chatName.textContent = otherName;
+    const chatUserId = document.getElementById('chatUserId');
+    if (chatUserId) chatUserId.textContent = otherUserId || '';
+    const chatAvatar = document.getElementById('chatAvatar');
+    if (chatAvatar) chatAvatar.style.backgroundImage = `url(${otherAvatar || ''})`;
     
-    // Скидаємо лічильник непрочитаних
     const chatRef = doc(db, "chats", chatId);
-    await updateDoc(chatRef, { [`unread.${currentUser.uid}`]: 0 });
+    await updateDoc(chatRef, { [`unread.${currentUser.uid}`]: 0 }).catch(console.error);
     
-    // Даємо час на рендеринг, потім підписуємось
     setTimeout(() => {
       subscribeToChat(chatId).catch(err => {
         console.error('Error subscribing to chat:', err);
@@ -2490,7 +2558,10 @@
     unsubscribeOnlineStatus = onSnapshot(doc(db, "users", otherUid), (snap) => {
       const lastOnline = snap.data()?.lastOnline?.seconds || 0;
       const isOnline = (Date.now()/1000 - lastOnline) < 60;
-      document.getElementById('onlineIndicator').style.display = isOnline ? 'inline-block' : 'none';
+      const indicator = document.getElementById('onlineIndicator');
+      if (indicator) indicator.style.display = isOnline ? 'inline-block' : 'none';
+    }, (error) => {
+      console.error('Online status error:', error);
     });
     
     setTimeout(() => { updateFocusableElements(); setFocus(0); }, 200);
@@ -2502,29 +2573,39 @@
     currentChatPartnerName = otherName;
     
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.querySelector('[data-section="chats"]').classList.add('active');
+    const chatsNav = document.querySelector('[data-section="chats"]');
+    if (chatsNav) chatsNav.classList.add('active');
     sections.forEach(s => document.getElementById(s).classList.remove('active'));
-    document.getElementById('chats').classList.add('active');
+    const chatsSection = document.getElementById('chats');
+    if (chatsSection) chatsSection.classList.add('active');
     document.getElementById('pageTitle').textContent = 'Чати';
     
-    document.getElementById('chatWindow').style.display = 'flex';
-    document.getElementById('chatName').textContent = otherName;
-    document.getElementById('chatUserId').textContent = otherUserId || '';
+    const chatWindow = document.getElementById('chatWindow');
+    if (chatWindow) chatWindow.style.display = 'flex';
+    const chatName = document.getElementById('chatName');
+    if (chatName) chatName.textContent = otherName;
+    const chatUserId = document.getElementById('chatUserId');
+    if (chatUserId) chatUserId.textContent = otherUserId || '';
     
     getDoc(doc(db, "users", otherUid)).then(snap => {
       if (snap.exists()) {
-        document.getElementById('chatAvatar').style.backgroundImage = `url(${snap.data().avatar || ''})`;
+        const chatAvatar = document.getElementById('chatAvatar');
+        if (chatAvatar) chatAvatar.style.backgroundImage = `url(${snap.data().avatar || ''})`;
         const lastOnline = snap.data().lastOnline?.seconds || 0;
         const isOnline = (Date.now()/1000 - lastOnline) < 60;
-        document.getElementById('onlineIndicator').style.display = isOnline ? 'inline-block' : 'none';
+        const indicator = document.getElementById('onlineIndicator');
+        if (indicator) indicator.style.display = isOnline ? 'inline-block' : 'none';
       }
-    });
+    }).catch(console.error);
     
     if (unsubscribeOnlineStatus) unsubscribeOnlineStatus();
     unsubscribeOnlineStatus = onSnapshot(doc(db, "users", otherUid), (snap) => {
       const lastOnline = snap.data()?.lastOnline?.seconds || 0;
       const isOnline = (Date.now()/1000 - lastOnline) < 60;
-      document.getElementById('onlineIndicator').style.display = isOnline ? 'inline-block' : 'none';
+      const indicator = document.getElementById('onlineIndicator');
+      if (indicator) indicator.style.display = isOnline ? 'inline-block' : 'none';
+    }, (error) => {
+      console.error('Online status error:', error);
     });
     
     const chatId = getChatId(currentUser.uid, otherUid);
@@ -2552,10 +2633,12 @@
         loadChatList();
       } catch (error) {
         console.error('Error opening chat:', error);
+        alert('Помилка відкриття чату:\n' + error.message);
         showToast('Помилка відкриття чату');
       }
     }).catch(error => {
       console.error('Error getting chat doc:', error);
+      alert('Помилка доступу до чату:\n' + error.message);
       showToast('Помилка доступу до чату');
     });
     
@@ -2577,6 +2660,7 @@
       renderMessages(snap.docs);
     }, (error) => {
       console.error('Error in messages snapshot:', error);
+      alert('Помилка отримання повідомлень:\n' + error.message);
       showToast('Помилка отримання повідомлень');
     });
 
@@ -2600,7 +2684,10 @@
     if (currentChatPartner) {
       const typingRef = doc(db, `chats/${chatId}/typing/${currentChatPartner}`);
       unsubscribeTyping = onSnapshot(typingRef, (docSnap) => {
-        document.getElementById('typingIndicator').style.display = docSnap.exists() && docSnap.data().isTyping ? 'block' : 'none';
+        const indicator = document.getElementById('typingIndicator');
+        if (indicator) indicator.style.display = docSnap.exists() && docSnap.data().isTyping ? 'block' : 'none';
+      }, (error) => {
+        console.error('Typing indicator error:', error);
       });
     }
   }
@@ -2608,9 +2695,9 @@
   document.getElementById('chatText').addEventListener('input', () => {
     if (!currentUser || !currentChatPartner || !currentChatId) return;
     const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
-    setDoc(typingRef, { isTyping: true }, { merge: true });
+    setDoc(typingRef, { isTyping: true }, { merge: true }).catch(console.error);
     clearTimeout(window.typingTimeout);
-    window.typingTimeout = setTimeout(() => setDoc(typingRef, { isTyping: false }, { merge: true }), 2000);
+    window.typingTimeout = setTimeout(() => setDoc(typingRef, { isTyping: false }, { merge: true }).catch(console.error), 2000);
   });
 
   document.getElementById('sendMessage').onclick = async () => {
@@ -2618,16 +2705,21 @@
     if (!text || !currentUser || !currentChatPartner || !currentChatId) return;
     const chatRef = doc(db, "chats", currentChatId);
     const messageRef = collection(db, `chats/${currentChatId}/messages`);
-    await addDoc(messageRef, { from: currentUser.uid, text, createdAt: serverTimestamp() });
-    await updateDoc(chatRef, {
-      lastMessage: text,
-      updatedAt: serverTimestamp(),
-      [`unread.${currentChatPartner}`]: increment(1)
-    });
-    document.getElementById('chatText').value = '';
-    
-    const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
-    setDoc(typingRef, { isTyping: false }, { merge: true });
+    try {
+      await addDoc(messageRef, { from: currentUser.uid, text, createdAt: serverTimestamp() });
+      await updateDoc(chatRef, {
+        lastMessage: text,
+        updatedAt: serverTimestamp(),
+        [`unread.${currentChatPartner}`]: increment(1)
+      });
+      document.getElementById('chatText').value = '';
+      
+      const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
+      await setDoc(typingRef, { isTyping: false }, { merge: true });
+    } catch (error) {
+      console.error('Send message error:', error);
+      alert('Помилка відправлення повідомлення:\n' + error.message);
+    }
   };
 
   document.getElementById('chatText').addEventListener('keypress', (e) => {
@@ -2637,7 +2729,7 @@
     }
   });
 
-  // ================= НОВА ФУНКЦІЯ: ПОШУК КОРИСТУВАЧІВ У ЧАТАХ =================
+  // ================= ПОШУК КОРИСТУВАЧІВ У ЧАТАХ =================
   let searchTimeout;
   document.getElementById('chatSearchInput').addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
@@ -2653,6 +2745,7 @@
     if (!currentUser) return;
     const val = queryText.toLowerCase();
     const resultsContainer = document.getElementById('chatSearchResults');
+    if (!resultsContainer) return;
     resultsContainer.innerHTML = '';
     
     const q1 = query(collection(db, "users"), where("userId", ">=", val.startsWith('@') ? val : `@${val}`), where("userId", "<=", (val.startsWith('@') ? val : `@${val}`) + '\uf8ff'));
@@ -2687,12 +2780,15 @@
         resultsContainer.style.display = 'none';
         document.getElementById('chatSearchInput').value = '';
       };
-      div.querySelector('button').onclick = (e) => {
-        e.stopPropagation();
-        openChat(data.nickname, uid, data.userId);
-        resultsContainer.style.display = 'none';
-        document.getElementById('chatSearchInput').value = '';
-      };
+      const btn = div.querySelector('button');
+      if (btn) {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          openChat(data.nickname, uid, data.userId);
+          resultsContainer.style.display = 'none';
+          document.getElementById('chatSearchInput').value = '';
+        };
+      }
       resultsContainer.appendChild(div);
     });
     setTimeout(() => { updateFocusableElements(); }, 100);
@@ -2702,9 +2798,14 @@
   async function loadGroups() {
     if (!currentUser) return;
     const list = document.getElementById('groupList');
+    if (!list) return;
     list.innerHTML = '';
     const q = query(collection(db, "groups"), where("members", "array-contains", currentUser.uid));
     const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає груп</p>';
+      return;
+    }
     snapshot.forEach(docSnap => {
       const group = docSnap.data();
       const item = document.createElement('div');
@@ -2726,21 +2827,25 @@
 
   async function openGroup(groupId, groupData) {
     currentGroup = { id: groupId, ...groupData };
-    document.getElementById('groupChatWindow').style.display = 'flex';
-    document.getElementById('groupChatName').textContent = groupData.name;
-    document.getElementById('groupChatAvatar').style.backgroundImage = `url(${groupData.avatar || ''})`;
-    document.getElementById('groupChatMeta').textContent = `${groupData.members?.length || 0} учасників`;
+    const groupChatWindow = document.getElementById('groupChatWindow');
+    if (groupChatWindow) groupChatWindow.style.display = 'flex';
+    const groupChatName = document.getElementById('groupChatName');
+    if (groupChatName) groupChatName.textContent = groupData.name;
+    const groupChatAvatar = document.getElementById('groupChatAvatar');
+    if (groupChatAvatar) groupChatAvatar.style.backgroundImage = `url(${groupData.avatar || ''})`;
+    const groupChatMeta = document.getElementById('groupChatMeta');
+    if (groupChatMeta) groupChatMeta.textContent = `${groupData.members?.length || 0} учасників`;
     
-    if (groupData.createdBy === currentUser.uid) {
-      document.getElementById('editGroupBtn').style.display = 'inline-block';
-    } else {
-      document.getElementById('editGroupBtn').style.display = 'none';
+    const editGroupBtn = document.getElementById('editGroupBtn');
+    if (editGroupBtn) {
+      editGroupBtn.style.display = groupData.createdBy === currentUser.uid ? 'inline-block' : 'none';
     }
     
     if (unsubscribeGroup) unsubscribeGroup();
     const q = query(collection(db, `groups/${groupId}/messages`), orderBy("createdAt"));
     unsubscribeGroup = onSnapshot(q, (snap) => {
       const messages = document.getElementById('groupChatMessages');
+      if (!messages) return;
       messages.innerHTML = '';
       snap.forEach(m => {
         const msg = m.data();
@@ -2750,6 +2855,9 @@
         messages.appendChild(div);
       });
       messages.scrollTop = messages.scrollHeight;
+    }, (error) => {
+      console.error('Group messages error:', error);
+      alert('Помилка завантаження повідомлень групи:\n' + error.message);
     });
     
     setTimeout(() => { updateFocusableElements(); setFocus(0); }, 200);
@@ -2795,18 +2903,24 @@
     const userSnap = await getDoc(doc(db, "users", currentUser.uid));
     const user = userSnap.data();
     const msgRef = collection(db, `groups/${currentGroup.id}/messages`);
-    await addDoc(msgRef, {
-      from: currentUser.uid,
-      senderName: user.nickname,
-      text,
-      createdAt: serverTimestamp()
-    });
-    document.getElementById('groupChatText').value = '';
+    try {
+      await addDoc(msgRef, {
+        from: currentUser.uid,
+        senderName: user.nickname,
+        text,
+        createdAt: serverTimestamp()
+      });
+      document.getElementById('groupChatText').value = '';
+    } catch (error) {
+      console.error('Send group message error:', error);
+      alert('Помилка відправлення повідомлення:\n' + error.message);
+    }
   };
 
   document.getElementById('groupMembersBtn').onclick = async () => {
     if (!currentGroup) return;
     const membersDiv = document.getElementById('membersList');
+    if (!membersDiv) return;
     membersDiv.innerHTML = '';
     for (const uid of currentGroup.members) {
       const userSnap = await getDoc(doc(db, "users", uid));
@@ -2840,9 +2954,14 @@
   async function loadChannels() {
     if (!currentUser) return;
     const list = document.getElementById('channelList');
+    if (!list) return;
     list.innerHTML = '';
     const q = query(collection(db, "channels"), where("subscribers", "array-contains", currentUser.uid));
     const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає каналів</p>';
+      return;
+    }
     snapshot.forEach(docSnap => {
       const channel = docSnap.data();
       const item = document.createElement('div');
@@ -2864,21 +2983,24 @@
 
   async function openChannel(channelId, channelData) {
     currentChannel = { id: channelId, ...channelData };
-    document.getElementById('channelView').style.display = 'block';
-    document.getElementById('channelHeader').innerHTML = `
-      <div style="display:flex; gap:20px;">
-        <div class="avatar large" style="background-image:url(${channelData.avatar || ''})"></div>
-        <div>
-          <h2>${channelData.name}</h2>
-          <p>${channelData.description || ''}</p>
-          <div>${channelData.subscribers?.length || 0} підписників</div>
+    const channelView = document.getElementById('channelView');
+    if (channelView) channelView.style.display = 'block';
+    const channelHeader = document.getElementById('channelHeader');
+    if (channelHeader) {
+      channelHeader.innerHTML = `
+        <div style="display:flex; gap:20px;">
+          <div class="avatar large" style="background-image:url(${channelData.avatar || ''})"></div>
+          <div>
+            <h2>${channelData.name}</h2>
+            <p>${channelData.description || ''}</p>
+            <div>${channelData.subscribers?.length || 0} підписників</div>
+          </div>
         </div>
-      </div>
-    `;
-    if (channelData.createdBy === currentUser.uid) {
-      document.getElementById('newChannelPostBox').style.display = 'block';
-    } else {
-      document.getElementById('newChannelPostBox').style.display = 'none';
+      `;
+    }
+    const newChannelPostBox = document.getElementById('newChannelPostBox');
+    if (newChannelPostBox) {
+      newChannelPostBox.style.display = channelData.createdBy === currentUser.uid ? 'block' : 'none';
     }
     loadChannelPosts(channelId);
     setTimeout(() => { updateFocusableElements(); }, 100);
@@ -2886,6 +3008,7 @@
 
   async function loadChannelPosts(channelId) {
     const feed = document.getElementById('channelFeed');
+    if (!feed) return;
     feed.innerHTML = '';
     const q = query(collection(db, `channels/${channelId}/posts`), orderBy("createdAt", "desc"));
     const snapshot = await getDocs(q);
@@ -2981,9 +3104,12 @@
   };
 
   function updateTvButtons() {
-    document.getElementById('tvNavToggle').textContent = `TV-навігація: ${tvSettings.tvNavEnabled ? 'увімкнено' : 'вимкнено'}`;
-    document.getElementById('remoteNavToggle').textContent = `Навігація з пульта: ${tvSettings.remoteNavEnabled ? 'увімкнено' : 'вимкнено'}`;
-    document.getElementById('focusOptimizeToggle').textContent = `Оптимізація фокусу: ${tvSettings.focusOptimized ? 'увімкнено' : 'вимкнено'}`;
+    const tvNavToggle = document.getElementById('tvNavToggle');
+    if (tvNavToggle) tvNavToggle.textContent = `TV-навігація: ${tvSettings.tvNavEnabled ? 'увімкнено' : 'вимкнено'}`;
+    const remoteNavToggle = document.getElementById('remoteNavToggle');
+    if (remoteNavToggle) remoteNavToggle.textContent = `Навігація з пульта: ${tvSettings.remoteNavEnabled ? 'увімкнено' : 'вимкнено'}`;
+    const focusOptimizeToggle = document.getElementById('focusOptimizeToggle');
+    if (focusOptimizeToggle) focusOptimizeToggle.textContent = `Оптимізація фокусу: ${tvSettings.focusOptimized ? 'увімкнено' : 'вимкнено'}`;
   }
   document.getElementById('tvNavToggle').onclick = () => {
     tvSettings.tvNavEnabled = !tvSettings.tvNavEnabled;
@@ -3012,10 +3138,12 @@
 
   // ================= Інші обробники =================
   const sentinel = document.getElementById('feedSentinel');
-  const observer = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting) loadMorePosts();
-  }, { threshold: 0.5 });
-  observer.observe(sentinel);
+  if (sentinel) {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) loadMorePosts();
+    }, { threshold: 0.5 });
+    observer.observe(sentinel);
+  }
 
   document.addEventListener('click', async (e) => {
     if (!currentUser) return;
@@ -3076,8 +3204,9 @@
   });
 
   document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-uid]')) {
-      const uid = e.target.closest('[data-uid]').dataset.uid;
+    const uidElement = e.target.closest('[data-uid]');
+    if (uidElement) {
+      const uid = uidElement.dataset.uid;
       viewProfile(uid);
     }
   });
