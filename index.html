@@ -2233,7 +2233,7 @@
     setTimeout(() => { updateFocusableElements(); setFocus(0); }, 200);
   }
 
-  // ВІДКРИТТЯ ЧАТУ З КНОПКИ "НАПИСАТИ"
+  // ВІДКРИТТЯ ЧАТУ З КНОПКИ "НАПИСАТИ" (ВИПРАВЛЕНО: ДОДАНО ОНОВЛЕННЯ СПИСКУ ЧАТІВ)
   function openChat(otherName, otherUid, otherUserId) {
     if (!currentUser) return;
     currentChatPartner = otherUid;
@@ -2282,6 +2282,8 @@
         await updateDoc(chatRef, { [`unread.${currentUser.uid}`]: 0 });
       }
       subscribeToChat(chatId);
+      // Оновлюємо список чатів, щоб новий чат одразу з'явився
+      loadChatList();
     });
     
     setTimeout(() => { updateFocusableElements(); setFocus(0); }, 200);
