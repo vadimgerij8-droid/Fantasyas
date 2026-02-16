@@ -201,11 +201,15 @@
       font-weight: 700;
     }
 
+    /* ========== ВИПРАВЛЕННЯ ДЛЯ ПРОКРУТКИ ========== */
     .content {
       flex: 1;
-      overflow-y: auto;
+      overflow-y: auto !important;   /* примусово */
       padding: 20px;
       scroll-behavior: smooth;
+      height: 100%;                  /* гарантує висоту */
+      max-height: 100%;
+      outline: none;                  /* прибирає рамку при фокусі */
     }
 
     .section {
@@ -1359,7 +1363,7 @@
     if (lastOnlineInterval) { clearInterval(lastOnlineInterval); lastOnlineInterval = null; }
   };
 
-  // ================= НАВІГАЦІЯ ПУЛЬТОМ =================
+  // ================= НАВІГАЦІЯ ПУЛЬТОМ (ВИПРАВЛЕНО) =================
   let focusableElements = [];
   let currentFocusIndex = -1;
 
@@ -1381,6 +1385,20 @@
     });
   }
 
+  // Допоміжна функція для пошуку першого видимого поста
+  function findFirstVisiblePost() {
+    const posts = document.querySelectorAll('.post');
+    const content = document.querySelector('.content');
+    const contentRect = content.getBoundingClientRect();
+    for (let post of posts) {
+      const rect = post.getBoundingClientRect();
+      if (rect.top >= contentRect.top && rect.bottom <= contentRect.bottom) {
+        return post;
+      }
+    }
+    return null;
+  }
+
   function setFocus(index) {
     if (!tvSettings.tvNavEnabled && !tvSettings.remoteNavEnabled) return;
     if (focusableElements.length === 0) return;
@@ -1398,17 +1416,52 @@
     if (!tvSettings.tvNavEnabled && !tvSettings.remoteNavEnabled) return;
     if (!currentUser) return;
 
-    updateFocusableElements();
-    if (focusableElements.length === 0) return;
+    const content = document.querySelector('.content');
+    if (!content) return;
 
+    // Для клавіш прокрутки – прокручуємо контейнер, а фокус оновлюємо пізніше
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setFocus(currentFocusIndex + 1);
+        content.scrollBy({ top: 100, behavior: 'smooth' });
+        setTimeout(() => {
+          updateFocusableElements();
+          const visiblePost = findFirstVisiblePost();
+          if (visiblePost) {
+            focusableElements.forEach(el => el.classList.remove('focused'));
+            visiblePost.classList.add('focused');
+            currentFocusIndex = focusableElements.indexOf(visiblePost);
+          }
+        }, 100);
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setFocus(currentFocusIndex - 1);
+        content.scrollBy({ top: -100, behavior: 'smooth' });
+        setTimeout(() => {
+          updateFocusableElements();
+          const visiblePost = findFirstVisiblePost();
+          if (visiblePost) {
+            focusableElements.forEach(el => el.classList.remove('focused'));
+            visiblePost.classList.add('focused');
+            currentFocusIndex = focusableElements.indexOf(visiblePost);
+          }
+        }, 100);
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        content.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
+        break;
+      case 'PageUp':
+        e.preventDefault();
+        content.scrollBy({ top: -window.innerHeight * 0.8, behavior: 'smooth' });
+        break;
+      case 'Home':
+        e.preventDefault();
+        content.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      case 'End':
+        e.preventDefault();
+        content.scrollTo({ top: content.scrollHeight, behavior: 'smooth' });
         break;
       case 'Enter':
         e.preventDefault();
@@ -1422,13 +1475,8 @@
           }
         }
         break;
-      case 'PageDown':
-        e.preventDefault();
-        document.querySelector('.content').scrollBy(0, window.innerHeight * 0.8);
-        break;
-      case 'PageUp':
-        e.preventDefault();
-        document.querySelector('.content').scrollBy(0, -window.innerHeight * 0.8);
+      default:
+        // Інші клавіші можна проігнорувати або обробити окремо
         break;
     }
   }
@@ -1776,7 +1824,16 @@
       setupEmojiPicker('groupEmojiBtn', 'groupEmojiPicker', 'groupChatText');
       setupEmojiPicker('channelEmojiBtn', 'channelEmojiPicker', 'channelPostText');
 
-      setTimeout(() => { updateFocusableElements(); setFocus(0); }, 500);
+      // Встановлюємо фокус на контейнер для коректної прокрутки
+      setTimeout(() => {
+        const content = document.querySelector('.content');
+        if (content) {
+          content.setAttribute('tabindex', '-1');
+          content.focus({ preventScroll: true });
+        }
+        updateFocusableElements();
+        setFocus(0);
+      }, 500);
     } else {
       currentUser = null;
       const authBox = document.getElementById('authBox');
