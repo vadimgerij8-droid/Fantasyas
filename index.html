@@ -6,7 +6,7 @@
   <title>FANTASYAS · ТВ версія (виправлено)</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
-    /* ========== ГЛОБАЛЬНІ СТИЛІ ========== */
+    /* ========== ГЛОБАЛЬНІ СТИЛІ (не змінені) ========== */
     * {
       margin: 0;
       padding: 0;
@@ -204,12 +204,12 @@
     /* ========== ВИПРАВЛЕННЯ ДЛЯ ПРОКРУТКИ ========== */
     .content {
       flex: 1;
-      overflow-y: auto !important;
+      overflow-y: auto !important;   /* примусово */
       padding: 20px;
       scroll-behavior: smooth;
-      height: 100%;
+      height: 100%;                  /* гарантує висоту */
       max-height: 100%;
-      outline: none;
+      outline: none;                  /* прибирає рамку при фокусі */
     }
 
     .section {
@@ -330,25 +330,6 @@
 
     .input:focus, .input.focused {
       border-color: var(--accent);
-    }
-
-    /* Стиль для кастомного вибору файлу */
-    .file-input-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 10px 0;
-    }
-    .file-input-wrapper .btn {
-      flex-shrink: 0;
-    }
-    .file-name {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 200px;
     }
 
     .feed {
@@ -889,79 +870,6 @@
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
-
-    /* ========== ЕКРАННА КЛАВІАТУРА ========== */
-    #tvKeyboard {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--surface);
-      border-top: 2px solid var(--border);
-      padding: 10px;
-      display: none;
-      flex-direction: column;
-      gap: 8px;
-      z-index: 5000;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-    }
-    #tvKeyboard.active {
-      display: flex;
-    }
-    .keyboard-row {
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .keyboard-key {
-      min-width: 50px;
-      height: 50px;
-      border-radius: var(--radius-md);
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--text-primary);
-      font-size: 1.4rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.1s;
-      padding: 0 8px;
-      box-shadow: var(--shadow-sm);
-    }
-    .keyboard-key.special {
-      background: var(--accent);
-      color: var(--bg);
-      min-width: 70px;
-      font-size: 1rem;
-    }
-    .keyboard-key.focused {
-      outline: 3px solid var(--accent);
-      transform: scale(1.05);
-      z-index: 10;
-    }
-    .keyboard-key:active {
-      transform: scale(0.95);
-    }
-    .keyboard-key.emoji-grid {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 4px;
-      width: 100%;
-      height: auto;
-      padding: 8px;
-    }
-    .emoji-grid .emoji-item {
-      font-size: 1.8rem;
-      text-align: center;
-      cursor: pointer;
-      padding: 4px;
-    }
-    .emoji-grid .emoji-item.focused {
-      background: var(--surface);
-      border-radius: var(--radius-sm);
-    }
   </style>
 </head>
 <body>
@@ -1043,12 +951,7 @@
               <div class="emoji-picker" id="postEmojiPicker" style="display: none;"></div>
             </div>
           </div>
-          <!-- Покращений вибір файлу -->
-          <div class="file-input-wrapper">
-            <button class="btn" id="customFileButton" tabindex="0">Додати медіа</button>
-            <span class="file-name" id="fileDisplay">Файл не вибрано</span>
-            <input type="file" id="postMedia" accept="image/*,video/*" style="display: none;" tabindex="-1"/>
-          </div>
+          <input type="file" id="postMedia" accept="image/*,video/*" style="margin:10px 0;" tabindex="0"/>
           <button class="btn btn-primary" id="addPost" tabindex="0">Опублікувати</button>
         </div>
 
@@ -1076,12 +979,16 @@
         <div class="feed" id="profileFeed"></div>
       </div>
 
+      <!-- ========== ОНОВЛЕНИЙ РОЗДІЛ ЧАТІВ ========== -->
       <div id="chats" class="section">
+        <!-- Пошук користувачів (як в Instagram) -->
         <div class="chat-search-container" style="padding: 0 0 12px 0;">
           <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів..." tabindex="0">
           <div id="chatSearchResults" class="user-list" style="margin-top:10px; display:none;"></div>
         </div>
+        <!-- Список наявних чатів -->
         <div class="chat-list" id="chatList"></div>
+        <!-- Вікно чату -->
         <div class="chat-window" id="chatWindow" style="display:none;">
           <div class="chat-header">
             <div class="avatar" id="chatAvatar"></div>
@@ -1153,11 +1060,7 @@
                 <div class="emoji-picker" id="channelEmojiPicker" style="display: none;"></div>
               </div>
             </div>
-            <div class="file-input-wrapper">
-              <button class="btn" id="customChannelFileButton" tabindex="0">Додати медіа</button>
-              <span class="file-name" id="channelFileDisplay">Файл не вибрано</span>
-              <input type="file" id="channelPostMedia" accept="image/*,video/*" style="display: none;" tabindex="-1"/>
-            </div>
+            <input type="file" id="channelPostMedia" accept="image/*,video/*" style="margin:10px 0;" tabindex="0"/>
             <button class="btn btn-primary" id="addChannelPost" tabindex="0">Опублікувати</button>
           </div>
         </div>
@@ -1174,13 +1077,13 @@
           Політика конфіденційності
         </button>
 
+        <!-- Пункт "Телевізор" (тільки логічні налаштування, без зміни дизайну) -->
         <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px;">
           <h3>Телевізор</h3>
           <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
             <button class="btn" id="tvNavToggle">TV-навігація: увімкнено</button>
             <button class="btn" id="remoteNavToggle">Навігація з пульта: увімкнено</button>
             <button class="btn" id="focusOptimizeToggle">Оптимізація фокусу: увімкнено</button>
-            <button class="btn" id="tvKeyboardToggle">Екранна клавіатура: увімкнено</button>
           </div>
         </div>
 
@@ -1190,16 +1093,7 @@
   </main>
 </div>
 
-<!-- Екранна клавіатура -->
-<div id="tvKeyboard">
-  <div class="keyboard-row" id="keyboardRow1"></div>
-  <div class="keyboard-row" id="keyboardRow2"></div>
-  <div class="keyboard-row" id="keyboardRow3"></div>
-  <div class="keyboard-row" id="keyboardRow4"></div>
-  <div class="keyboard-row" id="keyboardRow5"></div>
-</div>
-
-<!-- Модальні вікна -->
+<!-- Модалки -->
 <div class="modal" id="editProfileModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -1279,6 +1173,7 @@
   </div>
 </div>
 
+<!-- НОВІ МОДАЛКИ ДЛЯ ПІДПИСНИКІВ/ПІДПИСОК -->
 <div class="modal" id="followersModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -1299,7 +1194,7 @@
   </div>
 </div>
 
-<!-- Модальне вікно політики конфіденційності (відновлено) -->
+<!-- ОНОВЛЕНА МОДАЛКА ПОЛІТИКИ КОНФІДЕНЦІЙНОСТІ -->
 <div class="modal" id="privacyPolicyModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -1426,12 +1321,11 @@
   let loading = false;
   let hasMore = true;
 
-  // Налаштування ТВ
+  // Налаштування ТВ (логічні, не змінюють вигляд)
   const tvSettings = {
     tvNavEnabled: localStorage.getItem('tvNav') !== 'false',
     remoteNavEnabled: localStorage.getItem('remoteNav') !== 'false',
-    focusOptimized: localStorage.getItem('focusOptimized') !== 'false',
-    tvKeyboardEnabled: localStorage.getItem('tvKeyboard') !== 'false'
+    focusOptimized: localStorage.getItem('focusOptimized') !== 'false'
   };
 
   // ================= Допоміжні функції =================
@@ -1469,7 +1363,7 @@
     if (lastOnlineInterval) { clearInterval(lastOnlineInterval); lastOnlineInterval = null; }
   };
 
-  // ================= НАВІГАЦІЯ ПУЛЬТОМ =================
+  // ================= НАВІГАЦІЯ ПУЛЬТОМ (ВИПРАВЛЕНО) =================
   let focusableElements = [];
   let currentFocusIndex = -1;
 
@@ -1485,16 +1379,13 @@
     } else {
       elements = Array.from(activeSection.querySelectorAll('[tabindex="0"], button, input, textarea, .nav-item, .post, .chat-item, .group-item, .channel-item, .profile-tab'));
     }
-    // Додаємо клавіші клавіатури, якщо вона активна
-    if (tvSettings.tvKeyboardEnabled && document.getElementById('tvKeyboard').classList.contains('active')) {
-      elements = elements.concat(Array.from(document.querySelectorAll('#tvKeyboard .keyboard-key')));
-    }
     focusableElements = elements.filter(el => {
       const style = window.getComputedStyle(el);
       return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
     });
   }
 
+  // Допоміжна функція для пошуку першого видимого поста
   function findFirstVisiblePost() {
     const posts = document.querySelectorAll('.post');
     const content = document.querySelector('.content');
@@ -1528,38 +1419,7 @@
     const content = document.querySelector('.content');
     if (!content) return;
 
-    // Якщо активна клавіатура, обробляємо навігацію по ній окремо
-    const keyboard = document.getElementById('tvKeyboard');
-    if (keyboard.classList.contains('active')) {
-      // Навігація по клавішам клавіатури
-      updateFocusableElements();
-      switch (e.key) {
-        case 'ArrowDown':
-        case 'ArrowUp':
-        case 'ArrowLeft':
-        case 'ArrowRight':
-          e.preventDefault();
-          // Проста логіка переміщення по сітці (можна вдосконалити)
-          if (focusableElements.length) {
-            let newIndex = currentFocusIndex;
-            if (e.key === 'ArrowRight') newIndex++;
-            if (e.key === 'ArrowLeft') newIndex--;
-            if (e.key === 'ArrowDown') newIndex += 6; // приблизно
-            if (e.key === 'ArrowUp') newIndex -= 6;
-            setFocus(newIndex);
-          }
-          break;
-        case 'Enter':
-          e.preventDefault();
-          if (currentFocusIndex >= 0 && focusableElements[currentFocusIndex]) {
-            focusableElements[currentFocusIndex].click();
-          }
-          break;
-      }
-      return;
-    }
-
-    // Звичайна навігація
+    // Для клавіш прокрутки – прокручуємо контейнер, а фокус оновлюємо пізніше
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
@@ -1615,192 +1475,13 @@
           }
         }
         break;
+      default:
+        // Інші клавіші можна проігнорувати або обробити окремо
+        break;
     }
   }
 
   document.addEventListener('keydown', handleKeyDown);
-
-  // ================= ЕКРАННА КЛАВІАТУРА =================
-  const keyboardEl = document.getElementById('tvKeyboard');
-  const rows = {
-    row1: ['q','w','e','r','t','y','u','i','o','p'],
-    row2: ['a','s','d','f','g','h','j','k','l'],
-    row3: ['z','x','c','v','b','n','m'],
-    row4: ['123', '🌐', ' ', '⏎', '⌫'],
-    row5: [] // для емоджі
-  };
-  let shiftActive = false;
-  let symbolsActive = false;
-  let currentInput = null;
-
-  function buildKeyboard() {
-    const row1 = document.getElementById('keyboardRow1');
-    const row2 = document.getElementById('keyboardRow2');
-    const row3 = document.getElementById('keyboardRow3');
-    const row4 = document.getElementById('keyboardRow4');
-    const row5 = document.getElementById('keyboardRow5');
-    row1.innerHTML = '';
-    row2.innerHTML = '';
-    row3.innerHTML = '';
-    row4.innerHTML = '';
-    row5.innerHTML = '';
-
-    // Букви
-    rows.row1.forEach(l => {
-      const key = document.createElement('div');
-      key.className = 'keyboard-key';
-      key.textContent = shiftActive ? l.toUpperCase() : l;
-      key.dataset.key = l;
-      key.tabIndex = 0;
-      key.onclick = () => insertText(key.textContent);
-      row1.appendChild(key);
-    });
-    rows.row2.forEach(l => {
-      const key = document.createElement('div');
-      key.className = 'keyboard-key';
-      key.textContent = shiftActive ? l.toUpperCase() : l;
-      key.dataset.key = l;
-      key.tabIndex = 0;
-      key.onclick = () => insertText(key.textContent);
-      row2.appendChild(key);
-    });
-    rows.row3.forEach(l => {
-      const key = document.createElement('div');
-      key.className = 'keyboard-key';
-      key.textContent = shiftActive ? l.toUpperCase() : l;
-      key.dataset.key = l;
-      key.tabIndex = 0;
-      key.onclick = () => insertText(key.textContent);
-      row3.appendChild(key);
-    });
-
-    // Спеціальні клавіші
-    const numKey = document.createElement('div');
-    numKey.className = 'keyboard-key special';
-    numKey.textContent = symbolsActive ? 'ABC' : '123';
-    numKey.tabIndex = 0;
-    numKey.onclick = () => toggleSymbols();
-    row4.appendChild(numKey);
-
-    const globeKey = document.createElement('div');
-    globeKey.className = 'keyboard-key special';
-    globeKey.textContent = '🌐';
-    globeKey.tabIndex = 0;
-    globeKey.onclick = () => toggleEmoji();
-    row4.appendChild(globeKey);
-
-    const spaceKey = document.createElement('div');
-    spaceKey.className = 'keyboard-key special';
-    spaceKey.textContent = '␣';
-    spaceKey.tabIndex = 0;
-    spaceKey.onclick = () => insertText(' ');
-    row4.appendChild(spaceKey);
-
-    const enterKey = document.createElement('div');
-    enterKey.className = 'keyboard-key special';
-    enterKey.textContent = '⏎';
-    enterKey.tabIndex = 0;
-    enterKey.onclick = () => {
-      if (currentInput) {
-        // Імітуємо Enter – для textarea новий рядок
-        if (currentInput.tagName === 'TEXTAREA') {
-          insertText('\n');
-        } else {
-          // Для input можна викликати подію submit найближчої форми або просто втратити фокус
-          currentInput.blur();
-        }
-      }
-    };
-    row4.appendChild(enterKey);
-
-    const backspaceKey = document.createElement('div');
-    backspaceKey.className = 'keyboard-key special';
-    backspaceKey.textContent = '⌫';
-    backspaceKey.tabIndex = 0;
-    backspaceKey.onclick = () => {
-      if (currentInput) {
-        const start = currentInput.selectionStart;
-        const end = currentInput.selectionEnd;
-        if (start === end && start > 0) {
-          currentInput.value = currentInput.value.substring(0, start-1) + currentInput.value.substring(end);
-          currentInput.selectionStart = currentInput.selectionEnd = start-1;
-        } else {
-          currentInput.value = currentInput.value.substring(0, start) + currentInput.value.substring(end);
-          currentInput.selectionStart = currentInput.selectionEnd = start;
-        }
-      }
-    };
-    row4.appendChild(backspaceKey);
-
-    // Рядок для емоджі (спочатку порожній)
-    row5.style.display = 'none';
-  }
-
-  function toggleSymbols() {
-    symbolsActive = !symbolsActive;
-    shiftActive = false;
-    buildKeyboard();
-  }
-
-  function toggleEmoji() {
-    const row5 = document.getElementById('keyboardRow5');
-    if (row5.style.display === 'none') {
-      row5.style.display = 'flex';
-      row5.innerHTML = '';
-      const emojiGrid = document.createElement('div');
-      emojiGrid.className = 'keyboard-key emoji-grid';
-      // Використовуємо той самий список емоджі
-      const emojiList = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
-      emojiList.forEach(emoji => {
-        const span = document.createElement('span');
-        span.className = 'emoji-item';
-        span.textContent = emoji;
-        span.tabIndex = 0;
-        span.onclick = () => insertText(emoji);
-        emojiGrid.appendChild(span);
-      });
-      row5.appendChild(emojiGrid);
-    } else {
-      row5.style.display = 'none';
-    }
-  }
-
-  function insertText(char) {
-    if (currentInput) {
-      const start = currentInput.selectionStart;
-      const end = currentInput.selectionEnd;
-      currentInput.value = currentInput.value.substring(0, start) + char + currentInput.value.substring(end);
-      currentInput.selectionStart = currentInput.selectionEnd = start + char.length;
-      currentInput.focus();
-    }
-  }
-
-  // Показувати клавіатуру при фокусі на input/textarea
-  document.addEventListener('focusin', (e) => {
-    if (!tvSettings.tvKeyboardEnabled) return;
-    const target = e.target;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-      currentInput = target;
-      keyboardEl.classList.add('active');
-      buildKeyboard();
-      // Оновлюємо фокусовані елементи для навігації по клавіатурі
-      setTimeout(() => updateFocusableElements(), 50);
-    }
-  });
-
-  document.addEventListener('focusout', (e) => {
-    if (!tvSettings.tvKeyboardEnabled) return;
-    const target = e.target;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-      // Затримка, щоб не сховати, якщо перейшли на інше поле
-      setTimeout(() => {
-        if (!document.activeElement || (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA')) {
-          keyboardEl.classList.remove('active');
-          currentInput = null;
-        }
-      }, 200);
-    }
-  });
 
   // ================= Навігація по розділах =================
   const sections = ['home','search','profile','chats','groups','channels','settings'];
@@ -2143,7 +1824,7 @@
       setupEmojiPicker('groupEmojiBtn', 'groupEmojiPicker', 'groupChatText');
       setupEmojiPicker('channelEmojiBtn', 'channelEmojiPicker', 'channelPostText');
 
-      // Встановлюємо фокус на контейнер
+      // Встановлюємо фокус на контейнер для коректної прокрутки
       setTimeout(() => {
         const content = document.querySelector('.content');
         if (content) {
@@ -2161,8 +1842,6 @@
       if (newPostBox) newPostBox.style.display = 'none';
       unreadCount = 0;
       updateUnreadBadge();
-      // При виході переходимо на головну
-      document.querySelector('[data-section="home"]').click();
       setTimeout(() => { updateFocusableElements(); setFocus(0); }, 500);
     }
   });
@@ -2186,23 +1865,6 @@
     if (feed) feed.innerHTML = '';
     loadMorePosts();
   }
-
-  // Кастомний вибір файлу
-  document.getElementById('customFileButton').addEventListener('click', () => {
-    document.getElementById('postMedia').click();
-  });
-  document.getElementById('postMedia').addEventListener('change', (e) => {
-    const fileName = e.target.files[0] ? e.target.files[0].name : 'Файл не вибрано';
-    document.getElementById('fileDisplay').textContent = fileName;
-  });
-
-  document.getElementById('customChannelFileButton').addEventListener('click', () => {
-    document.getElementById('channelPostMedia').click();
-  });
-  document.getElementById('channelPostMedia').addEventListener('change', (e) => {
-    const fileName = e.target.files[0] ? e.target.files[0].name : 'Файл не вибрано';
-    document.getElementById('channelFileDisplay').textContent = fileName;
-  });
 
   document.getElementById('addPost').onclick = async () => {
     if (!currentUser) return alert('Увійдіть');
@@ -2237,7 +1899,6 @@
       await updateDoc(doc(db, "users", currentUser.uid), { posts: arrayUnion(postDoc.id) });
       document.getElementById('postText').value = '';
       document.getElementById('postMedia').value = '';
-      document.getElementById('fileDisplay').textContent = 'Файл не вибрано';
       showToast('Пост опубліковано!');
     } catch (e) { showToast(e.message); }
   };
@@ -2359,7 +2020,9 @@
           <button class="save-btn ${saved ? 'saved' : ''}" data-post-id="${post.id}" tabindex="0">
             <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
-          <!-- Кнопку поділитися видалено -->
+          <button class="share-btn" data-post-id="${post.id}" tabindex="0">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          </button>
         </div>
         <div class="comments-section" id="comments-${post.id}" style="display: none;">
           <div class="comments-list" id="comments-list-${post.id}"></div>
@@ -2831,9 +2494,10 @@
     }
   };
 
-  // ================= ЧАТИ =================
+  // ================= ЧАТИ (ВИПРАВЛЕНО) =================
   const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
 
+  // Виправлена функція loadChatList – без orderBy у запиті
   async function loadChatList() {
     if (!currentUser) return;
     const list = document.getElementById('chatList');
@@ -2841,6 +2505,7 @@
     list.innerHTML = '';
 
     try {
+      // Запит БЕЗ orderBy – індекс не потрібен
       const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
       const snapshot = await getDocs(q);
 
@@ -2849,6 +2514,7 @@
         return;
       }
 
+      // Збираємо дані разом із часом останнього оновлення
       const chatItems = [];
       for (const docSnap of snapshot.docs) {
         const chat = docSnap.data();
@@ -2861,6 +2527,7 @@
 
         const unread = chat.unread?.[currentUser.uid] || 0;
         const lastMsg = chat.lastMessage || '';
+        // Отримуємо час оновлення (якщо поле відсутнє – використовуємо 0)
         const updatedAt = chat.updatedAt?.seconds || 0;
         const time = updatedAt ? new Date(updatedAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         const lastOnline = user.lastOnline?.seconds || 0;
@@ -2874,10 +2541,11 @@
           lastMsg,
           time,
           isOnline,
-          updatedAt
+          updatedAt // зберігаємо для сортування
         });
       }
 
+      // Сортуємо на клієнті за updatedAt (від новіших до старіших)
       chatItems.sort((a, b) => b.updatedAt - a.updatedAt);
 
       if (chatItems.length === 0) {
@@ -2885,6 +2553,7 @@
         return;
       }
 
+      // Відображаємо відсортований список
       chatItems.forEach(item => {
         const div = document.createElement('div');
         div.className = `chat-item ${item.unread > 0 ? 'unread' : ''}`;
@@ -3464,7 +3133,6 @@
       });
       document.getElementById('channelPostText').value = '';
       document.getElementById('channelPostMedia').value = '';
-      document.getElementById('channelFileDisplay').textContent = 'Файл не вибрано';
       showToast('Пост опубліковано');
       loadChannelPosts(currentChannel.id);
     } catch (e) { showToast(e.message); }
@@ -3493,8 +3161,6 @@
     if (remoteNavToggle) remoteNavToggle.textContent = `Навігація з пульта: ${tvSettings.remoteNavEnabled ? 'увімкнено' : 'вимкнено'}`;
     const focusOptimizeToggle = document.getElementById('focusOptimizeToggle');
     if (focusOptimizeToggle) focusOptimizeToggle.textContent = `Оптимізація фокусу: ${tvSettings.focusOptimized ? 'увімкнено' : 'вимкнено'}`;
-    const tvKeyboardToggle = document.getElementById('tvKeyboardToggle');
-    if (tvKeyboardToggle) tvKeyboardToggle.textContent = `Екранна клавіатура: ${tvSettings.tvKeyboardEnabled ? 'увімкнено' : 'вимкнено'}`;
   }
   document.getElementById('tvNavToggle').onclick = () => {
     tvSettings.tvNavEnabled = !tvSettings.tvNavEnabled;
@@ -3514,20 +3180,11 @@
     localStorage.setItem('focusOptimized', tvSettings.focusOptimized);
     updateTvButtons();
   };
-  document.getElementById('tvKeyboardToggle').onclick = () => {
-    tvSettings.tvKeyboardEnabled = !tvSettings.tvKeyboardEnabled;
-    localStorage.setItem('tvKeyboard', tvSettings.tvKeyboardEnabled);
-    updateTvButtons();
-    if (!tvSettings.tvKeyboardEnabled) {
-      document.getElementById('tvKeyboard').classList.remove('active');
-    }
-  };
   updateTvButtons();
 
   document.getElementById('logoutBtn').onclick = () => {
     cleanupListeners();
     signOut(auth);
-    // Перехід на головну відбувається в onAuthStateChanged
   };
 
   // ================= Інші обробники =================
@@ -3562,7 +3219,6 @@
           vibrate(30);
         }
       } catch {
-        // Відкотити зміни при помилці
         target.classList.toggle('liked');
         countSpan.textContent = oldCount;
       }
@@ -3582,8 +3238,18 @@
           await updateDoc(userRef, { savedPosts: arrayUnion(postId) });
           await updateDoc(postRef, { saves: arrayUnion(currentUser.uid) });
         }
-      } catch {
-        target.classList.toggle('saved');
+      } catch { target.classList.toggle('saved'); }
+    }
+    
+    if (target.classList.contains('share-btn')) {
+      const postId = target.dataset.postId;
+      const postSnap = await getDoc(doc(db, "posts", postId));
+      const post = postSnap.data();
+      if (navigator.share) {
+        navigator.share({ title: 'Пост від ' + post.authorName, text: post.text }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(post.text);
+        showToast('Текст скопійовано');
       }
     }
   });
