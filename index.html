@@ -6,7 +6,7 @@
   <title>FANTASYAS · ТВ версія (покращена)</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
-    /* ========== ГЛОБАЛЬНІ СТИЛІ (розширено) ========== */
+    /* ========== ГЛОБАЛЬНІ СТИЛІ ========== */
     * {
       margin: 0;
       padding: 0;
@@ -66,13 +66,21 @@
       line-height: 1.5;
     }
 
+    /* ===== ПОКРАЩЕНИЙ СТИЛЬ ФОКУСУ (КУРСОР) ===== */
     .focused {
-      outline: 3px solid var(--accent) !important;
-      outline-offset: 2px;
+      outline: 4px solid var(--accent) !important;
+      outline-offset: 4px;
+      box-shadow: 0 0 0 4px var(--bg), 0 0 20px var(--accent) !important;
       transform: scale(1.02);
-      transition: all 0.1s ease;
-      box-shadow: var(--shadow-md);
-      z-index: 10;
+      transition: all 0.15s ease;
+      z-index: 100;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 4px var(--bg), 0 0 20px var(--accent); }
+      50% { box-shadow: 0 0 0 4px var(--bg), 0 0 30px var(--accent); }
+      100% { box-shadow: 0 0 0 4px var(--bg), 0 0 20px var(--accent); }
     }
 
     .sidebar-backdrop {
@@ -1570,7 +1578,7 @@
     }
   }
 
-  // ================= НАВІГАЦІЯ ПУЛЬТОМ =================
+  // ================= НАВІГАЦІЯ ПУЛЬТОМ (покращена) =================
   let focusableElements = [];
   let currentFocusIndex = -1;
 
@@ -1624,6 +1632,26 @@
 
     const content = document.querySelector('.content');
     if (!content) return;
+
+    // Цифрові клавіші для швидкого переходу між розділами
+    if (e.key >= '1' && e.key <= '7') {
+      e.preventDefault();
+      const sectionMap = {
+        '1': 'home',
+        '2': 'search',
+        '3': 'profile',
+        '4': 'chats',
+        '5': 'groups',
+        '6': 'channels',
+        '7': 'settings'
+      };
+      const section = sectionMap[e.key];
+      if (section) {
+        const navItem = document.querySelector(`.nav-item[data-section="${section}"]`);
+        if (navItem) navItem.click();
+      }
+      return;
+    }
 
     switch (e.key) {
       case 'ArrowDown':
@@ -1835,7 +1863,7 @@
             };
             reader.readAsDataURL(file);
           } else if (file.type.startsWith('video/')) {
-            preview.src = ''; // Не показуємо прев'ю для відео
+            preview.src = '';
             preview.classList.remove('show');
           }
         }
@@ -1887,8 +1915,8 @@
         savedPosts: [],
         followers: [],
         following: [],
-        mutedUsers: [], // для мюту
-        blockedUsers: [], // для блокування
+        mutedUsers: [],
+        blockedUsers: [],
         createdAt: serverTimestamp(),
         lastOnline: serverTimestamp(),
         email: email
@@ -2063,7 +2091,6 @@
       setupEmojiPicker('groupEmojiBtn', 'groupEmojiPicker', 'groupChatText');
       setupEmojiPicker('channelEmojiBtn', 'channelEmojiPicker', 'channelPostText');
 
-      // Налаштовуємо кастомний вибір файлів
       setupFileInput('postMedia', 'postMediaLabel', 'postMediaPreview');
       setupFileInput('channelPostMedia', 'channelMediaLabel', 'channelMediaPreview');
       setupFileInput('editAvatar', 'editAvatarLabel', 'editAvatarPreview');
@@ -2221,7 +2248,6 @@
     await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
   }
 
-  // Функція для збільшення лічильника переглядів поста (якщо ще не рахували)
   async function incrementPostView(postId) {
     if (!currentUser) return;
     if (viewedPosts.has(postId)) return;
@@ -2303,7 +2329,6 @@
       `;
       feed.appendChild(postEl);
 
-      // Збільшуємо лічильник переглядів, коли пост додано в DOM
       incrementPostView(post.id);
 
       if (isAuthor) {
@@ -2476,7 +2501,7 @@
     }
   }
 
-  // ================= Профіль =================
+  // ================= Профіль (виправлено) =================
   async function loadMyProfile() {
     if (!currentUser) return;
     const snap = await getDoc(doc(db, "users", currentUser.uid));
@@ -2512,20 +2537,20 @@
   function renderProfile(data, uid, isOwn) {
     const header = document.getElementById('profileHeader');
     if (!header) return;
-    const isFollowing = !isOwn && currentUser ? (data.followers?.includes(currentUser.uid) || false) : false;
 
-    // Перевіряємо, чи заблокований поточний користувач
-    const isBlocked = !isOwn && currentUser && data.blockedUsers?.includes(currentUser.uid);
-    if (isBlocked) {
+    // Перевірка, чи поточний користувач заблокований цільовим
+    if (!isOwn && currentUser && data.blockedUsers?.includes(currentUser.uid)) {
       header.innerHTML = `
         <div class="avatar large" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
         <div>
           <h2>${data.nickname}</h2>
-          <p class="text-danger">Користувач вас заблокував</p>
+          <p class="text-danger">Цей користувач вас заблокував</p>
         </div>
       `;
       return;
     }
+
+    const isFollowing = !isOwn && currentUser ? (data.followers?.includes(currentUser.uid) || false) : false;
 
     header.innerHTML = `
       <div class="avatar large" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
@@ -2538,13 +2563,13 @@
           <span id="followingCount" data-uid="${uid}">${data.following?.length || 0} підписок</span>
           <span>${data.posts?.length || 0} постів</span>
         </div>
-        <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
-          ${!isOwn && currentUser ? `
+        ${!isOwn && currentUser ? `
+          <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
             <button class="btn" id="profileFollowBtn" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>
             <button class="btn" id="profileMessageBtn" tabindex="0">Написати</button>
-          ` : ''}
-          ${isOwn ? '<button class="btn" id="editProfileBtn" tabindex="0">Редагувати</button>' : ''}
-        </div>
+          </div>
+        ` : ''}
+        ${isOwn ? '<button class="btn" id="editProfileBtn" tabindex="0">Редагувати</button>' : ''}
       </div>
       ${!isOwn && currentUser ? `
         <div class="profile-menu">
@@ -2634,7 +2659,7 @@
           } else {
             await blockUser(uid);
           }
-          // Перезавантажуємо профіль
+          // Після блокування/розблокування перезавантажуємо профіль
           loadUserProfile(uid);
         };
       }
