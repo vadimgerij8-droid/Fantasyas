@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
-  <title>FANTASYAS · ТВ версія (фінальна)</title>
+  <title>FANTASYAS · ТВ версія (покращена)</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     /* ========== ГЛОБАЛЬНІ СТИЛІ ========== */
@@ -80,6 +80,26 @@
       0% { box-shadow: 0 0 0 4px var(--bg), 0 0 20px var(--accent); }
       50% { box-shadow: 0 0 0 4px var(--bg), 0 0 30px var(--accent); }
       100% { box-shadow: 0 0 0 4px var(--bg), 0 0 20px var(--accent); }
+    }
+
+    /* TV-стрілочка */
+    #tvCursor {
+      position: fixed;
+      width: 32px;
+      height: 32px;
+      background: transparent;
+      display: none;
+      z-index: 9999;
+      pointer-events: none;
+      transition: all 0.1s ease;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    }
+    #tvCursor svg {
+      width: 100%;
+      height: 100%;
+      fill: var(--accent);
+      stroke: var(--bg);
+      stroke-width: 1.5;
     }
 
     .sidebar-backdrop {
@@ -378,6 +398,7 @@
       border-color: var(--accent);
     }
 
+    /* ===== Кастомний вибір файлу ===== */
     .file-input-wrapper {
       position: relative;
       display: inline-block;
@@ -1023,6 +1044,7 @@
       background: var(--surface);
     }
 
+    /* ===== Стилі для хештегів у пошуку ===== */
     .hashtag-list {
       display: flex;
       flex-direction: column;
@@ -1124,29 +1146,6 @@
   </style>
 </head>
 <body>
-<!-- Splash Screen -->
-<div id="fantasyas-splash" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg, #ffffff); display: flex; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; pointer-events: none;">
-  <div style="font-family: 'Manrope', sans-serif; font-size: min(15vw, 120px); font-weight: 800; letter-spacing: 0.1em; color: var(--accent, #000000); text-transform: uppercase; opacity: 0; transform: scale(0.5); animation: splashIntro 1.3s ease-in-out forwards;">
-    FANTASYAS
-  </div>
-</div>
-<style>
-@keyframes splashIntro {
-  0% { opacity: 0; transform: scale(0.5); }
-  20% { opacity: 1; transform: scale(1.05); }
-  50% { opacity: 1; transform: scale(1); }
-  65% { transform: scale(1.1); }
-  80% { transform: scale(1); }
-  100% { opacity: 0; transform: scale(0.5); }
-}
-body.dark #fantasyas-splash {
-  background-color: #000000;
-}
-body.dark #fantasyas-splash div {
-  color: #ffffff;
-}
-</style>
-
 <div class="app">
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
@@ -1229,6 +1228,7 @@ body.dark #fantasyas-splash div {
               <div class="emoji-picker" id="postEmojiPicker" style="display: none;"></div>
             </div>
           </div>
+          
           <div class="file-input-wrapper">
             <input type="file" id="postMedia" accept="image/*,video/*">
             <div class="file-input-button">
@@ -1237,6 +1237,7 @@ body.dark #fantasyas-splash div {
             </div>
           </div>
           <img id="postMediaPreview" class="file-preview" />
+          
           <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
         </div>
 
@@ -1285,7 +1286,9 @@ body.dark #fantasyas-splash div {
             <span id="onlineIndicator" class="online-indicator" style="display:none;"></span>
           </div>
           <div class="chat-messages" id="chatMessages"></div>
-          <div class="typing-indicator" id="typingIndicator" style="display:none;"></div>
+          <div class="typing-indicator" id="typingIndicator" style="display:none;">
+            <span></span> друкує...
+          </div>
           <div class="chat-input-area">
             <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." tabindex="0"/>
             <div class="emoji-picker-container">
@@ -1376,6 +1379,7 @@ body.dark #fantasyas-splash div {
             <button class="btn" id="tvNavToggle">TV-навігація: увімкнено</button>
             <button class="btn" id="remoteNavToggle">Навігація з пульта: увімкнено</button>
             <button class="btn" id="focusOptimizeToggle">Оптимізація фокусу: увімкнено</button>
+            <button class="btn" id="tvCursorToggle">TV-стрілочка: вимкнено</button>
           </div>
         </div>
 
@@ -1500,6 +1504,7 @@ body.dark #fantasyas-splash div {
   </div>
 </div>
 
+<!-- Модалки для підписників/підписок -->
 <div class="modal" id="followersModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -1520,6 +1525,7 @@ body.dark #fantasyas-splash div {
   </div>
 </div>
 
+<!-- Модалка політики конфіденційності -->
 <div class="modal" id="privacyPolicyModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -1527,13 +1533,20 @@ body.dark #fantasyas-splash div {
       <span class="modal-close" id="closePrivacyModal" tabindex="0">&times;</span>
     </div>
     <div style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
-      <p><strong>Останнє оновлення:</strong> 16 лютого 2026</p>
+      <p><strong>Останнє оновлення:</strong> 15 лютого 2026</p>
       <p>FANTASYAS поважає вашу конфіденційність і зобов'язується захищати ваші персональні дані. Ця політика пояснює, як ми збираємо, використовуємо, розголошуємо та захищаємо вашу інформацію.</p>
+      <!-- решта тексту -->
     </div>
   </div>
 </div>
 
 <div id="toast"></div>
+<!-- TV-стрілочка -->
+<div id="tvCursor">
+  <svg viewBox="0 0 32 32">
+    <polygon points="2,2 30,16 2,30 8,16 2,2" fill="currentColor" stroke="white" stroke-width="2"/>
+  </svg>
+</div>
 
 <script type="module">
   // ================= Firebase імпорти =================
@@ -1563,7 +1576,7 @@ body.dark #fantasyas-splash div {
   let currentChatId = null;
   let currentGroup = null;
   let currentChannel = null;
-  let currentProfileUid = null;
+  let currentProfileUid = null;  // UID поточного переглянутого профілю
   let currentEditingPost = null;
   
   let unsubscribeFeed = null;
@@ -1588,7 +1601,8 @@ body.dark #fantasyas-splash div {
   const tvSettings = {
     tvNavEnabled: localStorage.getItem('tvNav') !== 'false',
     remoteNavEnabled: localStorage.getItem('remoteNav') !== 'false',
-    focusOptimized: localStorage.getItem('focusOptimized') !== 'false'
+    focusOptimized: localStorage.getItem('focusOptimized') !== 'false',
+    tvCursorEnabled: localStorage.getItem('tvCursor') === 'true' // за замовчуванням вимкнено
   };
 
   // ================= Допоміжні функції =================
@@ -1729,6 +1743,25 @@ body.dark #fantasyas-splash div {
     return null;
   }
 
+  // Функція оновлення TV-стрілочки
+  function updateTVCursor() {
+    const cursor = document.getElementById('tvCursor');
+    if (!cursor) return;
+    if (!tvSettings.tvCursorEnabled || !tvSettings.tvNavEnabled) {
+      cursor.style.display = 'none';
+      return;
+    }
+    const focusedEl = document.querySelector('.focused');
+    if (!focusedEl) {
+      cursor.style.display = 'none';
+      return;
+    }
+    const rect = focusedEl.getBoundingClientRect();
+    cursor.style.display = 'block';
+    cursor.style.left = (rect.left - 20) + 'px';
+    cursor.style.top = (rect.top + rect.height/2 - 16) + 'px';
+  }
+
   function setFocus(index) {
     if (!tvSettings.tvNavEnabled && !tvSettings.remoteNavEnabled) return;
     if (focusableElements.length === 0) return;
@@ -1740,6 +1773,7 @@ body.dark #fantasyas-splash div {
     el.classList.add('focused');
     el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     currentFocusIndex = index;
+    updateTVCursor();
   }
 
   function handleKeyDown(e) {
@@ -1779,6 +1813,7 @@ body.dark #fantasyas-splash div {
             focusableElements.forEach(el => el.classList.remove('focused'));
             visiblePost.classList.add('focused');
             currentFocusIndex = focusableElements.indexOf(visiblePost);
+            updateTVCursor();
           }
         }, 100);
         break;
@@ -1792,6 +1827,7 @@ body.dark #fantasyas-splash div {
             focusableElements.forEach(el => el.classList.remove('focused'));
             visiblePost.classList.add('focused');
             currentFocusIndex = focusableElements.indexOf(visiblePost);
+            updateTVCursor();
           }
         }, 100);
         break;
@@ -1827,6 +1863,8 @@ body.dark #fantasyas-splash div {
   }
 
   document.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('scroll', updateTVCursor);
+  window.addEventListener('resize', updateTVCursor);
 
   // ================= Навігація по розділах =================
   const sections = ['home','search','hashtags','profile','chats','groups','channels','settings'];
@@ -1861,6 +1899,7 @@ body.dark #fantasyas-splash div {
         loadChannels();
       }
       if (section === 'profile' && currentUser) {
+        // При переході на профіль через меню завжди показуємо свій профіль
         viewProfile(currentUser.uid);
       }
       
@@ -1999,6 +2038,7 @@ body.dark #fantasyas-splash div {
     list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
 
     try {
+      // Отримуємо всі пости, рахуємо частоту тегів
       const postsSnap = await getDocs(collection(db, "posts"));
       const tagCount = new Map();
       postsSnap.forEach(doc => {
@@ -2035,11 +2075,12 @@ body.dark #fantasyas-splash div {
   }
 
   function searchHashtag(tag) {
+    // Переходимо на сторінку пошуку і вставляємо тег у поле
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
       searchInput.value = '#' + tag;
       document.querySelector('[data-section="search"]').click();
-      loadSearchUsers();
+      loadSearchUsers(); // це перезавантажить результати
     }
   }
 
@@ -2217,22 +2258,12 @@ body.dark #fantasyas-splash div {
     }
   };
 
-  // Приховування заставки після завантаження
-  const splash = document.getElementById('fantasyas-splash');
-  if (splash) {
-    setTimeout(() => {
-      splash.style.opacity = '0';
-      setTimeout(() => {
-        splash.style.display = 'none';
-      }, 500);
-    }, 1500);
-  }
-
   onAuthStateChanged(auth, (user) => {
     cleanupListeners();
     
     if (user) {
       currentUser = user;
+      // Ініціалізуємо currentProfileUid своїм UID
       currentProfileUid = user.uid;
       const authBox = document.getElementById('authBox');
       if (authBox) authBox.style.display = 'none';
@@ -2336,6 +2367,7 @@ body.dark #fantasyas-splash div {
       const userSnap = await getDoc(doc(db, "users", currentUser.uid));
       const userData = userSnap.data();
       
+      // Парсимо хештеги
       const hashtags = extractHashtags(text);
       
       const postDoc = await addDoc(collection(db, "posts"), {
@@ -2466,6 +2498,7 @@ body.dark #fantasyas-splash div {
         `;
       }
       
+      // Обробка тексту з хештегами
       let contentHtml = post.text || '';
       const hashtagRegex = /#(\w+)/g;
       contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
@@ -2523,6 +2556,7 @@ body.dark #fantasyas-splash div {
         postEl.querySelector('.edit-post-btn').onclick = () => openEditPostModal(post);
       }
 
+      // Клік на хештег
       postEl.querySelectorAll('.hashtag').forEach(span => {
         span.onclick = (e) => {
           e.stopPropagation();
@@ -2563,6 +2597,7 @@ body.dark #fantasyas-splash div {
         };
       }
     });
+    setTimeout(updateFocusableElements, 100);
   }
 
   // ================= Редагування поста =================
@@ -2596,6 +2631,7 @@ body.dark #fantasyas-splash div {
     try {
       const postRef = doc(db, "posts", currentEditingPost.id);
       let updateData = { text: newText };
+      // Оновлюємо хештеги
       updateData.hashtags = extractHashtags(newText);
       if (file) {
         if (currentEditingPost.mediaUrl) {
@@ -2638,13 +2674,14 @@ body.dark #fantasyas-splash div {
     }
   };
 
-  // ================= Пошук =================
+  // ================= Пошук (розширений для хештегів) =================
   async function loadSearchUsers() {
     if (!currentUser) return;
     const val = document.getElementById('searchInput').value.trim().toLowerCase();
     const userList = document.getElementById('userList');
     if (!val) { userList.innerHTML = ''; return; }
 
+    // Якщо це хештег
     if (val.startsWith('#')) {
       const tag = val.substring(1);
       const q = query(collection(db, "posts"), where("hashtags", "array-contains", tag));
@@ -2699,7 +2736,6 @@ body.dark #fantasyas-splash div {
   }
   document.getElementById('searchInput').addEventListener('input', loadSearchUsers);
 
-  // ================= Виправлена функція підписки/відписки =================
   async function toggleFollow(targetUid) {
     if (!currentUser) return;
     const myRef = doc(db, "users", currentUser.uid);
@@ -2707,15 +2743,11 @@ body.dark #fantasyas-splash div {
     const mySnap = await getDoc(myRef);
     const following = mySnap.data().following || [];
     if (following.includes(targetUid)) {
-      // Відписатися
       await updateDoc(myRef, { following: arrayRemove(targetUid) });
       await updateDoc(targetRef, { followers: arrayRemove(currentUser.uid) });
-      showToast('Відписано');
     } else {
-      // Підписатися
       await updateDoc(myRef, { following: arrayUnion(targetUid) });
       await updateDoc(targetRef, { followers: arrayUnion(currentUser.uid) });
-      showToast('Підписано');
     }
   }
 
@@ -3089,7 +3121,7 @@ body.dark #fantasyas-splash div {
     }
   };
 
-  // ================= ЧАТИ =================
+  // ================= ЧАТИ (покращені) =================
   const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
 
   async function loadChatList() {
@@ -3313,6 +3345,7 @@ body.dark #fantasyas-splash div {
       throw new Error('chatMessages container not found');
     }
 
+    // Отримуємо інформацію про співрозмовника (аватар)
     const otherUserSnap = await getDoc(doc(db, "users", currentChatPartner));
     const otherUser = otherUserSnap.data();
 
@@ -3803,6 +3836,8 @@ body.dark #fantasyas-splash div {
     if (remoteNavToggle) remoteNavToggle.textContent = `Навігація з пульта: ${tvSettings.remoteNavEnabled ? 'увімкнено' : 'вимкнено'}`;
     const focusOptimizeToggle = document.getElementById('focusOptimizeToggle');
     if (focusOptimizeToggle) focusOptimizeToggle.textContent = `Оптимізація фокусу: ${tvSettings.focusOptimized ? 'увімкнено' : 'вимкнено'}`;
+    const tvCursorToggle = document.getElementById('tvCursorToggle');
+    if (tvCursorToggle) tvCursorToggle.textContent = `TV-стрілочка: ${tvSettings.tvCursorEnabled ? 'увімкнено' : 'вимкнено'}`;
   }
   document.getElementById('tvNavToggle').onclick = () => {
     tvSettings.tvNavEnabled = !tvSettings.tvNavEnabled;
@@ -3810,6 +3845,9 @@ body.dark #fantasyas-splash div {
     updateTvButtons();
     if (!tvSettings.tvNavEnabled) {
       focusableElements.forEach(el => el.classList.remove('focused'));
+      document.getElementById('tvCursor').style.display = 'none';
+    } else {
+      updateTVCursor();
     }
   };
   document.getElementById('remoteNavToggle').onclick = () => {
@@ -3821,6 +3859,12 @@ body.dark #fantasyas-splash div {
     tvSettings.focusOptimized = !tvSettings.focusOptimized;
     localStorage.setItem('focusOptimized', tvSettings.focusOptimized);
     updateTvButtons();
+  };
+  document.getElementById('tvCursorToggle').onclick = () => {
+    tvSettings.tvCursorEnabled = !tvSettings.tvCursorEnabled;
+    localStorage.setItem('tvCursor', tvSettings.tvCursorEnabled);
+    updateTvButtons();
+    updateTVCursor();
   };
   updateTvButtons();
 
