@@ -72,19 +72,18 @@
       transition: background-color 0.3s, color 0.3s;
     }
 
-    /* TV mode focus styles (сучасне підсвічування) */
+    /* TV mode focus styles (оновлено: без помаранчевого, чорно-білий outline) */
     body.tv-mode :focus {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 0 6px rgba(0, 0, 0, 0.5);
-      transition: box-shadow 0.2s ease, transform 0.1s ease;
-      transform: scale(1.02);
-      z-index: 100;
+      outline: 2px solid var(--text-primary) !important;
+      outline-offset: 2px;
+      box-shadow: none;
     }
 
+    /* Спеціально для лівого меню: стрілочка замість outline */
     body.tv-mode .nav-item:focus {
-      box-shadow: none;
-      background: rgba(255, 255, 255, 0.2);
-      padding-left: 32px;
+      outline: none;
+      background: var(--surface);
+      padding-left: 32px; /* місце для стрілочки */
       position: relative;
     }
 
@@ -96,49 +95,21 @@
       transform: translateY(-50%);
       color: var(--text-primary);
       font-size: 14px;
-      animation: pulseArrow 1s infinite;
     }
 
-    @keyframes pulseArrow {
-      0% { opacity: 0.6; transform: translateY(-50%) scale(1); }
-      50% { opacity: 1; transform: translateY(-50%) scale(1.2); }
-      100% { opacity: 0.6; transform: translateY(-50%) scale(1); }
+    /* Для емоджі-пікера в TV-режимі залишаємо простий outline */
+    body.tv-mode .emoji-grid span:focus {
+      outline: 2px solid var(--text-primary);
+      transform: scale(1.1);
+      background-color: var(--surface);
     }
 
-    /* Сучасний пульт для TV-режиму */
-    .tv-remote {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(10px);
-      color: white;
-      padding: 12px 18px;
-      border-radius: 60px;
-      font-size: 14px;
-      display: flex;
-      gap: 20px;
-      z-index: 10000;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      transition: opacity 0.3s;
-      pointer-events: none;
-      opacity: 0;
-    }
-    body.tv-mode .tv-remote {
-      opacity: 1;
-    }
-    .tv-remote span {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .tv-remote .key {
-      background: rgba(255,255,255,0.2);
-      border-radius: 8px;
-      padding: 4px 10px;
-      font-weight: 600;
-      border: 1px solid rgba(255,255,255,0.4);
+    /* Make posts focusable in TV mode */
+    body.tv-mode .post,
+    body.tv-mode .chat-item,
+    body.tv-mode .hashtag-item,
+    body.tv-mode .profile-tab {
+      cursor: pointer;
     }
 
     .app {
@@ -927,10 +898,10 @@
     .comment-actions button:hover {
       color: var(--accent);
     }
-    .comment-actions .like-btn.liked {
+    .comment-actions .like-comment-btn.liked {
       color: var(--like);
     }
-    .comment-actions .like-btn.liked svg {
+    .comment-actions .like-comment-btn.liked svg {
       fill: var(--like);
       stroke: var(--like);
     }
@@ -1759,7 +1730,7 @@
   </main>
 </div>
 
-<!-- Сучасний пульт для TV-режиму -->
+<!-- Сучасний пульт для TV-режиму (додано) -->
 <div class="tv-remote">
   <span><span class="key">▲▼◀▶</span> навігація</span>
   <span><span class="key">⏎</span> вибрати</span>
@@ -2276,7 +2247,7 @@
 
   backdrop.addEventListener('click', closeSidebar);
 
-  // ================= ЕМОДЖІ-ПІКЕР (ТЕЛЕГРАМ-СТАЙЛ) =================
+  // ================= ЕМОДЖІ-ПІКЕР =================
   const emojiCategories = {
     smileys: ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'],
     animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐙','🦑','🦐','🦞','🐠','🐟','🐡','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿️','🦔','🐾'],
@@ -2733,6 +2704,7 @@
     loadMorePosts();
   }
 
+  // Допоміжна функція для додавання поста в стрічку (для нових постів)
   async function addPostToFeed(post) {
     const feed = document.getElementById('feed');
     if (!feed) return;
@@ -2946,40 +2918,52 @@
   }
 
   // ================= ФУНКЦІЇ ДЛЯ КОМЕНТАРІВ =================
+  // Підписка на коментарі
   function subscribeToComments(postId, container) {
+    if (!container) {
+      console.error('Container for comments not found');
+      return null;
+    }
     const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
-    return onSnapshot(q, async (snapshot) => {
-      await loadComments(postId, container);
+    return onSnapshot(q, (snapshot) => {
+      console.log(`Comments snapshot for post ${postId}:`, snapshot.size, 'comments');
+      loadComments(postId, container, snapshot);
     }, (error) => {
       console.error('Comments snapshot error:', error);
       showToast('Помилка завантаження коментарів');
     });
   }
 
-  async function loadComments(postId, container) {
-    const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
-    const snapshot = await getDocs(q);
-    container.innerHTML = '';
+  // Завантаження коментарів з snapshot
+  async function loadComments(postId, container, snapshot) {
+    container.innerHTML = ''; // очищаємо
+    if (snapshot.empty) {
+      container.innerHTML = '<p style="text-align:center; padding:8px;">Немає коментарів</p>';
+      return;
+    }
+    // Проходимо по документах
     for (const docSnap of snapshot.docs) {
       const comment = docSnap.data();
       const commentId = docSnap.id;
       const commentEl = document.createElement('div');
       commentEl.className = 'comment';
       commentEl.dataset.commentId = commentId;
-      
+
+      // Отримуємо відповіді
       const repliesSnapshot = await getDocs(query(collection(db, `posts/${postId}/comments/${commentId}/replies`), orderBy("createdAt", "asc")));
       const replies = [];
       repliesSnapshot.forEach(r => replies.push({ id: r.id, ...r.data() }));
 
       const liked = comment.likes?.includes(currentUser?.uid) || false;
-      
+      const time = comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleString() : '';
+
       commentEl.innerHTML = `
         <div class="comment-main">
           <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" data-uid="${comment.author}"></div>
           <div class="comment-content">
             <div>
               <span class="comment-author" data-uid="${comment.author}">${comment.authorName}</span>
-              <span class="comment-time">${new Date(comment.createdAt?.seconds * 1000).toLocaleString()}</span>
+              <span class="comment-time">${time}</span>
             </div>
             <div class="comment-text">${comment.text}</div>
           </div>
@@ -3015,18 +2999,22 @@
       container.appendChild(commentEl);
     }
 
-    document.querySelectorAll('.reply-btn').forEach(btn => {
+    // Після додавання всіх коментарів, навішуємо обробники подій
+    attachCommentEventHandlers(container, postId);
+  }
+
+  // Функція для навішування обробників на кнопки всередині коментарів
+  function attachCommentEventHandlers(container, postId) {
+    container.querySelectorAll('.reply-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const postId = btn.dataset.postId;
         const commentId = btn.dataset.commentId;
         const form = document.getElementById(`reply-form-${postId}-${commentId}`);
-        form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+        if (form) form.style.display = form.style.display === 'none' ? 'flex' : 'none';
       });
     });
 
-    document.querySelectorAll('.send-reply').forEach(btn => {
+    container.querySelectorAll('.send-reply').forEach(btn => {
       btn.addEventListener('click', async (e) => {
-        const postId = btn.dataset.postId;
         const commentId = btn.dataset.commentId;
         const input = document.getElementById(`reply-input-${postId}-${commentId}`);
         const text = input.value.trim();
@@ -3052,10 +3040,9 @@
       });
     });
 
-    document.querySelectorAll('.like-comment-btn').forEach(btn => {
+    container.querySelectorAll('.like-comment-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const postId = btn.dataset.postId;
         const commentId = btn.dataset.commentId;
         const liked = btn.classList.contains('liked');
         const countSpan = btn.querySelector('span');
@@ -3080,6 +3067,7 @@
     });
   }
 
+  // Функція додавання коментаря
   async function addComment(postId, text) {
     if (!currentUser || !text.trim()) return;
     const userSnap = await getDoc(doc(db, "users", currentUser.uid));
@@ -3094,6 +3082,7 @@
       likes: [],
       likesCount: 0
     });
+    // Оновлюємо лічильник коментарів у пості
     await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
   }
 
@@ -4372,6 +4361,7 @@
 
   document.getElementById('toggleTvMode').onclick = toggleTvMode;
 
+  // Додаємо обробник клавіш для TV-режиму (залишаємо з попередньої версії, але можна додати)
   document.addEventListener('keydown', (e) => {
     if (!tvModeEnabled) return;
 
