@@ -78,7 +78,7 @@
       overflow: hidden;
     }
 
-    /* ========== САЙДБАР (СУЧАСНИЙ МІНІМАЛІЗМ) ========== */
+    /* ========== САЙДБАР ========== */
     .sidebar {
       width: var(--sidebar-width);
       background: rgba(255, 255, 255, 0.7);
@@ -89,7 +89,7 @@
       flex-direction: column;
       padding: 24px 0;
       overflow-y: auto;
-      transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.3s, backdrop-filter 0.3s;
+      transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.3s;
       z-index: 1000;
       position: fixed;
       left: 0;
@@ -125,39 +125,6 @@
       display: flex;
       align-items: center;
       gap: 12px;
-    }
-    .sidebar-user-avatar {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background-size: cover;
-      background-position: center;
-      border: 2px solid var(--text-primary);
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.2s;
-    }
-    .sidebar-user-avatar:active {
-      opacity: 0.8;
-      transform: scale(0.95);
-    }
-    .sidebar-user-info {
-      flex: 1;
-      overflow: hidden;
-    }
-    .sidebar-user-name {
-      font-weight: 600;
-      font-size: 1.1rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--text-primary);
-    }
-    .sidebar-user-id {
-      font-size: 0.85rem;
-      color: var(--text-tertiary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .logo {
@@ -318,6 +285,105 @@
     @keyframes fadeSlideIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========== ЕМОДЖІ-ПІКЕР (ТЕЛЕГРАМ-СТАЙЛ) ========== */
+    .emoji-picker-container {
+      position: relative;
+      display: inline-block;
+    }
+    .emoji-button {
+      background: none;
+      border: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      padding: 8px;
+      color: var(--text-primary);
+      min-width: 44px;
+      min-height: 44px;
+      transition: transform 0.2s;
+      border-radius: 50%;
+    }
+    .emoji-button:hover {
+      transform: scale(1.1);
+      background: var(--surface);
+    }
+    .emoji-button:active {
+      transform: scale(0.95);
+    }
+    .emoji-picker {
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      width: 320px;
+      max-height: 400px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      backdrop-filter: blur(10px);
+    }
+    .emoji-picker .emoji-search {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    .emoji-picker .emoji-categories {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .emoji-picker .emoji-category {
+      padding: 6px 12px;
+      background: var(--surface);
+      border-radius: 30px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    .emoji-picker .emoji-category:hover,
+    .emoji-picker .emoji-category.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+    .emoji-picker .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 4px;
+      overflow-y: auto;
+      padding: 4px 0;
+      max-height: 200px;
+    }
+    .emoji-picker .emoji-grid span {
+      font-size: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      transition: background 0.2s, transform 0.1s;
+    }
+    .emoji-picker .emoji-grid span:hover {
+      background: var(--surface);
+      transform: scale(1.2);
+    }
+    .emoji-picker .emoji-grid span:active {
+      transform: scale(1);
     }
 
     /* ========== КАРТКИ ========== */
@@ -690,7 +756,7 @@
       margin-left: auto;
     }
 
-    /* ========== КОМЕНТАРІ З ВІДПОВІДЯМИ ========== */
+    /* ========== КОМЕНТАРІ ========== */
     .comments-section {
       margin-top: 16px;
       border-top: 1px solid var(--border);
@@ -1347,7 +1413,7 @@
       min-height: 44px;
     }
 
-    /* Кнопка теми з іконками */
+    /* Кнопка теми */
     #toggleTheme svg:last-child {
       display: none;
     }
@@ -1378,13 +1444,6 @@
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-header" id="sidebarUserInfo" style="display: none;">
-      <div class="sidebar-user-avatar" id="sidebarAvatar"></div>
-      <div class="sidebar-user-info">
-        <div class="sidebar-user-name" id="sidebarName"></div>
-        <div class="sidebar-user-id" id="sidebarUserId"></div>
-      </div>
-    </div>
     <div class="sidebar-header" id="sidebarLogo">
       <div class="logo">FANTASYAS</div>
     </div>
@@ -1414,17 +1473,9 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="nav-item" data-section="saved" id="savedNav">
-        <svg class="icon" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-        <span data-i18n="saved">Збережене</span>
-      </div>
       <div class="nav-item" data-section="settings">
         <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.07.07A10 10 0 0 0 12 17.66a10 10 0 0 0 6.26-2.26z"/></svg>
         <span data-i18n="settings">Налаштування</span>
-      </div>
-      <div class="nav-item" id="logoutNav">
-        <svg class="icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span data-i18n="logout">Вийти</span>
       </div>
     </div>
   </aside>
@@ -1465,7 +1516,7 @@
             <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="2" style="flex:1;" data-i18n-placeholder="newPostPlaceholder"></textarea>
             <div class="emoji-picker-container">
               <button class="emoji-button" id="postEmojiBtn">😊</button>
-              <div class="emoji-picker" id="postEmojiPicker" style="display: none; bottom: 100%; right: 0; position: absolute; width: 250px; max-height: 250px;"></div>
+              <div class="emoji-picker" id="postEmojiPicker" style="display: none;"></div>
             </div>
           </div>
           
@@ -1570,7 +1621,6 @@
           </select>
         </div>
 
-        <!-- Кнопка теми -->
         <button class="btn" id="toggleTheme" style="margin:16px 0; width:100%;">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="12" cy="12" r="5"/>
@@ -1596,7 +1646,7 @@
         <button class="btn" id="logoutBtn" style="margin-top:16px; width:100%;" data-i18n="logout">Вийти</button>
       </div>
 
-      <!-- Saved section -->
+      <!-- Saved section (залишаємо для сумісності, але в навігації більше немає) -->
       <div id="saved" class="section">
         <h2 style="margin-bottom:16px; font-weight:600;" data-i18n="saved">Збережене</h2>
         <div class="feed" id="savedFeed"></div>
@@ -2047,7 +2097,7 @@
     }
   }
 
-  // ================= Навігація по розділах =================
+  // ================= НАВІГАЦІЯ ПО РОЗДІЛАХ =================
   const sections = ['home','search','hashtags','profile','chats','settings','saved'];
   const navItems = document.querySelectorAll('.nav-item');
   navItems.forEach((item) => {
@@ -2112,11 +2162,97 @@
 
   backdrop.addEventListener('click', closeSidebar);
 
-  // ================= Емоджі-пікер =================
-  const emojiList = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
+  // ================= ЕМОДЖІ-ПІКЕР (ТЕЛЕГРАМ-СТАЙЛ) =================
+  const emojiCategories = {
+    smileys: ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'],
+    animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐙','🦑','🦐','🦞','🐠','🐟','🐡','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿️','🦔','🐾'],
+    food: ['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🫑','🌽','🥕','🫒','🧄','🧅','🥔','🍠','🥐','🥯','🍞','🥖','🥨','🧀','🥚','🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🦴','🌭','🍔','🍟','🍕','🫓','🥪','🥙','🧆','🌮','🌯','🫔','🥗','🥘','🫕','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🦪','🍤','🍙','🍚','🍘','🍥','🥠','🥮','🍢','🍡','🍧','🍨','🍦','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯','🥛','🍼','☕','🫖','🍵','🧃','🥤','🧋','🍶','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧉','🍾','🧊','🥄','🍴','🥣'],
+    travel: ['🌍','🌎','🌏','🌐','🗺️','🗾','🧭','🏔️','⛰️','🌋','🗻','🏕️','🏖️','🏜️','🏝️','🏞️','🏟️','🏛️','🏗️','🧱','🏘️','🏚️','🏠','🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫','🏬','🏭','🏯','🏰','💒','🗼','🗽','⛪','🕌','🛕','🕍','⛩️','🕋','⛲','⛺','🌁','🌃','🏙️','🌄','🌅','🌆','🌇','🌉','♨️','🎠','🎡','🎢','🚂','🚃','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝','🚞','🚋','🚌','🚍','🚎','🚐','🚑','🚒','🚓','🚔','🚕','🚖','🚗','🚘','🚙','🛻','🚚','🚛','🚜','🏎️','🏍️','🛵','🦽','🦼','🛺','🚲','🛴','🛹','🛼','🚏','🛣️','🛤️','🛢️','⛽','🚨','🚥','🚦','🛑','🚧','⚓','⛵','🛶','🚤','🛳️','⛴️','🛥️','🚢','✈️','🛩️','🛫','🛬','🪂','💺','🚁','🚟','🚠','🚡','🛰️','🚀','🛸','🪐','🌠','🌌','⛱️'],
+    objects: ['⌚','📱','📲','💻','⌨️','🖥️','🖨️','🖱️','🖲️','🕹️','🗜️','💽','💾','💿','📀','📼','📷','📸','📹','🎥','📽️','🎞️','📞','☎️','📟','📠','📺','📻','🎙️','🎚️','🎛️','🧭','⏱️','⏲️','⏰','🕰️','⌛','⏳','📡','🔋','🔌','💡','🔦','🕯️','🪔','🧯','🛢️','💸','💵','💴','💶','💷','💰','💳','💎','⚖️','🪤','🧰','🔧','🔨','⚒️','🛠️','⛏️','🔩','⚙️','⛓️','🧱','🔫','💣','🔪','🗡️','⚔️','🛡️','🚬','⚰️','⚱️','🏺','🔮','📿','🧿','💈','⚗️','🔭','🔬','🕳️','💊','💉','🩸','🩹','🩺','🚽','🚰','🚿','🛁','🛀','🧼','🪥','🧽','🧴','🪣','🧹','🧺','🧻','🪒','🧷','🧶','🧵','🪡','🪢','📖','📗','📘','📙','📚','📔','📒','📃','📜','📄','📰','🗞️','📑','🔖','🏷️','💰','💴','💵','💶','💷','💸','💳','🧾','✉️','📧','📨','📩','📤','📥','📦','📫','📪','📬','📭','📮','🗳️','✏️','✒️','🖋️','🖊️','🖌️','🖍️','📝','📁','📂','🗂️','📅','📆','🗒️','🗓️','📇','📈','📉','📊','📋','📌','📍','📎','🖇️','📏','📐','✂️','🗃️','🗄️','🗑️','🔒','🔓','🔏','🔐','🔑','🗝️','🔨','🪓','⛏️','⚒️','🛠️','🔧','🔩','⚙️','🪚','🔫','💣','🔪','🗡️','⚔️','🛡️','🚬','⚰️','⚱️','🏺','🔮','📿','🧿','💈','⚗️','🔭','🔬','🕳️','💊','💉','🩸','🩹','🩺','🚽','🚰','🚿','🛁','🛀','🧼','🪥','🧽','🧴','🪣','🧹','🧺','🧻','🪒','🧷','🧶','🧵','🪡','🪢'],
+    symbols: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','✡️','🔯','🕎','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','🈲','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌','⭕','🛑','⛔','📛','🚫','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','❗','❕','❓','❔','‼️','⁉️','🔅','🔆','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯️','💹','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🛗','🈳','🈂️','🛂','🛃','🛄','🛅','🚹','🚺','🚼','⚧','🚻','🚮','🎦','📶','🈁','🔤','🆒','🆓','🆕','🆖','🆗','🆙','🏁','🚩','🎌','🏴','🏳️','🏳️‍🌈','🏳️‍⚧️','🏴‍☠️','🔴','🟠','🟡','🟢','🔵','🟣','🟤','⚫','⚪','🟥','🟧','🟨','🟩','🟦','🟪','🟫','⬛','⬜','◼️','◻️','◾','◽','▪️','▫️','🔶','🔷','🔸','🔹','🔺','🔻','💭','🗯️','💬','👁️‍🗨️','🕳️','💤','💢','💣','💥','💦','💨','🕐','🕑','🕒','🕓','🕔','🕕','🕖','🕗','🕘','🕚','🕛','🕜','🕝','🕞','🕟','🕠','🕡','🕢','🕣','🕤','🕥','🕦','🕧']
+  };
 
-  function closeAllEmojiPickers() {
-    document.querySelectorAll('.emoji-picker').forEach(p => p.style.display = 'none');
+  function buildEmojiPicker(pickerElement, inputElement) {
+    if (!pickerElement || !inputElement) return;
+
+    pickerElement.innerHTML = '';
+    pickerElement.classList.add('emoji-picker');
+
+    // Пошук
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = '🔍 Пошук...';
+    searchInput.classList.add('emoji-search');
+    pickerElement.appendChild(searchInput);
+
+    // Категорії
+    const categoriesDiv = document.createElement('div');
+    categoriesDiv.classList.add('emoji-categories');
+    const categoryNames = ['smileys', 'animals', 'food', 'travel', 'objects', 'symbols'];
+    categoryNames.forEach(cat => {
+      const catBtn = document.createElement('span');
+      catBtn.classList.add('emoji-category');
+      catBtn.textContent = cat === 'smileys' ? '😊' : cat === 'animals' ? '🐶' : cat === 'food' ? '🍔' : cat === 'travel' ? '✈️' : cat === 'objects' ? '📱' : '🔣';
+      catBtn.dataset.category = cat;
+      catBtn.onclick = () => {
+        document.querySelectorAll('.emoji-category').forEach(c => c.classList.remove('active'));
+        catBtn.classList.add('active');
+        filterEmojis(cat, '');
+      };
+      categoriesDiv.appendChild(catBtn);
+    });
+    pickerElement.appendChild(categoriesDiv);
+
+    const gridDiv = document.createElement('div');
+    gridDiv.classList.add('emoji-grid');
+    pickerElement.appendChild(gridDiv);
+
+    let currentCategory = 'smileys';
+    let currentSearch = '';
+
+    function renderEmojis(category, search) {
+      let emojis = emojiCategories[category] || [];
+      if (search) {
+        // простий пошук за назвою емоджі не реалізуємо, можна по самому символу, але це складно
+        // для простоти фільтруємо, якщо символ містить пошуковий рядок (це не точно)
+        emojis = emojis.filter(e => e.includes(search));
+      }
+      gridDiv.innerHTML = '';
+      emojis.forEach(emoji => {
+        const span = document.createElement('span');
+        span.textContent = emoji;
+        span.onclick = () => {
+          insertEmoji(emoji);
+          pickerElement.style.display = 'none';
+        };
+        gridDiv.appendChild(span);
+      });
+    }
+
+    function filterEmojis(category, search) {
+      currentCategory = category;
+      currentSearch = search;
+      renderEmojis(category, search);
+    }
+
+    searchInput.addEventListener('input', (e) => {
+      filterEmojis(currentCategory, e.target.value);
+    });
+
+    // Встановити активну першу категорію
+    const firstCat = categoriesDiv.querySelector('.emoji-category');
+    if (firstCat) {
+      firstCat.classList.add('active');
+      renderEmojis('smileys', '');
+    }
+
+    function insertEmoji(emoji) {
+      const start = inputElement.selectionStart;
+      const end = inputElement.selectionEnd;
+      inputElement.value = inputElement.value.substring(0, start) + emoji + inputElement.value.substring(end);
+      inputElement.focus();
+      inputElement.selectionStart = inputElement.selectionEnd = start + emoji.length;
+    }
   }
 
   function setupEmojiPicker(buttonId, pickerId, inputId) {
@@ -2124,53 +2260,27 @@
     const picker = document.getElementById(pickerId);
     const input = document.getElementById(inputId);
     if (!btn || !picker || !input) return;
-    
+
+    // Ініціалізувати пікер один раз
+    if (!picker.hasChildNodes()) {
+      buildEmojiPicker(picker, input);
+    }
+
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       closeAllEmojiPickers();
-      picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
-      if (picker.style.display === 'grid') {
-        setTimeout(() => {
-          const firstEmoji = picker.querySelector('span');
-          if (firstEmoji) firstEmoji.focus();
-        }, 50);
-      }
+      picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
     });
 
-    window.addEventListener('scroll', function closeOnScroll() {
-      if (picker.style.display === 'grid') {
-        picker.style.display = 'none';
-      }
-    }, { once: true, passive: true });
-    
-    picker.innerHTML = '';
-    emojiList.forEach(emoji => {
-      const span = document.createElement('span');
-      span.textContent = emoji;
-      span.tabIndex = 0;
-      
-      span.onclick = (e) => {
-        e.stopPropagation();
-        insertEmoji(emoji);
-      };
-      
-      picker.appendChild(span);
-    });
-    
-    function insertEmoji(emoji) {
-      const start = input.selectionStart;
-      const end = input.selectionEnd;
-      input.value = input.value.substring(0, start) + emoji + input.value.substring(end);
-      input.focus();
-      input.selectionStart = input.selectionEnd = start + emoji.length;
-      picker.style.display = 'none';
-    }
-    
     document.addEventListener('click', (e) => {
       if (!picker.contains(e.target) && e.target !== btn) {
         picker.style.display = 'none';
       }
     });
+  }
+
+  function closeAllEmojiPickers() {
+    document.querySelectorAll('.emoji-picker').forEach(p => p.style.display = 'none');
   }
 
   // ================= Кастомний вибір файлу =================
@@ -2433,42 +2543,7 @@
     }
   };
 
-  // ================= Оновлення бокового меню при логіні =================
-  function updateSidebarUserInfo(userData) {
-    const sidebarUserInfo = document.getElementById('sidebarUserInfo');
-    const sidebarLogo = document.getElementById('sidebarLogo');
-    if (userData) {
-      sidebarUserInfo.style.display = 'flex';
-      sidebarLogo.style.display = 'none';
-      document.getElementById('sidebarAvatar').style.backgroundImage = `url(${userData.avatar || ''})`;
-      document.getElementById('sidebarName').textContent = userData.nickname || '';
-      document.getElementById('sidebarUserId').textContent = userData.userId || '';
-    } else {
-      sidebarUserInfo.style.display = 'none';
-      sidebarLogo.style.display = 'block';
-    }
-  }
-
-  // ================= ЛОГІКА ПЕРЕМИКАННЯ ТЕМИ =================
-  function initTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.body.classList.add('dark-theme');
-    } else {
-      document.body.classList.remove('dark-theme');
-    }
-  }
-
-  function toggleTheme() {
-    document.body.classList.toggle('dark-theme');
-    const isDark = document.body.classList.contains('dark-theme');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }
-
-  document.getElementById('toggleTheme').addEventListener('click', toggleTheme);
-
-  initTheme();
-
+  // ================= Оновлення стану користувача =================
   onAuthStateChanged(auth, (user) => {
     cleanupListeners();
     
@@ -2483,10 +2558,6 @@
       lastOnlineInterval = setInterval(() => {
         updateDoc(doc(db, "users", currentUser.uid), { lastOnline: serverTimestamp() }).catch(console.error);
       }, 30000);
-      
-      getDoc(doc(db, "users", user.uid)).then(snap => {
-        if (snap.exists()) updateSidebarUserInfo(snap.data());
-      });
 
       resetPagination();
       loadMyProfile();
@@ -2519,7 +2590,6 @@
 
     } else {
       currentUser = null;
-      updateSidebarUserInfo(null);
       const authBox = document.getElementById('authBox');
       if (authBox) authBox.style.display = 'block';
       const newPostBox = document.getElementById('newPostBox');
@@ -2622,7 +2692,7 @@
     }
   }
 
-  // ================= ФУНКЦІЇ ДЛЯ КОМЕНТАРІВ З ВІДПОВІДЯМИ =================
+  // ================= ФУНКЦІЇ ДЛЯ КОМЕНТАРІВ =================
   async function loadComments(postId, container) {
     const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
     const snapshot = await getDocs(q);
@@ -2634,7 +2704,6 @@
       commentEl.className = 'comment';
       commentEl.dataset.commentId = commentId;
       
-      // Завантажуємо відповіді для цього коментаря
       const repliesSnapshot = await getDocs(query(collection(db, `posts/${postId}/comments/${commentId}/replies`), orderBy("createdAt", "asc")));
       const replies = [];
       repliesSnapshot.forEach(r => replies.push({ id: r.id, ...r.data() }));
@@ -2683,7 +2752,6 @@
       container.appendChild(commentEl);
     }
 
-    // Додаємо обробники для кнопок відповіді
     document.querySelectorAll('.reply-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const postId = btn.dataset.postId;
@@ -2693,7 +2761,6 @@
       });
     });
 
-    // Обробники для надсилання відповіді
     document.querySelectorAll('.send-reply').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const postId = btn.dataset.postId;
@@ -2715,7 +2782,6 @@
           });
           input.value = '';
           document.getElementById(`reply-form-${postId}-${commentId}`).style.display = 'none';
-          // Перезавантажити коментарі
           const commentsContainer = document.getElementById(`comments-list-${postId}`);
           await loadComments(postId, commentsContainer);
         } catch (error) {
@@ -2725,7 +2791,6 @@
       });
     });
 
-    // Обробники для лайків коментарів
     document.querySelectorAll('.like-comment-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -2979,7 +3044,7 @@
     }
   };
 
-  // ================= Пошук (розширений для хештегів) =================
+  // ================= Пошук =================
   async function loadSearchUsers() {
     if (!currentUser) return;
     const val = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -3031,7 +3096,6 @@
       followBtn.onclick = async (e) => {
         e.stopPropagation();
         const wasFollowing = followBtn.textContent === (translations[currentLanguage]?.unfollow || 'Відписатися');
-        // Оптимістична зміна
         followBtn.textContent = wasFollowing 
           ? (translations[currentLanguage]?.follow || 'Підписатися')
           : (translations[currentLanguage]?.unfollow || 'Відписатися');
@@ -3171,12 +3235,10 @@
         profileFollowBtn.onclick = async (e) => {
           e.stopPropagation();
           const wasFollowing = profileFollowBtn.textContent === (translations[currentLanguage]?.unfollow || 'Відписатися');
-          // Оптимістична зміна
           profileFollowBtn.textContent = wasFollowing 
             ? (translations[currentLanguage]?.follow || 'Підписатися')
             : (translations[currentLanguage]?.unfollow || 'Відписатися');
           
-          // Оновлюємо лічильник підписників
           const followersSpan = document.getElementById('followersCount');
           if (followersSpan) {
             let count = parseInt(followersSpan.textContent.split(' ')[0]);
@@ -3186,7 +3248,6 @@
           try {
             await toggleFollow(uid);
           } catch (error) {
-            // Відкочуємо зміни у разі помилки
             profileFollowBtn.textContent = wasFollowing 
               ? (translations[currentLanguage]?.unfollow || 'Відписатися')
               : (translations[currentLanguage]?.follow || 'Підписатися');
@@ -3905,7 +3966,6 @@
       const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
       await setDoc(typingRef, { isTyping: false }, { merge: true });
 
-      // Оновлюємо список чатів, щоб відобразити останнє повідомлення
       loadChatList();
     } catch (error) {
       console.error('Send message error:', error);
@@ -4005,6 +4065,23 @@
   // ================= Налаштування =================
   document.getElementById('toggleTheme').onclick = toggleTheme;
 
+  function initTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+  }
+
+  function toggleTheme() {
+    document.body.classList.toggle('dark-theme');
+    const isDark = document.body.classList.contains('dark-theme');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }
+
+  initTheme();
+
   document.getElementById('privacyPolicyBtn').onclick = () => {
     document.getElementById('privacyPolicyModal').classList.add('active');
   };
@@ -4016,10 +4093,6 @@
     cleanupListeners();
     signOut(auth);
   };
-  document.getElementById('logoutNav').addEventListener('click', () => {
-    cleanupListeners();
-    signOut(auth);
-  });
 
   // ================= Інші обробники =================
   const sentinel = document.getElementById('feedSentinel');
