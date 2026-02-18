@@ -72,18 +72,19 @@
       transition: background-color 0.3s, color 0.3s;
     }
 
-    /* TV mode focus styles (оновлено: без помаранчевого, чорно-білий outline) */
+    /* TV mode focus styles (сучасне підсвічування) */
     body.tv-mode :focus {
-      outline: 2px solid var(--text-primary) !important;
-      outline-offset: 2px;
-      box-shadow: none;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.8), 0 0 0 6px rgba(0, 0, 0, 0.5);
+      transition: box-shadow 0.2s ease, transform 0.1s ease;
+      transform: scale(1.02);
+      z-index: 100;
     }
 
-    /* Спеціально для лівого меню: стрілочка замість outline */
     body.tv-mode .nav-item:focus {
-      outline: none;
-      background: var(--surface);
-      padding-left: 32px; /* місце для стрілочки */
+      box-shadow: none;
+      background: rgba(255, 255, 255, 0.2);
+      padding-left: 32px;
       position: relative;
     }
 
@@ -95,21 +96,49 @@
       transform: translateY(-50%);
       color: var(--text-primary);
       font-size: 14px;
+      animation: pulseArrow 1s infinite;
     }
 
-    /* Для емоджі-пікера в TV-режимі залишаємо простий outline */
-    body.tv-mode .emoji-grid span:focus {
-      outline: 2px solid var(--text-primary);
-      transform: scale(1.1);
-      background-color: var(--surface);
+    @keyframes pulseArrow {
+      0% { opacity: 0.6; transform: translateY(-50%) scale(1); }
+      50% { opacity: 1; transform: translateY(-50%) scale(1.2); }
+      100% { opacity: 0.6; transform: translateY(-50%) scale(1); }
     }
 
-    /* Make posts focusable in TV mode */
-    body.tv-mode .post,
-    body.tv-mode .chat-item,
-    body.tv-mode .hashtag-item,
-    body.tv-mode .profile-tab {
-      cursor: pointer;
+    /* Сучасний пульт для TV-режиму */
+    .tv-remote {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 12px 18px;
+      border-radius: 60px;
+      font-size: 14px;
+      display: flex;
+      gap: 20px;
+      z-index: 10000;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transition: opacity 0.3s;
+      pointer-events: none;
+      opacity: 0;
+    }
+    body.tv-mode .tv-remote {
+      opacity: 1;
+    }
+    .tv-remote span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tv-remote .key {
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.4);
     }
 
     .app {
@@ -327,7 +356,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ========== ЕМОДЖІ-ПІКЕР (ТЕЛЕГРАМ-СТАЙЛ) ========== */
+    /* ========== ЕМОДЖІ-ПІКЕР ========== */
     .emoji-picker-container {
       position: relative;
       display: inline-block;
@@ -351,7 +380,6 @@
     .emoji-button:active {
       transform: scale(0.95);
     }
-    /* Звичайний пікер (для мобільного) */
     .emoji-picker {
       position: absolute;
       bottom: 100%;
@@ -368,7 +396,6 @@
       padding: 10px;
       backdrop-filter: blur(10px);
     }
-    /* TV-режим: центрований модальний пікер */
     body.tv-mode .emoji-picker {
       position: fixed;
       top: 50%;
@@ -1723,13 +1750,20 @@
         <button class="btn" id="logoutBtn" style="margin-top:16px; width:100%;" data-i18n="logout">Вийти</button>
       </div>
 
-      <!-- Saved section (залишаємо для сумісності, але в навігації більше немає) -->
+      <!-- Saved section -->
       <div id="saved" class="section">
         <h2 style="margin-bottom:16px; font-weight:600;" data-i18n="saved">Збережене</h2>
         <div class="feed" id="savedFeed"></div>
       </div>
     </div>
   </main>
+</div>
+
+<!-- Сучасний пульт для TV-режиму -->
+<div class="tv-remote">
+  <span><span class="key">▲▼◀▶</span> навігація</span>
+  <span><span class="key">⏎</span> вибрати</span>
+  <span><span class="key">⎋</span> закрити</span>
 </div>
 
 <!-- Модалки -->
@@ -2258,14 +2292,12 @@
     pickerElement.innerHTML = '';
     pickerElement.classList.add('emoji-picker');
 
-    // Пошук
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.placeholder = '🔍 Пошук...';
     searchInput.classList.add('emoji-search');
     pickerElement.appendChild(searchInput);
 
-    // Категорії
     const categoriesDiv = document.createElement('div');
     categoriesDiv.classList.add('emoji-categories');
     const categoryNames = ['smileys', 'animals', 'food', 'travel', 'objects', 'symbols'];
@@ -2920,6 +2952,7 @@
       await loadComments(postId, container);
     }, (error) => {
       console.error('Comments snapshot error:', error);
+      showToast('Помилка завантаження коментарів');
     });
   }
 
