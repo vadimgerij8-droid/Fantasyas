@@ -72,19 +72,22 @@
       transition: background-color 0.3s, color 0.3s;
     }
 
-    /* TV mode focus styles (оновлено: без помаранчевого, чорно-білий outline) */
+    /* TV mode focus styles (оновлено: чітке підсвічування) */
     body.tv-mode :focus {
-      outline: 2px solid var(--text-primary) !important;
-      outline-offset: 2px;
-      box-shadow: none;
+      outline: none !important;
+      transform: scale(1.05);
+      box-shadow: 0 0 0 4px var(--text-primary) !important;
+      transition: transform 0.2s, box-shadow 0.2s;
+      z-index: 10;
     }
 
-    /* Спеціально для лівого меню: стрілочка замість outline */
+    /* Спеціально для лівого меню: стрілочка замість outline (але зберігаємо загальний фокус) */
     body.tv-mode .nav-item:focus {
       outline: none;
       background: var(--surface);
-      padding-left: 32px; /* місце для стрілочки */
+      padding-left: 32px;
       position: relative;
+      box-shadow: 0 0 0 2px var(--text-primary) !important;
     }
 
     body.tv-mode .nav-item:focus::before {
@@ -97,10 +100,10 @@
       font-size: 14px;
     }
 
-    /* Для емоджі-пікера в TV-режимі залишаємо простий outline */
+    /* Для емоджі-пікера в TV-режимі */
     body.tv-mode .emoji-grid span:focus {
-      outline: 2px solid var(--text-primary);
-      transform: scale(1.1);
+      transform: scale(1.2);
+      box-shadow: 0 0 0 2px var(--text-primary) !important;
       background-color: var(--surface);
     }
 
@@ -726,14 +729,21 @@
       color: var(--text-secondary);
     }
 
+    /* Стиль для рядка хештегів – покращена навігація */
+    .hashtag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
     .hashtag {
       color: var(--text-primary);
       font-weight: 500;
       cursor: pointer;
       display: inline-block;
-      margin-right: 4px;
       border-bottom: 1px dashed var(--text-tertiary);
       transition: border-color 0.2s;
+      padding: 2px 0;
     }
     .hashtag:hover {
       border-bottom-color: var(--text-primary);
@@ -822,12 +832,13 @@
       margin-left: auto;
     }
 
-    /* ========== КОМЕНТАРІ ========== */
+    /* ========== КОМЕНТАРІ – ТЕПЕР ЗАВЖДИ ВИДИМІ ========== */
     .comments-section {
       margin-top: 16px;
       border-top: 1px solid var(--border);
       padding-top: 16px;
       animation: slideDown 0.3s ease;
+      display: block; /* змінено з none на block */
     }
     @keyframes slideDown {
       from { opacity: 0; transform: translateY(-10px); }
@@ -1490,6 +1501,40 @@
       display: inline-block;
     }
 
+    /* Стилі для підказки TV-пульта */
+    .tv-remote {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 12px 18px;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      backdrop-filter: blur(4px);
+      z-index: 10000;
+      display: flex;
+      gap: 16px;
+      pointer-events: none;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .tv-remote span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tv-remote .key {
+      background: white;
+      color: black;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+    body:not(.tv-mode) .tv-remote {
+      display: none;
+    }
+
     @media (max-width: 480px) {
       .post-footer {
         gap: 12px;
@@ -1730,7 +1775,7 @@
   </main>
 </div>
 
-<!-- Сучасний пульт для TV-режиму (додано) -->
+<!-- Сучасний пульт для TV-режиму (підказка) -->
 <div class="tv-remote">
   <span><span class="key">▲▼◀▶</span> навігація</span>
   <span><span class="key">⏎</span> вибрати</span>
@@ -2228,6 +2273,13 @@
     sidebar.classList.add('open');
     menuToggle.classList.add('active');
     backdrop.classList.add('active');
+    // У TV-режимі переводимо фокус на перший пункт меню
+    if (tvModeEnabled) {
+      setTimeout(() => {
+        const firstNavItem = document.querySelector('.sidebar .nav-item');
+        if (firstNavItem) firstNavItem.focus();
+      }, 100);
+    }
   }
 
   function closeSidebar() {
@@ -2726,9 +2778,28 @@
       `;
     }
     
+    // Обробка хештегів: обгортаємо їх у контейнер для кращої навігації
     let contentHtml = post.text || '';
     const hashtagRegex = /#(\w+)/g;
-    contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
+    let lastIndex = 0;
+    let parts = [];
+    let match;
+    while ((match = hashtagRegex.exec(contentHtml)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(contentHtml.substring(lastIndex, match.index));
+      }
+      parts.push(`<span class="hashtag" data-tag="${match[1]}">#${match[1]}</span>`);
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < contentHtml.length) {
+      parts.push(contentHtml.substring(lastIndex));
+    }
+    if (parts.length > 0) {
+      // Обгортаємо рядок хештегів у div для горизонтальної навігації
+      contentHtml = '<div class="hashtag-row">' + parts.join('') + '</div>';
+    } else {
+      contentHtml = '<div class="hashtag-row"></div>';
+    }
     
     postEl.innerHTML = `
       ${actionsHtml}
@@ -2761,7 +2832,7 @@
           ${post.views || 0}
         </span>
       </div>
-      <div class="comments-section" id="comments-${post.id}" style="display: none;">
+      <div class="comments-section" id="comments-${post.id}" style="display: block;"> <!-- ВИДИМО ЗАВЖДИ -->
         <div class="comments-list" id="comments-list-${post.id}"></div>
         <div class="comment-form" style="display: flex; gap: 8px;">
           <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Напишіть коментар..." style="flex:1;">
@@ -2777,6 +2848,7 @@
       postEl.querySelector('.edit-post-btn').onclick = () => openEditPostModal(post);
     }
 
+    // Обробник для хештегів
     postEl.querySelectorAll('.hashtag').forEach(span => {
       span.onclick = (e) => {
         e.stopPropagation();
@@ -2785,25 +2857,11 @@
       };
     });
 
-    const toggleBtn = postEl.querySelector('.comment-toggle-btn');
-    const commentsSection = postEl.querySelector('.comments-section');
+    // Підписка на коментарі (виконується одразу)
     const commentsList = document.getElementById(`comments-list-${post.id}`);
-    let unsubscribeComments = null;
-    toggleBtn.onclick = async () => {
-      if (commentsSection.style.display === 'none') {
-        commentsSection.style.display = 'block';
-        if (commentsList) {
-          if (unsubscribeComments) unsubscribeComments();
-          unsubscribeComments = subscribeToComments(post.id, commentsList);
-        }
-      } else {
-        commentsSection.style.display = 'none';
-        if (unsubscribeComments) {
-          unsubscribeComments();
-          unsubscribeComments = null;
-        }
-      }
-    };
+    if (commentsList) {
+      subscribeToComments(post.id, commentsList);
+    }
 
     const submitBtn = document.getElementById(`submit-comment-${post.id}`);
     if (submitBtn) {
@@ -2813,7 +2871,7 @@
         try {
           await addComment(post.id, text);
           document.getElementById(`comment-input-${post.id}`).value = '';
-          const countSpan = toggleBtn.querySelector('span');
+          const countSpan = postEl.querySelector('.comment-toggle-btn span');
           if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
           showToast('Коментар додано');
         } catch (error) {
@@ -3120,9 +3178,28 @@
         `;
       }
       
+      // Обробка хештегів: обгортаємо їх у контейнер для кращої навігації
       let contentHtml = post.text || '';
       const hashtagRegex = /#(\w+)/g;
-      contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
+      let lastIndex = 0;
+      let parts = [];
+      let match;
+      while ((match = hashtagRegex.exec(contentHtml)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(contentHtml.substring(lastIndex, match.index));
+        }
+        parts.push(`<span class="hashtag" data-tag="${match[1]}">#${match[1]}</span>`);
+        lastIndex = match.index + match[0].length;
+      }
+      if (lastIndex < contentHtml.length) {
+        parts.push(contentHtml.substring(lastIndex));
+      }
+      if (parts.length > 0) {
+        // Обгортаємо рядок хештегів у div для горизонтальної навігації
+        contentHtml = '<div class="hashtag-row">' + parts.join('') + '</div>';
+      } else {
+        contentHtml = '<div class="hashtag-row"></div>';
+      }
       
       postEl.innerHTML = `
         ${actionsHtml}
@@ -3155,7 +3232,7 @@
             ${post.views || 0}
           </span>
         </div>
-        <div class="comments-section" id="comments-${post.id}" style="display: none;">
+        <div class="comments-section" id="comments-${post.id}" style="display: block;"> <!-- ВИДИМО ЗАВЖДИ -->
           <div class="comments-list" id="comments-list-${post.id}"></div>
           <div class="comment-form" style="display: flex; gap: 8px;">
             <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Напишіть коментар..." style="flex:1;">
@@ -3181,25 +3258,11 @@
         };
       });
 
-      const toggleBtn = postEl.querySelector('.comment-toggle-btn');
-      const commentsSection = postEl.querySelector('.comments-section');
+      // Підписка на коментарі (виконується одразу)
       const commentsList = document.getElementById(`comments-list-${post.id}`);
-      let unsubscribeComments = null;
-      toggleBtn.onclick = async () => {
-        if (commentsSection.style.display === 'none') {
-          commentsSection.style.display = 'block';
-          if (commentsList) {
-            if (unsubscribeComments) unsubscribeComments();
-            unsubscribeComments = subscribeToComments(post.id, commentsList);
-          }
-        } else {
-          commentsSection.style.display = 'none';
-          if (unsubscribeComments) {
-            unsubscribeComments();
-            unsubscribeComments = null;
-          }
-        }
-      };
+      if (commentsList) {
+        subscribeToComments(post.id, commentsList);
+      }
 
       const submitBtn = document.getElementById(`submit-comment-${post.id}`);
       if (submitBtn) {
@@ -3209,7 +3272,7 @@
           try {
             await addComment(post.id, text);
             document.getElementById(`comment-input-${post.id}`).value = '';
-            const countSpan = toggleBtn.querySelector('span');
+            const countSpan = postEl.querySelector('.comment-toggle-btn span');
             if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
             showToast('Коментар додано');
           } catch (error) {
@@ -4332,7 +4395,7 @@
 
   initTheme();
 
-  // ================= TV MODE =================
+  // ================= TV MODE (покращена навігація) =================
   let tvModeEnabled = localStorage.getItem('tvMode') === 'true';
 
   function toggleTvMode() {
@@ -4340,11 +4403,15 @@
     localStorage.setItem('tvMode', tvModeEnabled);
     document.body.classList.toggle('tv-mode', tvModeEnabled);
     if (tvModeEnabled) {
+      // Встановлюємо tabindex для елементів, які мають бути фокусованими
       document.querySelectorAll('.post, .chat-item, .hashtag-item, .profile-tab, .emoji-grid span, button, input, select, textarea, [tabindex]').forEach(el => {
         if (!el.hasAttribute('tabindex') && el.tagName !== 'BUTTON' && el.tagName !== 'INPUT' && el.tagName !== 'SELECT' && el.tagName !== 'TEXTAREA') {
           el.setAttribute('tabindex', '0');
         }
       });
+      // Фокус на перший елемент
+      const firstFocusable = document.querySelector('.post, .nav-item, button');
+      if (firstFocusable) firstFocusable.focus();
     } else {
       document.querySelectorAll('[tabindex="0"]').forEach(el => {
         if (!el.classList.contains('post') && !el.classList.contains('chat-item') && !el.classList.contains('hashtag-item') && !el.classList.contains('profile-tab') && !el.classList.contains('emoji-grid span')) {
@@ -4361,7 +4428,7 @@
 
   document.getElementById('toggleTvMode').onclick = toggleTvMode;
 
-  // Додаємо обробник клавіш для TV-режиму (залишаємо з попередньої версії, але можна додати)
+  // Покращений обробник клавіш для TV-режиму (Android TV)
   document.addEventListener('keydown', (e) => {
     if (!tvModeEnabled) return;
 
@@ -4369,9 +4436,24 @@
     const activeEl = document.activeElement;
     const isModalOpen = document.querySelector('.modal.active') !== null;
 
-    if (key === 'Escape') {
-      if (isModalOpen) {
-        document.querySelectorAll('.modal.active').forEach(modal => modal.classList.remove('active'));
+    // Обробка кнопки Back (на пульті)
+    if (key === 'Escape' || key === 'Back' || key === 'GoBack') {
+      e.preventDefault();
+      // Якщо відкрита модалка – закрити її
+      const activeModal = document.querySelector('.modal.active');
+      if (activeModal) {
+        activeModal.classList.remove('active');
+        return;
+      }
+      // Якщо відкритий сайдбар – закрити
+      if (sidebar.classList.contains('open')) {
+        closeSidebar();
+        document.getElementById('menuToggle').focus();
+        return;
+      }
+      // Інакше – перехід на головну
+      if (document.querySelector('.section.active')?.id !== 'home') {
+        document.querySelector('[data-section="home"]').click();
       }
       return;
     }
@@ -4379,6 +4461,7 @@
     if (key.startsWith('Arrow')) {
       e.preventDefault();
 
+      // Якщо активний елемент в емоджі-пікері (горизонтальна сітка)
       if (activeEl && activeEl.classList.contains('emoji-grid') || activeEl.closest('.emoji-grid')) {
         const grid = activeEl.closest('.emoji-grid');
         if (grid) {
@@ -4400,6 +4483,19 @@
         }
       }
 
+      // Якщо активний елемент в рядку хештегів (горизонтальний ряд)
+      const hashtagRow = activeEl?.closest('.hashtag-row');
+      if (hashtagRow && (key === 'ArrowRight' || key === 'ArrowLeft')) {
+        const hashtags = Array.from(hashtagRow.querySelectorAll('.hashtag'));
+        const index = hashtags.indexOf(activeEl);
+        if (index !== -1) {
+          const step = key === 'ArrowRight' ? 1 : -1;
+          const next = hashtags[index + step];
+          if (next) { next.focus(); return; }
+        }
+      }
+
+      // Загальний пошук найближчого елемента в напрямку
       const focusableSelectors = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), .post, .chat-item, .hashtag-item, .profile-tab, .avatar[data-uid], .nav-item';
       let focusable = Array.from(document.querySelectorAll(focusableSelectors)).filter(el => {
         if (el.hasAttribute('disabled')) return false;
