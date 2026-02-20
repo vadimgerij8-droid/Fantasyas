@@ -1483,28 +1483,24 @@
 
   const viewedPosts = new Set();
 
+  // TV налаштування – за замовчуванням увімкнено
   const tvSettings = {
-    tvNavEnabled: localStorage.getItem('tvNav') !== 'false',
+    tvNavEnabled: localStorage.getItem('tvNav') !== 'false',   // true за замовчуванням
     remoteNavEnabled: localStorage.getItem('remoteNav') !== 'false',
     focusOptimized: localStorage.getItem('focusOptimized') !== 'false',
     tvCursorEnabled: localStorage.getItem('tvCursor') === 'true'
   };
 
   // ================= НАВІГАЦІЯ ПУЛЬТОМ (D-Pad) =================
-  // Повністю перероблена система, що працює тільки зі стрілками, Enter та Back/Escape.
-  // Не залежить від currentUser, працює для всіх.
-
   // Кеш фокусованих елементів
   let cachedFocusableElements = [];
   let lastDOMUpdate = 0;
 
   // Отримує всі видимі фокусовані елементи з урахуванням активних модалок
   function getFocusableElements() {
-    // Спочатку перевіряємо, чи є активна модалка
     const activeModal = document.querySelector('.modal.active');
     let container = activeModal || document;
 
-    // Базовий селектор для всіх інтерактивних елементів
     const baseSelector = `
       button, input, textarea, select, a[href], 
       [tabindex]:not([tabindex="-1"]), 
@@ -1515,10 +1511,8 @@
       .follow-btn-post, .profile-menu-btn, .profile-menu-item
     `;
 
-    // Шукаємо елементи в контейнері
     const elements = Array.from(container.querySelectorAll(baseSelector));
     
-    // Фільтруємо тільки видимі та не заблоковані
     return elements.filter(el => {
       const style = window.getComputedStyle(el);
       return style.display !== 'none' && 
@@ -1529,13 +1523,11 @@
     });
   }
 
-  // Оновлює кеш фокусованих елементів
   function updateFocusableCache() {
     cachedFocusableElements = getFocusableElements();
     lastDOMUpdate = Date.now();
   }
 
-  // Повертає координати центру елемента
   function getCenter(el) {
     const rect = el.getBoundingClientRect();
     return {
@@ -1544,7 +1536,6 @@
     };
   }
 
-  // Знаходить найближчий елемент у заданому напрямку
   function findClosestElement(currentEl, direction) {
     if (!currentEl) return null;
     
@@ -1553,7 +1544,6 @@
     
     if (candidates.length === 0) return null;
 
-    // Вектор напрямку
     const dirMap = {
       'ArrowUp': { dx: 0, dy: -1 },
       'ArrowDown': { dx: 0, dy: 1 },
@@ -1571,23 +1561,14 @@
       const dx = candidateCenter.x - currentCenter.x;
       const dy = candidateCenter.y - currentCenter.y;
 
-      // Вектор від поточного до кандидата
       const dot = dx * dir.dx + dy * dir.dy;
-      
-      // Якщо кандидат не в тому напрямку (від'ємний скалярний добуток) – пропускаємо
       if (dot <= 0) return;
 
-      // Обчислюємо кут між напрямком і вектором до кандидата
       const length = Math.sqrt(dx * dx + dy * dy);
-      const cosAngle = dot / length; // значення від 0 до 1, чим ближче до 1, тим краще
-
-      // Допустимий кут – до 60 градусів (cos >= 0.5)
+      const cosAngle = dot / length;
       if (cosAngle < 0.5) return;
 
-      // Відстань (пріоритет – чим менше, тим краще)
-      // Враховуємо також відхилення від осі: чим більше cos, тим краще
-      const score = length / cosAngle; // чим менше, тим краще
-
+      const score = length / cosAngle;
       if (score < bestScore) {
         bestScore = score;
         best = candidate;
@@ -1597,25 +1578,23 @@
     return best;
   }
 
-  // Встановлює фокус на елемент, прибираючи старий
   function setFocusOnElement(el) {
     if (!el) return;
     
-    // Знімаємо клас з усіх
     document.querySelectorAll('.focused').forEach(e => e.classList.remove('focused'));
     
     el.classList.add('focused');
     el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     
-    // Оновлюємо TV-курсор, якщо ввімкнено
     if (tvSettings.tvCursorEnabled) {
       updateTVCursor();
     }
   }
 
-  // Головний обробник клавіш
   function handleKeyDown(e) {
-    // Клавіші, які ми обробляємо
+    // Якщо TV-навігація вимкнена – нічого не робимо
+    if (!tvSettings.tvNavEnabled && !tvSettings.remoteNavEnabled) return;
+
     const arrowKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
     const isArrow = arrowKeys.includes(e.key);
     const isEnter = e.key === 'Enter';
@@ -1623,24 +1602,21 @@
 
     if (!isArrow && !isEnter && !isBack) return;
 
-    e.preventDefault();
-
-    // Оновлюємо кеш, якщо минуло більше 100 мс після останньої зміни DOM
+    // Оновлюємо кеш, якщо минуло більше 100 мс
     if (Date.now() - lastDOMUpdate > 100) {
       updateFocusableCache();
     }
 
     // ===== BACK / ESCAPE =====
     if (isBack) {
+      e.preventDefault();
       // 1. Закриваємо активні модалки
       const activeModals = document.querySelectorAll('.modal.active');
       if (activeModals.length > 0) {
         activeModals.forEach(modal => modal.classList.remove('active'));
-        // Закриваємо також усі випадні меню (емодзі, профіль)
         document.querySelectorAll('.emoji-picker').forEach(p => p.style.display = 'none');
         document.querySelectorAll('.profile-menu-dropdown.show').forEach(d => d.classList.remove('show'));
         
-        // Фокус на перший елемент після закриття
         setTimeout(() => {
           updateFocusableCache();
           const first = cachedFocusableElements[0];
@@ -1649,11 +1625,10 @@
         return;
       }
 
-      // 2. Якщо відкрито чат – закриваємо його (повертаємось до списку чатів)
+      // 2. Якщо відкрито чат – закриваємо
       const chatWindow = document.getElementById('chatWindow');
       if (chatWindow && chatWindow.style.display === 'flex') {
         chatWindow.style.display = 'none';
-        // Фокус на перший чат у списку
         setTimeout(() => {
           updateFocusableCache();
           const firstChat = document.querySelector('.chat-item');
@@ -1662,7 +1637,7 @@
         return;
       }
 
-      // 3. Інакше – переходимо на головну (якщо ми не на ній)
+      // 3. Інакше – переходимо на головну
       const activeSection = document.querySelector('.section.active');
       if (activeSection && activeSection.id !== 'home') {
         document.querySelector('[data-section="home"]').click();
@@ -1674,14 +1649,16 @@
     if (isEnter) {
       const focused = document.querySelector('.focused');
       if (focused) {
-        // Якщо це поле введення – просто фокусуємо (але Enter вже може відправляти форму)
-        if (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA') {
-          focused.focus();
+        // Для полів введення – не перехоплюємо Enter (дозволяємо новий рядок або відправку форми)
+        if (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA' || focused.isContentEditable) {
+          // Не викликаємо preventDefault, щоб спрацювала стандартна поведінка
+          return;
         } else {
+          e.preventDefault();
           focused.click();
         }
       } else {
-        // Якщо нічого не сфокусовано – спробуємо знайти перший елемент
+        e.preventDefault();
         const first = cachedFocusableElements[0];
         if (first) setFocusOnElement(first);
       }
@@ -1690,30 +1667,22 @@
 
     // ===== СТРІЛКИ =====
     if (isArrow) {
+      e.preventDefault();
       let current = document.querySelector('.focused');
       
-      // Якщо немає сфокусованого – знаходимо перший елемент
       if (!current) {
         const first = cachedFocusableElements[0];
-        if (first) {
-          setFocusOnElement(first);
-        }
+        if (first) setFocusOnElement(first);
         return;
       }
 
-      // Знаходимо найближчий елемент у напрямку
       const next = findClosestElement(current, e.key);
-      if (next) {
-        setFocusOnElement(next);
-      }
-      // Якщо нічого не знайдено – нічого не робимо (залишаємось на місці)
+      if (next) setFocusOnElement(next);
     }
   }
 
-  // Оновлюємо глобальний обробник подій
   document.addEventListener('keydown', handleKeyDown);
 
-  // Функція для оновлення TV-курсора
   function updateTVCursor() {
     const cursor = document.getElementById('tvCursor');
     if (!cursor) return;
@@ -1732,13 +1701,13 @@
     cursor.style.top = (rect.top + rect.height/2 - 16) + 'px';
   }
 
-  // Спостерігач за змінами в DOM для оновлення кешу
+  // Спостерігач за змінами DOM
   const observer = new MutationObserver(() => {
     updateFocusableCache();
   });
   observer.observe(document.body, { childList: true, subtree: true, attributes: true });
 
-  // Встановлюємо фокус на перший елемент після завантаження сторінки
+  // Фокус на перший елемент після завантаження
   window.addEventListener('load', () => {
     setTimeout(() => {
       updateFocusableCache();
