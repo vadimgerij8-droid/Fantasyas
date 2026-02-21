@@ -45,7 +45,7 @@ const viewedPosts = new Set();
 
 // TV налаштування – за замовчуванням увімкнено
 const tvSettings = {
-  tvNavEnabled: localStorage.getItem('tvNav') !== 'false',   // true за замовчуванням
+  tvNavEnabled: localStorage.getItem('tvNav') !== 'false',
   remoteNavEnabled: localStorage.getItem('remoteNav') !== 'false',
   focusOptimized: localStorage.getItem('focusOptimized') !== 'false',
   tvCursorEnabled: localStorage.getItem('tvCursor') === 'true',
@@ -58,6 +58,26 @@ let lastDOMUpdate = 0;
 let lastFocusedElement = null;          // останній сфокусований елемент (для відновлення)
 let lastFocusedElementBeforeModal = null; // елемент, який відкрив модалку
 let focusUpdatePending = false;
+
+// Додаємо глобальні стилі для підсвічування фокусу (якщо їх немає)
+function ensureFocusStyles() {
+  if (document.getElementById('focus-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'focus-styles';
+  style.textContent = `
+    .focused {
+      outline: 3px solid #0078ff !important;
+      outline-offset: 2px !important;
+      box-shadow: 0 0 0 3px rgba(0,120,255,0.3) !important;
+      transition: outline 0.1s ease;
+    }
+    .focused:focus {
+      outline: none;
+    }
+  `;
+  document.head.appendChild(style);
+}
+ensureFocusStyles();
 
 // Отримує всі видимі фокусовані елементи з урахуванням активних модалок
 function getFocusableElements() {
@@ -116,13 +136,11 @@ function detectGridInContainer(container) {
   const items = Array.from(container.children).filter(el => el.offsetParent !== null);
   if (items.length < 2) return 1;
 
-  // Отримуємо центри елементів
   const positions = items.map(el => {
     const rect = el.getBoundingClientRect();
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   });
 
-  // Групуємо по вертикалі з допуском 20px (рядки)
   const rows = [];
   const toleranceY = 20;
   positions.forEach(pos => {
@@ -139,15 +157,11 @@ function detectGridInContainer(container) {
     }
   });
 
-  // Сортуємо рядки за Y
   rows.sort((a, b) => a.y - b.y);
-
-  // У кожному рядку сортуємо за X
   rows.forEach(row => {
     row.items.sort((a, b) => a.x - b.x);
   });
 
-  // Визначаємо кількість колонок як максимальну довжину рядка
   const cols = Math.max(...rows.map(r => r.items.length));
   return cols;
 }
@@ -177,27 +191,21 @@ function findClosestElement(currentEl, direction) {
     const dx = candidateCenter.x - currentCenter.x;
     const dy = candidateCenter.y - currentCenter.y;
 
-    // Перевіряємо, чи кандидат знаходиться у потрібному напрямку (скалярний добуток > 0)
     const dot = dx * dir.dx + dy * dir.dy;
     if (dot <= 0) return;
 
     const length = Math.sqrt(dx * dx + dy * dy);
     const cosAngle = dot / length;
 
-    // Збільшуємо поріг до 0.7 для точнішого вибору
     if (cosAngle < 0.7) return;
 
-    // Штраф за перпендикулярне зміщення (чим далі від прямої лінії, тим гірше)
     let perpendicularDistance;
     if (dir.dx !== 0) {
-      // горизонтальний рух: вертикальне зміщення (dy) – штраф
       perpendicularDistance = Math.abs(dy);
     } else {
-      // вертикальний рух: горизонтальне зміщення (dx) – штраф
       perpendicularDistance = Math.abs(dx);
     }
 
-    // Комбінована оцінка: відстань вздовж напрямку + штраф за перпендикуляр
     const score = length / cosAngle + perpendicularDistance * 2;
 
     if (score < bestScore) {
@@ -212,7 +220,6 @@ function findClosestElement(currentEl, direction) {
 function setFocusOnElement(el) {
   if (!el) return;
   
-  // Якщо це поле введення, фокусуємо стандартно
   if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable) {
     el.focus();
     document.querySelectorAll('.focused').forEach(e => {
@@ -233,19 +240,36 @@ function setFocusOnElement(el) {
     updateTVCursor();
   }
   
-  // Вібрація при зміні фокусу
   if (tvSettings.vibrateOnFocus && navigator.vibrate) {
     navigator.vibrate(10);
   }
 }
 
-// Фокус на перший елемент у контейнері (наприклад, модалці)
+// Фокус на перший елемент у контейнері
 function focusFirstInContainer(container) {
   const focusable = Array.from(container.querySelectorAll('button, input, textarea, select, a[href], [tabindex]:not([tabindex="-1"])'))
     .filter(el => el.offsetParent !== null && !el.disabled);
   if (focusable.length > 0) {
     setFocusOnElement(focusable[0]);
+    return true;
   }
+  return false;
+}
+
+// Фокус на перший елемент після завантаження (з перевіркою)
+function focusFirstElementAfterLoad() {
+  setTimeout(() => {
+    requestAnimationFrame(() => {
+      updateFocusableCache();
+      const activeModal = document.querySelector('.modal.active');
+      if (activeModal) {
+        focusFirstInContainer(activeModal);
+      } else {
+        const first = cachedFocusableElements[0];
+        if (first) setFocusOnElement(first);
+      }
+    });
+  }, 100); // невелика затримка для завершення рендеру
 }
 
 function closeAllPopups() {
@@ -264,7 +288,6 @@ function handleKeyDown(e) {
 
   if (!isArrow && !isEnter && !isBack) return;
 
-  // Оновлюємо кеш, якщо минуло більше 100 мс
   if (Date.now() - lastDOMUpdate > 100) {
     updateFocusableCache();
   }
@@ -272,16 +295,12 @@ function handleKeyDown(e) {
   const activeEl = document.activeElement;
   const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
 
-  // Якщо активне поле введення – не заважаємо (крім Escape)
-  if (isInput && !isBack) {
-    return;
-  }
+  if (isInput && !isBack) return;
 
   // ===== BACK / ESCAPE =====
   if (isBack) {
     e.preventDefault();
     
-    // 1. Закриваємо емоджі-пікер
     const openEmojiPicker = document.querySelector('.emoji-picker[style*="display: grid"]');
     if (openEmojiPicker) {
       openEmojiPicker.style.display = 'none';
@@ -295,7 +314,6 @@ function handleKeyDown(e) {
       return;
     }
 
-    // 2. Закриваємо випадаюче меню
     const openDropdown = document.querySelector('.profile-menu-dropdown.show');
     if (openDropdown) {
       openDropdown.classList.remove('show');
@@ -304,13 +322,11 @@ function handleKeyDown(e) {
       return;
     }
 
-    // 3. Закриваємо активні модалки
     const activeModals = document.querySelectorAll('.modal.active');
     if (activeModals.length > 0) {
       activeModals.forEach(modal => modal.classList.remove('active'));
       setTimeout(() => {
         updateFocusableCache();
-        // Повертаємо фокус на елемент, який відкрив модалку, якщо він існує
         if (lastFocusedElementBeforeModal && cachedFocusableElements.includes(lastFocusedElementBeforeModal)) {
           setFocusOnElement(lastFocusedElementBeforeModal);
           lastFocusedElementBeforeModal = null;
@@ -324,7 +340,6 @@ function handleKeyDown(e) {
       return;
     }
 
-    // 4. Закриваємо чат
     const chatWindow = document.getElementById('chatWindow');
     if (chatWindow && chatWindow.style.display === 'flex') {
       chatWindow.style.display = 'none';
@@ -336,7 +351,6 @@ function handleKeyDown(e) {
       return;
     }
 
-    // 5. Інакше – переходимо на головну
     const activeSection = document.querySelector('.section.active');
     if (activeSection && activeSection.id !== 'home') {
       document.querySelector('[data-section="home"]').click();
@@ -346,15 +360,20 @@ function handleKeyDown(e) {
 
   // ===== ENTER =====
   if (isEnter) {
-    if (isInput) return; // не заважаємо вводу
+    if (isInput) return;
 
     const focused = document.querySelector('.focused') || activeEl;
     if (focused) {
       e.preventDefault();
+      // Запам'ятовуємо елемент перед кліком, якщо він може відкрити модалку
+      if (focused.closest('[data-modal]') || focused.classList.contains('open-modal')) {
+        lastFocusedElementBeforeModal = focused;
+      }
       focused.click();
       if (tvSettings.vibrateOnFocus && navigator.vibrate) {
         navigator.vibrate(20);
       }
+      // Якщо після кліку елемент не зник і не відкрилася модалка, фокус залишається на ньому
     } else {
       e.preventDefault();
       const first = cachedFocusableElements[0];
@@ -365,7 +384,7 @@ function handleKeyDown(e) {
 
   // ===== СТРІЛКИ =====
   if (isArrow) {
-    if (isInput) return; // не заважаємо вводу
+    if (isInput) return;
 
     e.preventDefault();
     
@@ -377,7 +396,6 @@ function handleKeyDown(e) {
       return;
     }
 
-    // Спеціальна навігація для емоджі-пікера (відома сітка 8 колонок)
     const emojiPicker = current.closest('.emoji-picker');
     if (emojiPicker && emojiPicker.style.display === 'grid') {
       const emojiButtons = Array.from(emojiPicker.querySelectorAll('button'));
@@ -397,7 +415,6 @@ function handleKeyDown(e) {
       }
     }
 
-    // Перевіряємо, чи знаходимося в контейнері з сіткою (наприклад, список хештегів, чатів, профільні вкладки)
     const gridContainer = current.closest('.hashtag-list, .chat-list, .profile-tabs, .post-footer, .emoji-picker');
     if (gridContainer) {
       const items = Array.from(gridContainer.querySelectorAll('[tabindex], button, .hashtag-item, .chat-item, .profile-tab, .post-footer button')).filter(el => el.offsetParent !== null);
@@ -411,18 +428,14 @@ function handleKeyDown(e) {
           else if (e.key === 'ArrowDown') nextIndex = currentIndex + cols;
           else if (e.key === 'ArrowUp') nextIndex = currentIndex - cols;
           
-          // Перевіряємо вихід за межі
           if (nextIndex >= 0 && nextIndex < items.length) {
             setFocusOnElement(items[nextIndex]);
             return;
-          } else if (nextIndex < 0 && cols > 1) {
-            // Якщо вийшли за верхній край, можна перейти на останній елемент попереднього рядка? Для простоти залишимо як є.
           }
         }
       }
     }
 
-    // Звичайна навігація
     const next = findClosestElement(current, e.key);
     if (next) setFocusOnElement(next);
   }
@@ -448,13 +461,11 @@ function updateTVCursor() {
   cursor.style.top = (rect.top + rect.height/2 - 16) + 'px';
 }
 
-// Спостерігач за змінами DOM – оптимізований
 const observer = new MutationObserver(() => {
   requestFocusUpdate();
 });
 observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
 
-// Оновлення кешу при прокручуванні (з затримкою)
 let scrollTimeout;
 window.addEventListener('scroll', () => {
   clearTimeout(scrollTimeout);
@@ -463,7 +474,6 @@ window.addEventListener('scroll', () => {
   }, 150);
 }, { passive: true });
 
-// Фокус на перший елемент після завантаження
 window.addEventListener('load', () => {
   setTimeout(() => {
     updateFocusableCache();
@@ -576,7 +586,7 @@ async function unblockUser(targetUid) {
 const sections = ['home','search','hashtags','profile','chats','settings'];
 const navItems = document.querySelectorAll('.nav-item');
 navItems.forEach((item) => {
-  item.addEventListener('click', () => {
+  item.addEventListener('click', async () => {
     const section = item.dataset.section;
     navItems.forEach(n => n.classList.remove('active'));
     item.classList.add('active');
@@ -587,21 +597,35 @@ navItems.forEach((item) => {
     
     cleanupListeners();
     
-    if (section === 'home' && currentUser) resetPagination();
-    if (section === 'search' && currentUser) loadSearchUsers();
-    if (section === 'hashtags' && currentUser) loadHashtags();
+    // Завантажуємо дані для розділу
+    if (section === 'home' && currentUser) {
+      resetPagination();
+      // Після завантаження фокус встановиться автоматично в resetPagination?
+      // Але resetPagination викликає loadMorePosts, який асинхронний, тому фокус треба ставити після завершення
+      // Тому поки що просто викликаємо focusFirstElementAfterLoad із затримкою
+      focusFirstElementAfterLoad();
+    }
+    if (section === 'search' && currentUser) {
+      await loadSearchUsers(); // вона сама оновить фокус через focusFirstElementAfterLoad
+    }
+    if (section === 'hashtags' && currentUser) {
+      await loadHashtags();
+    }
     if (section === 'chats' && currentUser) {
       document.getElementById('chatWindow').style.display = 'none';
-      loadChatList();
+      await loadChatList();
       document.getElementById('chatSearchResults').style.display = 'none';
       document.getElementById('chatSearchInput').value = '';
+      focusFirstElementAfterLoad();
     }
     if (section === 'profile' && currentUser) {
-      viewProfile(currentUser.uid);
+      await viewProfile(currentUser.uid);
+    }
+    if (section === 'settings') {
+      focusFirstElementAfterLoad();
     }
     
     closeSidebar();
-    setTimeout(() => { updateFocusableCache(); setFocusOnElement(cachedFocusableElements[0]); }, 200);
   });
 });
 
@@ -613,12 +637,17 @@ function openSidebar() {
   sidebar.classList.add('open');
   menuToggle.classList.add('active');
   backdrop.classList.add('active');
+  focusFirstInContainer(sidebar);
 }
 
 function closeSidebar() {
   sidebar.classList.remove('open');
   menuToggle.classList.remove('active');
   backdrop.classList.remove('active');
+  setTimeout(() => {
+    updateFocusableCache();
+    setFocusOnElement(menuToggle);
+  }, 50);
 }
 
 menuToggle.addEventListener('click', (e) => {
@@ -772,7 +801,7 @@ async function loadHashtags() {
     console.error('Error loading hashtags:', e);
     list.innerHTML = '<p style="text-align:center; padding:20px;">Помилка завантаження</p>';
   }
-  setTimeout(() => updateFocusableCache(), 100);
+  focusFirstElementAfterLoad();
 }
 
 function searchHashtag(tag) {
@@ -984,7 +1013,6 @@ onAuthStateChanged(auth, (user) => {
       updateDoc(doc(db, "users", currentUser.uid), { lastOnline: serverTimestamp() }).catch(console.error);
     }, 30000);
     
-    // Підписка на зміни following
     const userRef = doc(db, "users", currentUser.uid);
     unsubscribeFollowing = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -1145,7 +1173,7 @@ async function loadMorePosts() {
   } finally {
     if (skeleton) skeleton.style.display = 'none';
     loading = false;
-    setTimeout(() => { updateFocusableCache(); }, 100);
+    focusFirstElementAfterLoad(); // після завантаження нових постів
   }
 }
 
@@ -1338,7 +1366,7 @@ function renderPosts(docs, container = null) {
       };
     }
   });
-  setTimeout(updateFocusableCache, 100);
+  focusFirstElementAfterLoad(); // після рендеру фокус на перший елемент
 }
 
 async function toggleFollow(targetUid, buttonElement) {
@@ -1403,7 +1431,6 @@ function openEditPostModal(post) {
     }
   }
   document.getElementById('editPostModal').classList.add('active');
-  // Запам'ятовуємо елемент, який відкрив модалку
   lastFocusedElementBeforeModal = document.querySelector('.focused') || document.activeElement;
   setTimeout(() => { updateFocusableCache(); focusFirstInContainer(document.getElementById('editPostModal')); }, 50);
 }
@@ -1490,6 +1517,7 @@ async function loadSearchUsers() {
       userList.appendChild(feedDiv);
       renderPosts(snapshot.docs, feedDiv);
     }
+    focusFirstElementAfterLoad();
     return;
   }
   
@@ -1527,7 +1555,7 @@ async function loadSearchUsers() {
     div.onclick = () => viewProfile(uid);
     userList.appendChild(div);
   });
-  setTimeout(() => { updateFocusableCache(); }, 100);
+  focusFirstElementAfterLoad();
 }
 document.getElementById('searchInput').addEventListener('input', loadSearchUsers);
 
@@ -1535,6 +1563,7 @@ async function loadMyProfile() {
   if (!currentUser) return;
   const snap = await getDoc(doc(db, "users", currentUser.uid));
   if (snap.exists()) renderProfile(snap.data(), currentUser.uid, true);
+  focusFirstElementAfterLoad();
 }
 
 function viewProfile(uid) {
@@ -1554,13 +1583,13 @@ function viewProfile(uid) {
   }
   
   closeSidebar();
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(cachedFocusableElements[0]); }, 200);
 }
 
 async function loadUserProfile(uid) {
   if (!currentUser) return;
   const snap = await getDoc(doc(db, "users", uid));
   if (snap.exists()) renderProfile(snap.data(), uid, uid === currentUser.uid);
+  focusFirstElementAfterLoad();
 }
 
 function renderProfile(data, uid, isOwn) {
@@ -1730,7 +1759,7 @@ function renderProfile(data, uid, isOwn) {
     });
   }
   loadProfileFeed(uid, 'posts');
-  setTimeout(() => { updateFocusableCache(); }, 100);
+  focusFirstElementAfterLoad();
 }
 
 async function openFollowersList(uid) {
@@ -1882,7 +1911,7 @@ async function loadProfileFeed(uid, tab) {
     div.innerHTML = `<div class="post-content">${post.text || ''}</div>`;
     feed.appendChild(div);
   });
-  setTimeout(() => { updateFocusableCache(); }, 100);
+  focusFirstElementAfterLoad();
 }
 
 document.getElementById('closeModal').onclick = () => {
@@ -2011,7 +2040,7 @@ async function loadChatList() {
     alert('Помилка завантаження списку чатів:\n' + (error.message || 'Невідома помилка') + '\nКод: ' + (error.code || 'N/A'));
     showToast('Помилка завантаження списку чатів.');
   }
-  setTimeout(() => { updateFocusableCache(); }, 100);
+  focusFirstElementAfterLoad();
 }
 
 async function openChatFromList(chatId, otherUid, otherName, otherUserId, otherAvatar) {
