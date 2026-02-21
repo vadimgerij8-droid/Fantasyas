@@ -49,14 +49,14 @@ const tvSettings = {
   remoteNavEnabled: localStorage.getItem('remoteNav') !== 'false',
   focusOptimized: localStorage.getItem('focusOptimized') !== 'false',
   tvCursorEnabled: localStorage.getItem('tvCursor') === 'true',
-  vibrateOnFocus: localStorage.getItem('vibrateOnFocus') !== 'false' // нове налаштування
+  vibrateOnFocus: localStorage.getItem('vibrateOnFocus') !== 'false'
 };
 
-// ================= НАВІГАЦІЯ ПУЛЬТОМ (D-Pad) =================
-// Кеш фокусованих елементів
+// ================= НАВІГАЦІЯ ПУЛЬТОМ (D-Pad) — ПОКРАЩЕНА =================
 let cachedFocusableElements = [];
 let lastDOMUpdate = 0;
-let lastFocusedElement = null; // для відновлення після закриття модалок
+let lastFocusedElement = null;          // останній сфокусований елемент (для відновлення)
+let lastFocusedElementBeforeModal = null; // елемент, який відкрив модалку
 let focusUpdatePending = false;
 
 // Отримує всі видимі фокусовані елементи з урахуванням активних модалок
@@ -64,7 +64,6 @@ function getFocusableElements() {
   const activeModal = document.querySelector('.modal.active');
   let container = activeModal || document;
 
-  // Розширений список селекторів для елементів, які можуть отримати фокус
   const baseSelector = `
     button, input, textarea, select, a[href], 
     [tabindex]:not([tabindex="-1"]), 
@@ -112,19 +111,45 @@ function getCenter(el) {
   };
 }
 
-// Покращене визначення сітки: повертає кількість колонок, якщо елементи вирівняні по сітці
-function detectGrid(elements) {
-  if (elements.length < 2) return 1;
-  // Отримуємо позиції перших кількох елементів
-  const positions = elements.slice(0, Math.min(10, elements.length)).map(getCenter);
-  // Перевіряємо, чи є повторювані координати X
-  const xCoords = positions.map(p => Math.round(p.x));
-  const uniqueX = [...new Set(xCoords)];
-  if (uniqueX.length > 1 && uniqueX.length < 5) {
-    // Ймовірно, сітка: повертаємо кількість унікальних X
-    return uniqueX.length;
-  }
-  return 1;
+// Покращене визначення сітки: аналізує всі елементи в контейнері та визначає кількість колонок
+function detectGridInContainer(container) {
+  const items = Array.from(container.children).filter(el => el.offsetParent !== null);
+  if (items.length < 2) return 1;
+
+  // Отримуємо центри елементів
+  const positions = items.map(el => {
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  });
+
+  // Групуємо по вертикалі з допуском 20px (рядки)
+  const rows = [];
+  const toleranceY = 20;
+  positions.forEach(pos => {
+    let foundRow = false;
+    for (let row of rows) {
+      if (Math.abs(row.y - pos.y) <= toleranceY) {
+        row.items.push(pos);
+        foundRow = true;
+        break;
+      }
+    }
+    if (!foundRow) {
+      rows.push({ y: pos.y, items: [pos] });
+    }
+  });
+
+  // Сортуємо рядки за Y
+  rows.sort((a, b) => a.y - b.y);
+
+  // У кожному рядку сортуємо за X
+  rows.forEach(row => {
+    row.items.sort((a, b) => a.x - b.x);
+  });
+
+  // Визначаємо кількість колонок як максимальну довжину рядка
+  const cols = Math.max(...rows.map(r => r.items.length));
+  return cols;
 }
 
 function findClosestElement(currentEl, direction) {
@@ -152,22 +177,29 @@ function findClosestElement(currentEl, direction) {
     const dx = candidateCenter.x - currentCenter.x;
     const dy = candidateCenter.y - currentCenter.y;
 
+    // Перевіряємо, чи кандидат знаходиться у потрібному напрямку (скалярний добуток > 0)
     const dot = dx * dir.dx + dy * dir.dy;
     if (dot <= 0) return;
 
     const length = Math.sqrt(dx * dx + dy * dy);
     const cosAngle = dot / length;
-    if (cosAngle < 0.6) return; // збільшено поріг для точнішого вибору
 
-    // Додаємо штраф за зміщення по вертикалі для горизонтальних рухів і навпаки
-    let offAxisPenalty = 0;
+    // Збільшуємо поріг до 0.7 для точнішого вибору
+    if (cosAngle < 0.7) return;
+
+    // Штраф за перпендикулярне зміщення (чим далі від прямої лінії, тим гірше)
+    let perpendicularDistance;
     if (dir.dx !== 0) {
-      offAxisPenalty = Math.abs(dy) * 2; // вертикальне зміщення шкодить
+      // горизонтальний рух: вертикальне зміщення (dy) – штраф
+      perpendicularDistance = Math.abs(dy);
     } else {
-      offAxisPenalty = Math.abs(dx) * 2;
+      // вертикальний рух: горизонтальне зміщення (dx) – штраф
+      perpendicularDistance = Math.abs(dx);
     }
 
-    const score = length / cosAngle + offAxisPenalty;
+    // Комбінована оцінка: відстань вздовж напрямку + штраф за перпендикуляр
+    const score = length / cosAngle + perpendicularDistance * 2;
+
     if (score < bestScore) {
       bestScore = score;
       best = candidate;
@@ -201,9 +233,18 @@ function setFocusOnElement(el) {
     updateTVCursor();
   }
   
-  // Вібрація при зміні фокусу (короткий імпульс)
+  // Вібрація при зміні фокусу
   if (tvSettings.vibrateOnFocus && navigator.vibrate) {
     navigator.vibrate(10);
+  }
+}
+
+// Фокус на перший елемент у контейнері (наприклад, модалці)
+function focusFirstInContainer(container) {
+  const focusable = Array.from(container.querySelectorAll('button, input, textarea, select, a[href], [tabindex]:not([tabindex="-1"])'))
+    .filter(el => el.offsetParent !== null && !el.disabled);
+  if (focusable.length > 0) {
+    setFocusOnElement(focusable[0]);
   }
 }
 
@@ -214,7 +255,6 @@ function closeAllPopups() {
 
 // ========== ПОКРАЩЕНА ФУНКЦІЯ ОБРОБКИ КЛАВІШ ==========
 function handleKeyDown(e) {
-  // Якщо навігація вимкнена – нічого не робимо
   if (!tvSettings.tvNavEnabled && !tvSettings.remoteNavEnabled) return;
 
   const arrowKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
@@ -229,28 +269,22 @@ function handleKeyDown(e) {
     updateFocusableCache();
   }
 
-  // Визначаємо поточний активний елемент
   const activeEl = document.activeElement;
   const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
 
   // Якщо активне поле введення – не заважаємо (крім Escape)
-  if (isInput) {
-    if (isArrow || isEnter) {
-      // Дозволяємо стандартну поведінку (переміщення курсора, новий рядок)
-      return;
-    }
-    // Escape обробляємо нижче
+  if (isInput && !isBack) {
+    return;
   }
 
   // ===== BACK / ESCAPE =====
   if (isBack) {
     e.preventDefault();
     
-    // 1. Якщо відкрито емоджі-пікер – закриваємо
+    // 1. Закриваємо емоджі-пікер
     const openEmojiPicker = document.querySelector('.emoji-picker[style*="display: grid"]');
     if (openEmojiPicker) {
       openEmojiPicker.style.display = 'none';
-      // Повертаємо фокус на кнопку, яка його відкрила
       if (lastFocusedElement && lastFocusedElement.classList.contains('emoji-button')) {
         setFocusOnElement(lastFocusedElement);
       } else {
@@ -261,7 +295,7 @@ function handleKeyDown(e) {
       return;
     }
 
-    // 2. Якщо відкрито випадаюче меню – закриваємо
+    // 2. Закриваємо випадаюче меню
     const openDropdown = document.querySelector('.profile-menu-dropdown.show');
     if (openDropdown) {
       openDropdown.classList.remove('show');
@@ -276,7 +310,11 @@ function handleKeyDown(e) {
       activeModals.forEach(modal => modal.classList.remove('active'));
       setTimeout(() => {
         updateFocusableCache();
-        if (lastFocusedElement && !lastFocusedElement.closest('.modal')) {
+        // Повертаємо фокус на елемент, який відкрив модалку, якщо він існує
+        if (lastFocusedElementBeforeModal && cachedFocusableElements.includes(lastFocusedElementBeforeModal)) {
+          setFocusOnElement(lastFocusedElementBeforeModal);
+          lastFocusedElementBeforeModal = null;
+        } else if (lastFocusedElement && !lastFocusedElement.closest('.modal')) {
           setFocusOnElement(lastFocusedElement);
         } else {
           const first = cachedFocusableElements[0];
@@ -286,7 +324,7 @@ function handleKeyDown(e) {
       return;
     }
 
-    // 4. Якщо відкрито чат – закриваємо
+    // 4. Закриваємо чат
     const chatWindow = document.getElementById('chatWindow');
     if (chatWindow && chatWindow.style.display === 'flex') {
       chatWindow.style.display = 'none';
@@ -308,14 +346,12 @@ function handleKeyDown(e) {
 
   // ===== ENTER =====
   if (isEnter) {
-    // Якщо активне поле введення – нічого не робимо (вже перевірили)
-    if (isInput) return;
+    if (isInput) return; // не заважаємо вводу
 
     const focused = document.querySelector('.focused') || activeEl;
     if (focused) {
       e.preventDefault();
       focused.click();
-      // Вібрація при кліку
       if (tvSettings.vibrateOnFocus && navigator.vibrate) {
         navigator.vibrate(20);
       }
@@ -329,8 +365,7 @@ function handleKeyDown(e) {
 
   // ===== СТРІЛКИ =====
   if (isArrow) {
-    // Якщо активне поле введення – не заважаємо
-    if (isInput) return;
+    if (isInput) return; // не заважаємо вводу
 
     e.preventDefault();
     
@@ -342,14 +377,14 @@ function handleKeyDown(e) {
       return;
     }
 
-    // Якщо поточний елемент всередині емоджі-пікера – спеціальна навігація по сітці
+    // Спеціальна навігація для емоджі-пікера (відома сітка 8 колонок)
     const emojiPicker = current.closest('.emoji-picker');
     if (emojiPicker && emojiPicker.style.display === 'grid') {
       const emojiButtons = Array.from(emojiPicker.querySelectorAll('button'));
       const currentIndex = emojiButtons.indexOf(current);
       if (currentIndex !== -1) {
         let nextIndex;
-        const cols = 8; // відомо, що емоджі-пікер має 8 колонок
+        const cols = 8;
         if (e.key === 'ArrowRight') nextIndex = currentIndex + 1;
         else if (e.key === 'ArrowLeft') nextIndex = currentIndex - 1;
         else if (e.key === 'ArrowDown') nextIndex = currentIndex + cols;
@@ -362,12 +397,12 @@ function handleKeyDown(e) {
       }
     }
 
-    // Перевіряємо, чи знаходимося ми в сітці (наприклад, список хештегів)
-    const gridContainer = current.closest('.hashtag-list, .chat-list, .profile-tabs, .post-footer');
+    // Перевіряємо, чи знаходимося в контейнері з сіткою (наприклад, список хештегів, чатів, профільні вкладки)
+    const gridContainer = current.closest('.hashtag-list, .chat-list, .profile-tabs, .post-footer, .emoji-picker');
     if (gridContainer) {
       const items = Array.from(gridContainer.querySelectorAll('[tabindex], button, .hashtag-item, .chat-item, .profile-tab, .post-footer button')).filter(el => el.offsetParent !== null);
       if (items.length > 1) {
-        const cols = detectGrid(items);
+        const cols = detectGridInContainer(gridContainer);
         const currentIndex = items.indexOf(current);
         if (currentIndex !== -1) {
           let nextIndex;
@@ -376,9 +411,12 @@ function handleKeyDown(e) {
           else if (e.key === 'ArrowDown') nextIndex = currentIndex + cols;
           else if (e.key === 'ArrowUp') nextIndex = currentIndex - cols;
           
+          // Перевіряємо вихід за межі
           if (nextIndex >= 0 && nextIndex < items.length) {
             setFocusOnElement(items[nextIndex]);
             return;
+          } else if (nextIndex < 0 && cols > 1) {
+            // Якщо вийшли за верхній край, можна перейти на останній елемент попереднього рядка? Для простоти залишимо як є.
           }
         }
       }
@@ -406,19 +444,17 @@ function updateTVCursor() {
   }
   const rect = focusedEl.getBoundingClientRect();
   cursor.style.display = 'block';
-  // Позиціонуємо стрілочку ліворуч від елемента (для вертикальної навігації)
-  // Але якщо елемент маленький, можна змістити інакше
   cursor.style.left = (rect.left - 20) + 'px';
   cursor.style.top = (rect.top + rect.height/2 - 16) + 'px';
 }
 
-// Спостерігач за змінами DOM – використовуємо requestAnimationFrame для оптимізації
+// Спостерігач за змінами DOM – оптимізований
 const observer = new MutationObserver(() => {
   requestFocusUpdate();
 });
 observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
 
-// Додатково оновлюємо кеш при прокручуванні (можуть з'явитися нові елементи)
+// Оновлення кешу при прокручуванні (з затримкою)
 let scrollTimeout;
 window.addEventListener('scroll', () => {
   clearTimeout(scrollTimeout);
@@ -1367,13 +1403,23 @@ function openEditPostModal(post) {
     }
   }
   document.getElementById('editPostModal').classList.add('active');
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(document.getElementById('editPostText')); }, 50);
+  // Запам'ятовуємо елемент, який відкрив модалку
+  lastFocusedElementBeforeModal = document.querySelector('.focused') || document.activeElement;
+  setTimeout(() => { updateFocusableCache(); focusFirstInContainer(document.getElementById('editPostModal')); }, 50);
 }
 
 document.getElementById('closeEditPostModal').onclick = () => {
   document.getElementById('editPostModal').classList.remove('active');
   currentEditingPost = null;
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(cachedFocusableElements[0]); }, 50);
+  setTimeout(() => {
+    updateFocusableCache();
+    if (lastFocusedElementBeforeModal && cachedFocusableElements.includes(lastFocusedElementBeforeModal)) {
+      setFocusOnElement(lastFocusedElementBeforeModal);
+      lastFocusedElementBeforeModal = null;
+    } else {
+      setFocusOnElement(cachedFocusableElements[0]);
+    }
+  }, 50);
 };
 
 document.getElementById('savePostEdit').onclick = async () => {
@@ -1661,7 +1707,8 @@ function renderProfile(data, uid, isOwn) {
         document.getElementById('editAvatarLabel').textContent = 'Обрати аватар';
         document.getElementById('editAvatarPreview').classList.remove('show');
         document.getElementById('editProfileModal').classList.add('active');
-        setTimeout(() => { updateFocusableCache(); setFocusOnElement(document.getElementById('editNickname')); }, 50);
+        lastFocusedElementBeforeModal = document.querySelector('.focused') || document.activeElement;
+        setTimeout(() => { updateFocusableCache(); focusFirstInContainer(document.getElementById('editProfileModal')); }, 50);
       };
     }
   }
@@ -1692,6 +1739,7 @@ async function openFollowersList(uid) {
   if (!modal || !list) return;
   list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
   modal.classList.add('active');
+  lastFocusedElementBeforeModal = document.querySelector('.focused') || document.activeElement;
   
   const userSnap = await getDoc(doc(db, "users", uid));
   const followersIds = userSnap.data().followers || [];
@@ -1723,7 +1771,7 @@ async function openFollowersList(uid) {
       list.appendChild(div);
     });
   }
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(list.firstChild); }, 100);
+  setTimeout(() => { updateFocusableCache(); focusFirstInContainer(modal); }, 100);
 }
 
 async function openFollowingList(uid) {
@@ -1732,6 +1780,7 @@ async function openFollowingList(uid) {
   if (!modal || !list) return;
   list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
   modal.classList.add('active');
+  lastFocusedElementBeforeModal = document.querySelector('.focused') || document.activeElement;
   
   const userSnap = await getDoc(doc(db, "users", uid));
   const followingIds = userSnap.data().following || [];
@@ -1763,16 +1812,32 @@ async function openFollowingList(uid) {
       list.appendChild(div);
     });
   }
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(list.firstChild); }, 100);
+  setTimeout(() => { updateFocusableCache(); focusFirstInContainer(modal); }, 100);
 }
 
 document.getElementById('closeFollowersModal').onclick = () => {
   document.getElementById('followersModal').classList.remove('active');
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(cachedFocusableElements[0]); }, 50);
+  setTimeout(() => {
+    updateFocusableCache();
+    if (lastFocusedElementBeforeModal && cachedFocusableElements.includes(lastFocusedElementBeforeModal)) {
+      setFocusOnElement(lastFocusedElementBeforeModal);
+      lastFocusedElementBeforeModal = null;
+    } else {
+      setFocusOnElement(cachedFocusableElements[0]);
+    }
+  }, 50);
 };
 document.getElementById('closeFollowingModal').onclick = () => {
   document.getElementById('followingModal').classList.remove('active');
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(cachedFocusableElements[0]); }, 50);
+  setTimeout(() => {
+    updateFocusableCache();
+    if (lastFocusedElementBeforeModal && cachedFocusableElements.includes(lastFocusedElementBeforeModal)) {
+      setFocusOnElement(lastFocusedElementBeforeModal);
+      lastFocusedElementBeforeModal = null;
+    } else {
+      setFocusOnElement(cachedFocusableElements[0]);
+    }
+  }, 50);
 };
 
 async function loadProfileFeed(uid, tab) {
@@ -1822,7 +1887,15 @@ async function loadProfileFeed(uid, tab) {
 
 document.getElementById('closeModal').onclick = () => {
   document.getElementById('editProfileModal').classList.remove('active');
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(cachedFocusableElements[0]); }, 50);
+  setTimeout(() => {
+    updateFocusableCache();
+    if (lastFocusedElementBeforeModal && cachedFocusableElements.includes(lastFocusedElementBeforeModal)) {
+      setFocusOnElement(lastFocusedElementBeforeModal);
+      lastFocusedElementBeforeModal = null;
+    } else {
+      setFocusOnElement(cachedFocusableElements[0]);
+    }
+  }, 50);
 };
 
 document.getElementById('saveProfileEdit').onclick = async () => {
@@ -2264,11 +2337,20 @@ if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark'
 
 document.getElementById('privacyPolicyBtn').onclick = () => {
   document.getElementById('privacyPolicyModal').classList.add('active');
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(document.getElementById('closePrivacyModal')); }, 50);
+  lastFocusedElementBeforeModal = document.querySelector('.focused') || document.activeElement;
+  setTimeout(() => { updateFocusableCache(); focusFirstInContainer(document.getElementById('privacyPolicyModal')); }, 50);
 };
 document.getElementById('closePrivacyModal').onclick = () => {
   document.getElementById('privacyPolicyModal').classList.remove('active');
-  setTimeout(() => { updateFocusableCache(); setFocusOnElement(cachedFocusableElements[0]); }, 50);
+  setTimeout(() => {
+    updateFocusableCache();
+    if (lastFocusedElementBeforeModal && cachedFocusableElements.includes(lastFocusedElementBeforeModal)) {
+      setFocusOnElement(lastFocusedElementBeforeModal);
+      lastFocusedElementBeforeModal = null;
+    } else {
+      setFocusOnElement(cachedFocusableElements[0]);
+    }
+  }, 50);
 };
 
 function updateTvButtons() {
