@@ -32,6 +32,7 @@
   --warning-gradient: linear-gradient(135deg, #6b5e4a, #4a4235);
   --liked: #e63946;         /* Червоний */
   --saved: #f4d03f;         /* Жовтий */
+  --edit: #4a4a4a;          /* Сірий для редагування */
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.15);
@@ -69,8 +70,9 @@ body.dark {
   --success-gradient: linear-gradient(135deg, #6b8c73, #5a735a);
   --warning: #b3a373;
   --warning-gradient: linear-gradient(135deg, #8c7a6b, #73635a);
-  --liked: #ff6b6b;         /* Світліший червоний для темної теми */
+  --liked: #ff6b6b;         /* Світліший червоний */
   --saved: #f7dc6f;         /* Світліший жовтий */
+  --edit: #b3b3b3;          /* Світло-сірий для темної теми */
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.5);
@@ -426,7 +428,7 @@ body {
   -webkit-tap-highlight-color: transparent;
   position: relative;
   overflow: hidden;
-  min-height: 48px;
+  min-height: 48px; /* Для зручності на мобільних */
 }
 
 .btn::after {
@@ -464,7 +466,7 @@ body {
   border: none;
 }
 
-/* Нова чорно-біла кнопка підписки */
+/* Чорно-біла кнопка підписки */
 .btn-follow {
   background: transparent;
   border: 1.5px solid var(--text-secondary);
@@ -532,7 +534,7 @@ body {
   outline: none;
   transition: all 0.2s;
   -webkit-appearance: none;
-  font-size: 16px;
+  font-size: 16px; /* Запобігає зуму на iOS */
 }
 
 .input:focus {
@@ -612,20 +614,22 @@ body {
   background: var(--surface);
 }
 
+/* Футер поста з усіма кнопками */
 .post-footer {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
   align-items: center;
-  flex-wrap: wrap;
 }
 
 .post-footer button {
   background: none;
   border: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   color: var(--text-secondary);
   font-weight: 600;
@@ -634,7 +638,9 @@ body {
   font-size: 0.85rem;
   padding: 8px 12px;
   border-radius: 30px;
-  min-height: 40px;
+  min-height: 44px; /* Зручний тач-розмір */
+  min-width: 44px;
+  flex: 0 1 auto;
 }
 
 .post-footer button:active {
@@ -642,6 +648,7 @@ body {
   transform: scale(0.95);
 }
 
+/* Стилі для лайків, збереженого та редагування */
 .post-footer button.liked {
   color: var(--liked);
 }
@@ -660,10 +667,25 @@ body {
   filter: drop-shadow(0 0 2px var(--saved));
 }
 
-.post-footer button.liked:active svg {
-  animation: heartBeat 0.3s;
+/* Кнопка редагування */
+.post-footer button.edit-btn {
+  color: var(--edit);
+}
+.post-footer button.edit-btn svg {
+  stroke: currentColor;
+  fill: none;
+  transition: transform 0.2s;
+}
+.post-footer button.edit-btn:active svg {
+  transform: rotate(15deg) scale(1.1);
 }
 
+/* Кнопка коментаря */
+.post-footer button.comment-btn:active svg {
+  animation: bounce 0.3s;
+}
+
+/* Кількість переглядів */
 .view-count {
   display: flex;
   align-items: center;
@@ -866,7 +888,7 @@ body {
 
 .chat-header-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
 .chat-action-btn {
@@ -876,8 +898,8 @@ body {
   font-size: 1.2rem;
   padding: 8px;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -979,8 +1001,13 @@ body {
   border: none;
   color: var(--text-tertiary);
   font-size: 0.8rem;
-  padding: 4px;
+  padding: 6px;
   border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -1096,7 +1123,8 @@ body {
   gap: 6px;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 40px;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .profile-action-btn:active {
@@ -1142,6 +1170,9 @@ body {
   transition: all 0.2s;
   white-space: nowrap;
   font-size: 0.9rem;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
 .profile-tab:active {
   background: var(--surface-solid);
@@ -1280,18 +1311,22 @@ body {
 /* ========== МОБІЛЬНІ ПОКРАЩЕННЯ ========== */
 @media (max-width: 480px) {
   .post-footer {
-    gap: 8px;
+    gap: 6px;
+    justify-content: flex-start;
   }
   
   .post-footer button {
-    padding: 6px 8px;
+    padding: 6px 10px;
     font-size: 0.8rem;
+    min-height: 44px;
+    min-width: 44px;
   }
   
   .view-count {
     margin-left: 0;
     width: 100%;
     justify-content: flex-start;
+    margin-top: 4px;
   }
   
   .profile-header {
@@ -1320,15 +1355,25 @@ body {
   .profile-action-btn {
     flex: 1;
     justify-content: center;
+    padding: 8px 8px;
   }
 
   .chat-header-actions {
-    gap: 4px;
+    gap: 2px;
   }
 
   .chat-action-btn {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Адаптація для повідомлень */
+  .message {
+    max-width: 85%;
+  }
+
+  .message-actions {
+    opacity: 0.5; /* Трохи видно на мобільних */
   }
 }
 
@@ -1341,7 +1386,8 @@ button,
 .modal-close,
 .profile-action-btn,
 .chat-action-btn,
-.message-action {
+.message-action,
+.post-footer button {
   touch-action: manipulation;
   -webkit-touch-callout: none;
 }
