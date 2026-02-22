@@ -8,7 +8,7 @@
 }
 
 :root {
-  /* Чорно-біла монохромна тема */
+  /* Чорно-біла монохромна тема з акцентами */
   --bg: #fafafa;
   --bg-gradient: linear-gradient(145deg, #ffffff 0%, #f2f2f2 100%);
   --surface: rgba(255, 255, 255, 0.8);
@@ -30,8 +30,9 @@
   --success-gradient: linear-gradient(135deg, #4a6b55, #354a3a);
   --warning: #8a753f;
   --warning-gradient: linear-gradient(135deg, #6b5e4a, #4a4235);
-  --liked: #8a4a4a;
-  --saved: #4a4a8a;
+  /* Нові яскраві кольори для лайків та збереженого */
+  --liked: #e63946;         /* Червоний */
+  --saved: #f4d03f;         /* Жовтий */
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.15);
@@ -48,7 +49,7 @@
 }
 
 body.dark {
-  /* Темна чорно-біла тема */
+  /* Темна чорно-біла тема з акцентами */
   --bg: #121212;
   --bg-gradient: linear-gradient(145deg, #1a1a1a 0%, #0d0d0d 100%);
   --surface: rgba(30, 30, 30, 0.8);
@@ -69,8 +70,8 @@ body.dark {
   --success-gradient: linear-gradient(135deg, #6b8c73, #5a735a);
   --warning: #b3a373;
   --warning-gradient: linear-gradient(135deg, #8c7a6b, #73635a);
-  --liked: #b37373;
-  --saved: #7373b3;
+  --liked: #ff6b6b;         /* Світліший червоний для темної теми */
+  --saved: #f7dc6f;         /* Світліший жовтий */
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.5);
@@ -139,18 +140,20 @@ body {
   50% { transform: translateY(-8px); }
 }
 
+/* Покращена анімація сердечка – зі світінням та кількома етапами */
 @keyframes heartBeat {
-  0% { transform: scale(1); }
-  14% { transform: scale(1.2); }
-  28% { transform: scale(1); }
-  42% { transform: scale(1.1); }
-  70% { transform: scale(1); }
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 var(--liked)); }
+  14% { transform: scale(1.3); filter: drop-shadow(0 0 8px var(--liked)); }
+  28% { transform: scale(1); filter: drop-shadow(0 0 4px var(--liked)); }
+  42% { transform: scale(1.2); filter: drop-shadow(0 0 12px var(--liked)); }
+  70% { transform: scale(1); filter: drop-shadow(0 0 0 var(--liked)); }
 }
 
+/* Анімація для збереженого – обертання зі світінням */
 @keyframes starSpin {
-  0% { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.2); }
-  100% { transform: rotate(360deg) scale(1); }
+  0% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 0 var(--saved)); }
+  50% { transform: rotate(180deg) scale(1.3); filter: drop-shadow(0 0 10px var(--saved)); }
+  100% { transform: rotate(360deg) scale(1); filter: drop-shadow(0 0 0 var(--saved)); }
 }
 
 /* ========== САЙДБАР (МОБІЛЬНИЙ) ========== */
@@ -595,13 +598,14 @@ body {
   transform: scale(0.95);
 }
 
-/* Анімації для лайків та збереженого */
+/* Покращені анімації для лайків та збереженого */
 .post-footer button.liked {
   color: var(--liked);
 }
 .post-footer button.liked svg {
   fill: var(--liked);
-  animation: heartBeat 0.5s;
+  animation: heartBeat 0.6s ease-in-out;
+  filter: drop-shadow(0 0 2px var(--liked));
 }
 
 .post-footer button.saved {
@@ -609,7 +613,8 @@ body {
 }
 .post-footer button.saved svg {
   fill: var(--saved);
-  animation: starSpin 0.5s;
+  animation: starSpin 0.6s ease-in-out;
+  filter: drop-shadow(0 0 2px var(--saved));
 }
 
 .post-footer button.liked:active svg {
