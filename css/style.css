@@ -23,6 +23,7 @@
   --warning: #777777;
   --success: #222222;
   --liked: #555555;
+  --saved: #000000;
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
   --shadow-md: 0 6px 20px rgba(0,0,0,0.15);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.2);
@@ -51,9 +52,40 @@ body.dark {
   --warning: #888888;
   --success: #dddddd;
   --liked: #aaaaaa;
+  --saved: #ffffff;
   --shadow-sm: 0 2px 12px rgba(255,255,255,0.08);
   --shadow-md: 0 6px 24px rgba(255,255,255,0.12);
   --shadow-lg: 0 12px 48px rgba(255,255,255,0.16);
+}
+
+/* Виправлення контрасту в темній темі для активних елементів */
+body.dark .nav-item.active,
+body.dark .profile-tab.active,
+body.dark .btn-primary {
+  background: var(--accent-light) !important;
+  color: #000000 !important;
+  border-color: var(--accent-light) !important;
+}
+
+body.dark .btn-primary:hover,
+body.dark .btn-primary.focused {
+  background: var(--accent-hover) !important;
+  color: #000000 !important;
+}
+
+body.dark .nav-item.active:hover {
+  background: var(--accent-hover) !important;
+}
+
+body.dark .btn-follow.following {
+  background: var(--accent-light);
+  color: #000000;
+  border-color: var(--accent-light);
+}
+
+body.dark .badge {
+  background: var(--accent-light);
+  color: #000000;
 }
 
 body {
@@ -115,6 +147,33 @@ body {
   0% { transform: translateX(0); }
   50% { transform: translateX(-25%) skew(10deg); }
   100% { transform: translateX(0); }
+}
+
+/* Нові анімації для лайків та збереженого */
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.3); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.2); }
+  70% { transform: scale(1); }
+}
+
+@keyframes starPop {
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.5) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+
+@keyframes colorPulse {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+  100% { filter: brightness(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 
 /* ========== ФОКУС (дуже помітний) ========== */
@@ -699,6 +758,7 @@ body {
   cursor: pointer;
   transition: all 0.25s;
   font-size: 0.9rem;
+  position: relative;
 }
 
 .post-footer button:hover, .post-footer button.focused {
@@ -706,19 +766,33 @@ body {
   transform: scale(1.18);
 }
 
+/* Покращені анімації для лайків та збереженого */
 .post-footer button.liked {
   color: var(--danger);
+  animation: heartBeat 0.6s ease-in-out;
 }
 .post-footer button.liked svg {
   fill: var(--danger);
-  animation: pulse-glow 0.6s;
+  filter: drop-shadow(0 0 4px var(--danger));
+  animation: colorPulse 1.2s infinite;
 }
 
 .post-footer button.saved {
-  color: var(--accent);
+  color: var(--saved);
+  animation: starPop 0.5s ease-out;
 }
 .post-footer button.saved svg {
-  fill: var(--accent);
+  fill: var(--saved);
+  filter: drop-shadow(0 0 4px var(--saved));
+  animation: colorPulse 1.2s infinite;
+}
+
+/* Ефект при повторному натисканні */
+.post-footer button.liked:active {
+  animation: shake 0.3s ease;
+}
+.post-footer button.saved:active {
+  animation: shake 0.3s ease;
 }
 
 .view-count {
