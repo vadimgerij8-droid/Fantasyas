@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
-  <title>FANTASYAS · Підписки + Google TV</title>
+  <title>FANTASYAS · Підписки</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -167,16 +167,6 @@
           Політика конфіденційності
         </button>
 
-        <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:20px;">
-          <h3>Телевізор</h3>
-          <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
-            <button class="btn" id="tvNavToggle">TV-навігація: увімкнено</button>
-            <button class="btn" id="remoteNavToggle">Навігація з пульта: увімкнено</button>
-            <button class="btn" id="focusOptimizeToggle">Оптимізація фокусу: увімкнено</button>
-            <button class="btn" id="tvCursorToggle">TV-стрілочка: вимкнено</button>
-          </div>
-        </div>
-
         <button class="btn" id="logoutBtn" style="margin-top:20px;" tabindex="0">Вийти</button>
       </div>
     </div>
@@ -244,7 +234,6 @@
   </div>
 </div>
 
-<!-- Покращена модалка політики конфіденційності -->
 <div class="modal" id="privacyPolicyModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -301,11 +290,6 @@
 </div>
 
 <div id="toast"></div>
-<div id="tvCursor">
-  <svg viewBox="0 0 32 32">
-    <polygon points="2,2 30,16 2,30 8,16 2,2" fill="currentColor" stroke="white" stroke-width="2"/>
-  </svg>
-</div>
 
 <script type="module" src="js/script.js"></script>
 </body>
