@@ -250,6 +250,7 @@ body {
   align-items: center;
   padding: 0 20px;
   gap: 16px;
+  position: relative;
 }
 
 .menu-toggle {
@@ -818,7 +819,7 @@ body {
   box-shadow: 0 0 0 4px rgba(51,51,51,0.1);
 }
 
-/* ========== ЕМОДЖІ-ПІКЕР ========== */
+/* ========== ЕМОДЖІ-ПІКЕР (оновлено) ========== */
 .emoji-picker-container {
   position: relative;
   display: inline-block;
@@ -844,35 +845,37 @@ body {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 8px;
+  padding: 6px;
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 6px;
+  grid-template-columns: repeat(6, 1fr);  /* 6 колонок */
+  gap: 4px;
   z-index: 100;
   box-shadow: var(--shadow-lg);
-  width: 280px;
-  max-height: 220px;
+  width: 200px;                           /* зменшено */
+  max-height: 160px;                       /* зменшено */
   overflow-y: auto;
   margin-bottom: 8px;
   animation: scaleIn 0.3s ease-out;
 }
 
 .emoji-picker button {
-  font-size: 1.8rem;
+  font-size: 1.1rem;                       /* зменшено */
   cursor: pointer;
   text-align: center;
-  padding: 4px;
+  padding: 4px 2px;
   border-radius: var(--radius-sm);
-  transition: all 0.15s;
+  transition: transform 0.15s, background 0.15s;
   line-height: 1;
   border: none;
   background: transparent;
   color: inherit;
+  font-family: system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
 }
+
 .emoji-picker button:hover,
 .emoji-picker button.focused {
   background: var(--surface);
-  transform: scale(1.3);
+  transform: scale(1.15);                  /* менше масштабування */
 }
 
 /* ========== ЧАТИ ========== */
@@ -1307,6 +1310,34 @@ body {
 .text-success { color: var(--success); }
 .text-accent { color: var(--accent); }
 
+/* ========== TV-ОПТИМІЗАЦІЯ ========== */
+:focus-visible {
+  outline: 4px solid var(--accent) !important;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 8px rgba(51, 51, 51, 0.2);
+  transition: outline 0.1s ease;
+}
+
+/* Для пристроїв без ховера (сенсорні екрани, TV) – мінімізуємо hover-ефекти */
+@media (hover: none) {
+  .nav-item:hover,
+  .card:hover,
+  .post:hover,
+  .btn:hover,
+  .avatar:hover,
+  .hashtag:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    background: inherit !important;
+  }
+  /* Активний стан залишається */
+  .nav-item.active,
+  .btn:active {
+    background: var(--accent);
+    color: white;
+  }
+}
+
 /* ========== ДОДАТКОВІ АНІМАЦІЇ ========== */
 @keyframes float {
   0% { transform: translateY(0px); }
@@ -1326,4 +1357,35 @@ body {
 
 .glow-animation {
   animation: glow 2.5s ease-in-out infinite;
+}
+
+/* ========== ФІЛЬТРИ (стилі для випадаючого списку) ========== */
+.btn-filter {
+  margin-left: auto;
+}
+
+.filter-dropdown {
+  position: absolute;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+  width: 200px;
+  right: 20px;
+  top: 60px;
+  box-shadow: var(--shadow-lg);
+}
+
+.filter-item {
+  padding: 8px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s;
+}
+
+.filter-item:hover {
+  background: var(--surface);
 }
