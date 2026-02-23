@@ -95,9 +95,12 @@
           <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
         </div>
 
-        <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px;">
+        <!-- Кнопки перемикання стрічки + фільтр -->
+        <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
           <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
           <button class="btn" id="feedPopularBtn" tabindex="0">Популярні</button>
+          <button class="btn" id="filterBtn" tabindex="0">Фільтри</button>
+          <div id="activeFilter" class="active-filter"></div>
         </div>
 
         <div class="feed" id="feed"></div>
@@ -285,6 +288,20 @@
       <p>Про будь-які зміни ми повідомимо на цій сторінці. Рекомендуємо періодично переглядати політику.</p>
 
       <p><strong>Контакти:</strong> Якщо у вас виникли питання, напишіть нам на privacy@fantasyas.com.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Модальне вікно вибору фільтра -->
+<div class="modal" id="filterModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Оберіть тему</h3>
+      <button class="close-modal" id="closeFilterModal">&times;</button>
+    </div>
+    <div class="modal-body" id="filterList" style="max-height: 400px; overflow-y: auto;"></div>
+    <div class="modal-footer">
+      <button class="btn" id="clearFilterBtn">Скинути фільтр</button>
     </div>
   </div>
 </div>
