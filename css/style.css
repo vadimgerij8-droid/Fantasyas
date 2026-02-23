@@ -58,7 +58,7 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   min-height: 100vh;
-  overflow-x: hidden; /* запобігає горизонтальному скролу */
+  overflow-x: hidden;
   transition: background var(--transition-slow), color var(--transition-slow);
   font-size: 16px;
   line-height: 1.6;
@@ -813,20 +813,20 @@ body {
   box-shadow: 0 0 0 4px rgba(51,51,51,0.1);
 }
 
-/* ========== ЕМОДЖІ-ПІКЕР PRO VERSION ========== */
+/* ========== ЕМОДЖІ-ПІКЕР — АДАПТОВАНИЙ ДЛЯ МОБІЛЬНИХ ========== */
 
 .emoji-picker-container {
   position: relative;
   display: inline-block;
 }
 
-/* Кнопка */
+/* Кнопка виклику емодзі */
 .emoji-button {
   background: none;
   border: none;
-  font-size: 1.4rem;
+  font-size: 1.6rem; /* трохи більше для зручності */
   cursor: pointer;
-  padding: 8px;
+  padding: 10px; /* збільшена область натискання */
   color: var(--text-secondary);
   border-radius: 50%;
   line-height: 1;
@@ -835,6 +835,8 @@ body {
   justify-content: center;
   transition: transform 0.2s ease, background 0.2s ease;
   touch-action: manipulation;
+  min-width: 48px; /* мінімальний розмір для пальця */
+  min-height: 48px;
 }
 
 .emoji-button:active {
@@ -842,33 +844,32 @@ body {
   background: rgba(0,0,0,0.05);
 }
 
-/* === ОСНОВНИЙ БЛОК === */
-
+/* Основний блок емодзі */
 .emoji-picker {
   position: fixed;
   left: 50%;
-  bottom: 75px; /* трохи вище input */
+  bottom: max(75px, env(safe-area-inset-bottom) + 15px);
   transform: translateX(-50%) translateY(10px);
   
   width: 92%;
-  max-width: 340px; /* трохи менший */
-  max-height: 180px;
+  max-width: 360px;
+  max-height: 40vh; /* не більше 40% висоти екрана */
 
   overflow-y: auto;
   overflow-x: hidden;
 
   background: #ffffff;
-  border-radius: 22px;
-  padding: 10px 6px;
+  border-radius: 28px; /* м'якіші кути */
+  padding: 12px 8px;
 
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 6px;
 
-  box-shadow: 0 15px 40px rgba(0,0,0,0.18);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
   z-index: 1000;
 
-  /* Анімація появи */
+  /* Анімація */
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -877,27 +878,26 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Коли відкритий */
 .emoji-picker.active {
   opacity: 1;
   pointer-events: auto;
   transform: translateX(-50%) translateY(0);
 }
 
-/* Емодзі */
+/* Елементи емодзі (кнопки) */
 .emoji-picker button,
 .emoji-picker .emoji-item {
-  font-size: 22px;
+  font-size: 28px; /* великі емодзі */
   cursor: pointer;
   background: transparent;
   border: none;
-  padding: 6px 4px;
-  border-radius: 14px;
+  padding: 8px 4px;
+  border-radius: 18px;
   transition: transform 0.15s ease, background 0.2s ease;
   text-align: center;
   line-height: 1;
-  min-width: 42px;
-  min-height: 42px;
+  min-width: 48px; /* зручно для тапу */
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -906,14 +906,14 @@ body {
 .emoji-picker button:active,
 .emoji-picker .emoji-item:active {
   transform: scale(0.85);
-  background: rgba(0,0,0,0.08);
+  background: rgba(0,0,0,0.1);
 }
 
 /* Темна тема */
 body.dark .emoji-picker {
-  background: #2b2b2b;
-  color: #ffffff;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+  background: #2a2a2a;
+  color: #fff;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.7);
 }
 
 body.dark .emoji-picker button:active,
@@ -921,33 +921,29 @@ body.dark .emoji-picker .emoji-item:active {
   background: rgba(255,255,255,0.15);
 }
 
-/* Маленькі екрани */
-@media (max-width: 480px) {
+/* Адаптація для дуже маленьких екранів */
+@media (max-width: 400px) {
   .emoji-picker {
     grid-template-columns: repeat(5, 1fr);
     max-width: 300px;
-    max-height: 170px;
+    max-height: 35vh;
     bottom: 65px;
   }
-
   .emoji-picker button,
   .emoji-picker .emoji-item {
-    font-size: 24px;
+    font-size: 26px;
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
-/* Планшети */
+/* Для планшетів і більше */
 @media (min-width: 768px) {
   .emoji-picker {
-    max-width: 380px;
+    max-width: 420px;
     grid-template-columns: repeat(7, 1fr);
-    bottom: 85px;
+    bottom: 90px;
   }
-}
-
-/* Захист від горизонтального скролу */
-body {
-  overflow-x: hidden;
 }
 
 /* ========== ЧАТИ ========== */
