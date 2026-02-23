@@ -8,17 +8,17 @@
 }
 
 :root {
-  --bg: #ffffff;                    /* білий */
-  --surface: #f5f5f5;               /* світло-сірий */
+  --bg: #ffffff;
+  --surface: #f5f5f5;
   --card: #ffffff;
-  --border: #e0e0e0;                /* сірий */
-  --text-primary: #212121;           /* майже чорний */
-  --text-secondary: #424242;         /* темно-сірий */
-  --text-tertiary: #757575;          /* середній сірий */
-  --accent: #333333;                 /* темно-сірий акцент */
+  --border: #e0e0e0;
+  --text-primary: #212121;
+  --text-secondary: #424242;
+  --text-tertiary: #757575;
+  --accent: #333333;
   --accent-hover: #555555;
-  --accent-light: #bdbdbd;           /* світло-сірий */
-  --danger: #9e9e9e;                 /* сірий */
+  --accent-light: #bdbdbd;
+  --danger: #9e9e9e;
   --danger-hover: #7a7a7a;
   --warning: #bdbdbd;
   --success: #757575;
@@ -58,12 +58,13 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   min-height: 100vh;
+  overflow-x: hidden; /* запобігає горизонтальному скролу */
   transition: background var(--transition-slow), color var(--transition-slow);
   font-size: 16px;
   line-height: 1.6;
 }
 
-/* ========== ПОКРАЩЕНІ АНІМАЦІЇ ========== */
+/* ========== АНІМАЦІЇ ========== */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -97,6 +98,12 @@ body {
   0% { box-shadow: 0 0 0 0 var(--accent-light); }
   70% { box-shadow: 0 0 18px 4px var(--accent); }
   100% { box-shadow: 0 0 0 0 var(--accent-light); }
+}
+
+@keyframes likePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+  100% { transform: scale(1); }
 }
 
 /* ========== ФОКУС ========== */
@@ -194,21 +201,18 @@ body {
   cursor: pointer;
   font-weight: 500;
 }
-
 .nav-item:hover {
   background: var(--card);
   color: var(--text-primary);
   transform: translateX(8px) scale(1.02);
   box-shadow: var(--shadow-sm);
 }
-
 .nav-item.active {
   background: var(--accent);
   color: white;
   box-shadow: var(--shadow-md);
   animation: gentleGlow 2.2s infinite;
 }
-
 .nav-item .icon {
   width: 24px;
   height: 24px;
@@ -220,7 +224,6 @@ body {
 .nav-item:hover .icon {
   transform: scale(1.15) rotate(2deg);
 }
-
 .nav-item .badge {
   margin-left: auto;
   background: var(--accent-light);
@@ -263,7 +266,6 @@ body {
   position: relative;
   z-index: 1001;
 }
-
 .menu-toggle span {
   height: 2px;
   width: 100%;
@@ -274,7 +276,6 @@ body {
 .menu-toggle:hover span {
   background: var(--accent);
 }
-
 .menu-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 5px); }
 .menu-toggle.active span:nth-child(2) { opacity: 0; }
 .menu-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -5px); }
@@ -333,7 +334,6 @@ body {
   transition: box-shadow var(--transition-slow), transform var(--transition-slow), border-color var(--transition);
   animation: scaleIn 0.5s ease-out;
 }
-
 .card:hover {
   box-shadow: var(--shadow-lg);
   transform: translateY(-8px) scale(1.01);
@@ -357,12 +357,10 @@ body {
   transform: scale(1.1);
   box-shadow: 0 0 0 4px rgba(51,51,51,0.1);
 }
-
 .avatar.small {
   width: 32px;
   height: 32px;
 }
-
 .avatar.large {
   width: 80px;
   height: 80px;
@@ -396,7 +394,6 @@ body {
   position: relative;
   overflow: hidden;
 }
-
 .btn::after {
   content: '';
   position: absolute;
@@ -410,16 +407,13 @@ body {
   transform: scale(1, 1) translate(-50%);
   transform-origin: 50% 50%;
 }
-
 .btn:active::after {
   animation: ripple 0.4s ease-out;
 }
-
 @keyframes ripple {
   0% { transform: scale(0, 0); opacity: 0.5; }
   100% { transform: scale(24, 24); opacity: 0; }
 }
-
 .btn:hover, .btn.focused {
   background: var(--accent);
   color: white;
@@ -427,19 +421,16 @@ body {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 8px 22px rgba(51,51,51,0.25);
 }
-
 .btn-primary {
   background: var(--accent);
   color: white;
   border-color: var(--accent);
 }
-
 .btn-primary:hover, .btn-primary.focused {
   background: var(--accent-hover);
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 8px 24px rgba(51,51,51,0.3);
 }
-
 .btn-danger {
   background: var(--danger);
   color: white;
@@ -450,11 +441,9 @@ body {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 6px 20px rgba(51,51,51,0.25);
 }
-
 .btn-icon {
   padding: 10px;
 }
-
 .btn-follow {
   background: transparent;
   border: 1px solid var(--accent);
@@ -487,7 +476,6 @@ body {
   outline: none;
   transition: border-color var(--transition), box-shadow var(--transition), transform 0.2s;
 }
-
 .input:focus, .input.focused {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px rgba(51,51,51,0.15);
@@ -669,7 +657,6 @@ body {
   border-top: 1px solid var(--border);
   align-items: center;
 }
-
 .post-footer button {
   background: none;
   border: none;
@@ -682,12 +669,10 @@ body {
   transition: color 0.25s, transform 0.25s;
   font-size: 0.9rem;
 }
-
 .post-footer button:hover, .post-footer button.focused {
   color: var(--accent);
   transform: scale(1.15);
 }
-
 .post-footer button.liked {
   color: var(--danger);
 }
@@ -695,12 +680,28 @@ body {
   fill: var(--danger);
   animation: pulse-soft 0.6s;
 }
-
 .post-footer button.saved {
   color: var(--accent);
 }
 .post-footer button.saved svg {
   fill: var(--accent);
+}
+
+/* Спеціальні класи для лайка та збереження (анімовані) */
+.like-btn {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.like-btn.active {
+  color: #ff2d55;
+  animation: likePop 0.3s ease;
+}
+
+.bookmark-btn {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.bookmark-btn.active {
+  color: #007bff;
+  transform: scale(1.2);
 }
 
 .view-count {
@@ -748,7 +749,6 @@ body {
   margin-bottom: 12px;
   animation: slideIn 0.4s ease-out;
 }
-
 .comment-avatar {
   width: 32px;
   height: 32px;
@@ -762,7 +762,6 @@ body {
   transform: scale(1.15);
   box-shadow: 0 0 0 3px var(--accent-light);
 }
-
 .comment-content {
   flex: 1;
   background: var(--surface);
@@ -774,7 +773,6 @@ body {
   transform: translateX(6px);
   background: var(--card);
 }
-
 .comment-author {
   font-weight: 600;
   font-size: 0.9rem;
@@ -786,25 +784,21 @@ body {
 .comment-author:hover {
   color: var(--accent);
 }
-
 .comment-text {
   font-size: 0.95rem;
   word-break: break-word;
 }
-
 .comment-time {
   font-size: 0.75rem;
   color: var(--text-tertiary);
   margin-top: 4px;
 }
-
 .comment-form {
   display: flex;
   gap: 8px;
   margin-top: 16px;
   align-items: center;
 }
-
 .comment-input {
   flex: 1;
   padding: 10px 14px;
@@ -819,7 +813,7 @@ body {
   box-shadow: 0 0 0 4px rgba(51,51,51,0.1);
 }
 
-/* ========== ЕМОДЖІ-ПІКЕР (оновлено) ========== */
+/* ========== ЕМОДЖІ-ПІКЕР (оновлений) ========== */
 .emoji-picker-container {
   position: relative;
   display: inline-block;
@@ -839,43 +833,44 @@ body {
 }
 
 .emoji-picker {
-  position: absolute;
-  bottom: 100%;
-  right: 0;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 6px;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);  /* 6 колонок */
-  gap: 4px;
-  z-index: 100;
-  box-shadow: var(--shadow-lg);
-  width: 200px;                           /* зменшено */
-  max-height: 160px;                       /* зменшено */
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 360px;
+  max-height: 180px;
   overflow-y: auto;
-  margin-bottom: 8px;
-  animation: scaleIn 0.3s ease-out;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 8px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+  z-index: 999;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.dark .emoji-picker {
+  background: var(--card);
+  color: var(--text-primary);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.5);
 }
 
-.emoji-picker button {
-  font-size: 1.1rem;                       /* зменшено */
+.emoji-picker button,
+.emoji-picker span {
+  font-size: 18px;
+  margin: 4px;
   cursor: pointer;
-  text-align: center;
-  padding: 4px 2px;
-  border-radius: var(--radius-sm);
-  transition: transform 0.15s, background 0.15s;
-  line-height: 1;
-  border: none;
+  transition: transform 0.15s ease;
   background: transparent;
-  color: inherit;
-  font-family: system-ui, -apple-system, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+  border: none;
+  padding: 4px;
+  text-align: center;
+  line-height: 1;
 }
-
 .emoji-picker button:hover,
-.emoji-picker button.focused {
-  background: var(--surface);
-  transform: scale(1.15);                  /* менше масштабування */
+.emoji-picker span:hover {
+  transform: scale(1.2);
 }
 
 /* ========== ЧАТИ ========== */
@@ -884,7 +879,6 @@ body {
   flex-direction: column;
   gap: 8px;
 }
-
 .chat-item {
   display: flex;
   align-items: center;
@@ -897,29 +891,24 @@ body {
   transition: all 0.25s;
   animation: slideIn 0.4s ease-out;
 }
-
 .chat-item:hover, .chat-item.focused {
   background: var(--surface);
   transform: translateX(8px) scale(1.02);
   border-color: var(--accent);
   box-shadow: var(--shadow-sm);
 }
-
 .chat-item.unread {
   border-left: 3px solid var(--accent);
 }
-
 .chat-info {
   flex: 1;
 }
-
 .chat-name {
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 6px;
 }
-
 .chat-last {
   color: var(--text-tertiary);
   font-size: 0.9rem;
@@ -927,12 +916,10 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .chat-time {
   color: var(--text-tertiary);
   font-size: 0.8rem;
 }
-
 .chat-badge {
   background: var(--accent);
   color: white;
@@ -946,7 +933,6 @@ body {
   font-weight: 600;
   animation: pulse-soft 1.8s infinite;
 }
-
 .chat-window {
   display: flex;
   flex-direction: column;
@@ -957,7 +943,6 @@ body {
   overflow: hidden;
   animation: scaleIn 0.4s ease-out;
 }
-
 .chat-header {
   padding: 16px;
   border-bottom: 1px solid var(--border);
@@ -965,7 +950,6 @@ body {
   align-items: center;
   gap: 12px;
 }
-
 .chat-messages {
   flex: 1;
   padding: 16px;
@@ -974,21 +958,17 @@ body {
   flex-direction: column;
   gap: 12px;
 }
-
 .message-wrapper {
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.4s ease-out;
 }
-
 .message-wrapper.sent {
   align-items: flex-end;
 }
-
 .message-wrapper.received {
   align-items: flex-start;
 }
-
 .message-bubble {
   max-width: 70%;
   padding: 10px 14px;
@@ -1001,19 +981,16 @@ body {
   transform: scale(1.03);
   box-shadow: var(--shadow-sm);
 }
-
 .message-bubble.sent {
   background: var(--accent);
   color: white;
   border-bottom-right-radius: 4px;
 }
-
 .message-bubble.received {
   background: var(--surface);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
-
 .message-sender {
   font-weight: 600;
   font-size: 0.85rem;
@@ -1023,7 +1000,6 @@ body {
   align-items: center;
   gap: 6px;
 }
-
 .message-sender-avatar {
   width: 20px;
   height: 20px;
@@ -1034,14 +1010,12 @@ body {
 .message-sender-avatar:hover {
   transform: scale(1.3);
 }
-
 .message-time {
   font-size: 0.7rem;
   color: var(--text-tertiary);
   margin-top: 2px;
   text-align: right;
 }
-
 .date-divider {
   text-align: center;
   margin: 16px 0;
@@ -1049,7 +1023,6 @@ body {
   color: var(--text-tertiary);
   position: relative;
 }
-
 .date-divider::before,
 .date-divider::after {
   content: '';
@@ -1059,15 +1032,12 @@ body {
   height: 1px;
   background: var(--border);
 }
-
 .date-divider::before {
   left: 0;
 }
-
 .date-divider::after {
   right: 0;
 }
-
 .typing-indicator {
   color: var(--text-tertiary);
   font-size: 0.9rem;
@@ -1078,7 +1048,6 @@ body {
   gap: 4px;
   animation: pulse-soft 1.5s infinite;
 }
-
 .chat-input-area {
   display: flex;
   padding: 12px;
@@ -1086,7 +1055,6 @@ body {
   gap: 8px;
   align-items: center;
 }
-
 .chat-input-area input {
   flex: 1;
 }
@@ -1099,7 +1067,6 @@ body {
   flex-wrap: wrap;
   align-items: flex-start;
 }
-
 .profile-stats {
   display: flex;
   gap: 24px;
@@ -1116,7 +1083,6 @@ body {
   transform: translateY(-4px) scale(1.05);
   color: var(--accent);
 }
-
 .profile-tabs {
   display: flex;
   gap: 8px;
@@ -1124,7 +1090,6 @@ body {
   padding-bottom: 8px;
   margin-bottom: 20px;
 }
-
 .profile-tab {
   padding: 8px 16px;
   border-radius: var(--radius-md);
@@ -1143,13 +1108,11 @@ body {
   box-shadow: var(--shadow-sm);
   animation: gentleGlow 2.2s infinite;
 }
-
 .profile-menu {
   position: relative;
   display: inline-block;
   margin-left: auto;
 }
-
 .profile-menu-btn {
   background: none;
   border: none;
@@ -1163,7 +1126,6 @@ body {
   transform: rotate(90deg) scale(1.1);
   color: var(--accent);
 }
-
 .profile-menu-dropdown {
   position: absolute;
   right: 0;
@@ -1177,11 +1139,9 @@ body {
   display: none;
   animation: scaleIn 0.3s ease-out;
 }
-
 .profile-menu-dropdown.show {
   display: block;
 }
-
 .profile-menu-item {
   padding: 12px 16px;
   cursor: pointer;
@@ -1190,7 +1150,6 @@ body {
   align-items: center;
   gap: 8px;
 }
-
 .profile-menu-item:hover {
   background: var(--surface);
   transform: translateX(8px);
@@ -1239,11 +1198,9 @@ body {
   z-index: 2000;
   animation: fadeIn 0.4s ease-out;
 }
-
 .modal.active {
   display: flex;
 }
-
 .modal-content {
   background: var(--card);
   border-radius: var(--radius-lg);
@@ -1255,14 +1212,12 @@ body {
   animation: scaleIn 0.4s ease-out;
   box-shadow: var(--shadow-lg);
 }
-
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
-
 .modal-close {
   font-size: 2rem;
   line-height: 1;
@@ -1318,7 +1273,6 @@ body {
   transition: outline 0.1s ease;
 }
 
-/* Для пристроїв без ховера (сенсорні екрани, TV) – мінімізуємо hover-ефекти */
 @media (hover: none) {
   .nav-item:hover,
   .card:hover,
@@ -1330,7 +1284,6 @@ body {
     box-shadow: none !important;
     background: inherit !important;
   }
-  /* Активний стан залишається */
   .nav-item.active,
   .btn:active {
     background: var(--accent);
@@ -1344,7 +1297,6 @@ body {
   50% { transform: translateY(-8px); }
   100% { transform: translateY(0px); }
 }
-
 .float-animation {
   animation: float 4.5s ease-in-out infinite;
 }
@@ -1354,16 +1306,14 @@ body {
   50% { box-shadow: 0 0 26px var(--accent); }
   100% { box-shadow: 0 0 6px var(--accent); }
 }
-
 .glow-animation {
   animation: glow 2.5s ease-in-out infinite;
 }
 
-/* ========== ФІЛЬТРИ (стилі для випадаючого списку) ========== */
+/* ========== ФІЛЬТРИ ========== */
 .btn-filter {
   margin-left: auto;
 }
-
 .filter-dropdown {
   position: absolute;
   background: var(--card);
@@ -1378,14 +1328,12 @@ body {
   top: 60px;
   box-shadow: var(--shadow-lg);
 }
-
 .filter-item {
   padding: 8px;
   cursor: pointer;
   border-radius: var(--radius-sm);
   transition: background 0.2s;
 }
-
 .filter-item:hover {
   background: var(--surface);
 }
