@@ -43,6 +43,9 @@ let hasMore = true;
 
 const viewedPosts = new Set();
 
+// ================= НОВА ЗМІННА ДЛЯ ФІЛЬТРА =================
+let currentFilterHashtag = null; // поточний вибраний хештег для фільтра
+
 // ================= Допоміжні функції =================
 const showToast = (msg) => {
   const toast = document.getElementById('toast');
@@ -351,6 +354,64 @@ function searchHashtag(tag) {
     document.querySelector('[data-section="search"]').click();
     loadSearchUsers();
   }
+}
+
+// ================= НОВІ ФУНКЦІЇ ДЛЯ ФІЛЬТРІВ =================
+async function loadFilterHashtags() {
+  const list = document.getElementById('filterList');
+  if (!list) return;
+  list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
+
+  try {
+    const postsSnap = await getDocs(collection(db, "posts"));
+    const tagCount = new Map();
+    postsSnap.forEach(doc => {
+      const tags = doc.data().hashtags || [];
+      tags.forEach(tag => {
+        tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
+      });
+    });
+
+    const sortedTags = Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 30);
+    
+    list.innerHTML = '';
+    if (sortedTags.length === 0) {
+      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає хештегів</p>';
+      return;
+    }
+
+    sortedTags.forEach(([tag, count]) => {
+      const div = document.createElement('div');
+      div.className = 'filter-item';
+      div.tabIndex = 0;
+      div.innerHTML = `
+        <span class="tag">#${tag}</span>
+        <span class="count">${count} постів</span>
+      `;
+      div.onclick = () => applyFilter(tag);
+      list.appendChild(div);
+    });
+  } catch (e) {
+    console.error('Error loading filter hashtags:', e);
+    list.innerHTML = '<p style="text-align:center; padding:20px;">Помилка завантаження</p>';
+  }
+}
+
+function applyFilter(tag) {
+  currentFilterHashtag = tag;
+  document.getElementById('filterModal').classList.remove('active');
+  
+  const activeDiv = document.getElementById('activeFilter');
+  activeDiv.innerHTML = `#${tag} <button id="clearFilterChip">✕</button>`;
+  document.getElementById('clearFilterChip').onclick = clearFilter;
+  
+  resetPagination();
+}
+
+function clearFilter() {
+  currentFilterHashtag = null;
+  document.getElementById('activeFilter').innerHTML = '';
+  resetPagination();
 }
 
 // ================= АВТОРИЗАЦІЯ =================
@@ -662,7 +723,8 @@ document.getElementById('addPost').onclick = async () => {
       commentsCount: 0,
       saves: [],
       views: 0,
-      hashtags: hashtags
+      hashtags: hashtags,
+      popularity: 0  // НОВЕ ПОЛЕ
     });
     await updateDoc(doc(db, "users", currentUser.uid), { posts: arrayUnion(postDoc.id) });
     document.getElementById('postText').value = '';
@@ -673,6 +735,7 @@ document.getElementById('addPost').onclick = async () => {
   } catch (e) { showToast(e.message); }
 };
 
+// ================= ОНОВЛЕНА ФУНКЦІЯ ЗАВАНТАЖЕННЯ ПОСТІВ (З УРАХУВАННЯМ ФІЛЬТРА) =================
 async function loadMorePosts() {
   if (!currentUser || loading || !hasMore) return;
   loading = true;
@@ -680,11 +743,19 @@ async function loadMorePosts() {
   if (skeleton) skeleton.style.display = 'block';
   
   try {
+    let baseQuery;
+    // Якщо є активний фільтр, додаємо where за хештегом
+    if (currentFilterHashtag) {
+      baseQuery = query(collection(db, "posts"), where("hashtags", "array-contains", currentFilterHashtag));
+    } else {
+      baseQuery = collection(db, "posts");
+    }
+
     let q;
     if (currentFeedType === 'new') {
-      q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10));
+      q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
     } else {
-      q = query(collection(db, "posts"), orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
+      q = query(baseQuery, orderBy("popularity", "desc"), orderBy("createdAt", "desc"), limit(10));
     }
     if (lastVisible) q = query(q, startAfter(lastVisible));
     
@@ -725,6 +796,7 @@ async function loadComments(postId, container) {
   });
 }
 
+// ================= ОНОВЛЕНА ФУНКЦІЯ ДОДАВАННЯ КОМЕНТАРЯ (збільшує popularity) =================
 async function addComment(postId, text) {
   if (!currentUser || !text.trim()) return;
   const userSnap = await getDoc(doc(db, "users", currentUser.uid));
@@ -737,15 +809,22 @@ async function addComment(postId, text) {
     text: text.trim(),
     createdAt: serverTimestamp()
   });
-  await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
+  await updateDoc(doc(db, "posts", postId), { 
+    commentsCount: increment(1),
+    popularity: increment(2)   // вага коментаря
+  });
 }
 
+// ================= ОНОВЛЕНА ФУНКЦІЯ ПЕРЕГЛЯДУ (збільшує popularity) =================
 async function incrementPostView(postId) {
   if (!currentUser) return;
   if (viewedPosts.has(postId)) return;
   viewedPosts.add(postId);
   try {
-    await updateDoc(doc(db, "posts", postId), { views: increment(1) });
+    await updateDoc(doc(db, "posts", postId), { 
+      views: increment(1),
+      popularity: increment(1)   // вага перегляду
+    });
   } catch (e) {
     console.warn("Не вдалося оновити перегляди:", e);
   }
@@ -1847,6 +1926,7 @@ if (sentinel) {
   observer.observe(sentinel);
 }
 
+// ================= ОНОВЛЕНИЙ ГЛОБАЛЬНИЙ ОБРОБНИК КЛІКІВ (ЛАЙКИ ТА ІНШЕ) =================
 document.addEventListener('click', async (e) => {
   if (!currentUser) return;
   const target = e.target.closest('button');
@@ -1862,10 +1942,18 @@ document.addEventListener('click', async (e) => {
     try {
       const postRef = doc(db, "posts", postId);
       if (liked) {
-        await updateDoc(postRef, { likes: arrayRemove(currentUser.uid), likesCount: increment(-1) });
+        await updateDoc(postRef, { 
+          likes: arrayRemove(currentUser.uid), 
+          likesCount: increment(-1),
+          popularity: increment(-3)   // вага лайка
+        });
         await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayRemove(postId) });
       } else {
-        await updateDoc(postRef, { likes: arrayUnion(currentUser.uid), likesCount: increment(1) });
+        await updateDoc(postRef, { 
+          likes: arrayUnion(currentUser.uid), 
+          likesCount: increment(1),
+          popularity: increment(3)    // вага лайка
+        });
         await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayUnion(postId) });
         vibrate(30);
       }
@@ -1900,3 +1988,15 @@ document.addEventListener('click', (e) => {
     viewProfile(uid);
   }
 });
+
+// ================= НОВІ ОБРОБНИКИ ДЛЯ ФІЛЬТРІВ =================
+document.getElementById('filterBtn').onclick = async () => {
+  await loadFilterHashtags();
+  document.getElementById('filterModal').classList.add('active');
+};
+
+document.getElementById('closeFilterModal').onclick = () => {
+  document.getElementById('filterModal').classList.remove('active');
+};
+
+document.getElementById('clearFilterBtn').onclick = clearFilter;
