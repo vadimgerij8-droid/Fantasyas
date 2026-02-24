@@ -46,6 +46,9 @@ const viewedPosts = new Set();
 // ================= НОВА ЗМІННА ДЛЯ ФІЛЬТРА =================
 let currentFilterHashtag = null;
 
+// ================= НОВА ЗМІННА ДЛЯ РЕАЛЬНОГО ЧАСУ (ЛАЙКИ) =================
+const postListeners = new Map(); // postId -> unsubscribe function
+
 // ================= Допоміжні функції =================
 const showToast = (msg) => {
   const toast = document.getElementById('toast');
@@ -68,6 +71,13 @@ const updateUnreadBadge = () => {
   }
 };
 
+const clearMainFeedListeners = () => {
+  postListeners.forEach((unsubscribe, postId) => {
+    unsubscribe();
+  });
+  postListeners.clear();
+};
+
 const cleanupListeners = () => {
   if (unsubscribeFeed) { unsubscribeFeed(); unsubscribeFeed = null; }
   if (unsubscribeChat) { unsubscribeChat(); unsubscribeChat = null; }
@@ -76,6 +86,7 @@ const cleanupListeners = () => {
   if (unsubscribeOnlineStatus) { unsubscribeOnlineStatus(); unsubscribeOnlineStatus = null; }
   if (unsubscribeFollowing) { unsubscribeFollowing(); unsubscribeFollowing = null; }
   if (lastOnlineInterval) { clearInterval(lastOnlineInterval); lastOnlineInterval = null; }
+  clearMainFeedListeners(); // додано: відписуємось від усіх постів у стрічці
 };
 
 // ================= Функції для скарг, мюту, блокування =================
@@ -680,7 +691,10 @@ function resetPagination() {
   lastVisible = null;
   hasMore = true;
   const feed = document.getElementById('feed');
-  if (feed) feed.innerHTML = '';
+  if (feed) {
+    clearMainFeedListeners(); // відписуємось від старих постів
+    feed.innerHTML = '';
+  }
   loadMorePosts();
 }
 
@@ -828,6 +842,7 @@ async function incrementPostView(postId) {
   }
 }
 
+// ================= ОНОВЛЕНА ФУНКЦІЯ РЕНДЕРИНГУ ПОСТІВ =================
 function renderPosts(docs, container = null) {
   const feed = container || document.getElementById('feed');
   if (!feed) return;
@@ -966,6 +981,50 @@ function renderPosts(docs, container = null) {
           showToast('Помилка: ' + error.message);
         }
       };
+    }
+
+    // ========== ДОДАЄМО onSnapshot ДЛЯ ПОСТА (тільки для головної стрічки) ==========
+    if (!container || container.id === 'feed') {
+      const postRef = doc(db, "posts", post.id);
+      const unsubscribe = onSnapshot(postRef, (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          // Оновлюємо кнопку лайка
+          const likeBtn = postEl.querySelector('.like-btn');
+          if (likeBtn) {
+            const liked = data.likes?.includes(currentUser?.uid) || false;
+            const countSpan = likeBtn.querySelector('span');
+            if (liked) {
+              likeBtn.classList.add('liked');
+            } else {
+              likeBtn.classList.remove('liked');
+            }
+            if (countSpan) countSpan.textContent = data.likesCount || 0;
+          }
+          // Оновлюємо кнопку збереження
+          const saveBtn = postEl.querySelector('.save-btn');
+          if (saveBtn) {
+            const saved = data.saves?.includes(currentUser?.uid) || false;
+            if (saved) {
+              saveBtn.classList.add('saved');
+            } else {
+              saveBtn.classList.remove('saved');
+            }
+          }
+        } else {
+          // Пост видалено – видаляємо елемент
+          if (postEl.parentNode) postEl.parentNode.removeChild(postEl);
+          // Відписуємось
+          const unsub = postListeners.get(post.id);
+          if (unsub) {
+            unsub();
+            postListeners.delete(post.id);
+          }
+        }
+      }, (error) => {
+        console.error(`Error listening to post ${post.id}:`, error);
+      });
+      postListeners.set(post.id, unsubscribe);
     }
   });
 }
