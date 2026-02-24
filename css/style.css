@@ -687,7 +687,6 @@ body {
   fill: var(--accent);
 }
 
-/* Спеціальні класи для лайка та збереження (анімовані) */
 .like-btn {
   transition: transform 0.2s ease, color 0.2s ease;
 }
@@ -813,19 +812,16 @@ body {
   box-shadow: 0 0 0 4px rgba(51,51,51,0.1);
 }
 
-/* ========== ЕМОДЖІ-ПІКЕР — ПОКРАЩЕНИЙ ДИЗАЙН ========== */
-
-/* Контейнер для кнопки та пікера */
+/* ========== ЕМОДЖІ-ПІКЕР ========== */
 .emoji-picker-container {
   position: relative;
   display: inline-block;
 }
 
-/* Кнопка виклику емодзі */
 .emoji-button {
   background: none;
   border: none;
-  font-size: 1.8rem; /* більший розмір */
+  font-size: 1.8rem;
   cursor: pointer;
   padding: 12px;
   color: var(--text-secondary);
@@ -839,18 +835,15 @@ body {
   min-width: 52px;
   min-height: 52px;
 }
-
 .emoji-button:hover {
   transform: scale(1.1);
   background: var(--surface);
   color: var(--accent);
 }
-
 .emoji-button:active {
   transform: scale(0.9);
 }
 
-/* Основний блок емодзі */
 .emoji-picker {
   position: fixed;
   left: 50%;
@@ -876,14 +869,12 @@ body {
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border);
 }
-
 .emoji-picker.active {
   opacity: 1;
   pointer-events: auto;
   transform: translateX(-50%) translateY(0);
 }
 
-/* Елементи емодзі (кнопки) */
 .emoji-picker button,
 .emoji-picker .emoji-item {
   font-size: 32px;
@@ -901,28 +892,23 @@ body {
   align-items: center;
   justify-content: center;
 }
-
 .emoji-picker button:hover {
   transform: scale(1.25);
   background: var(--surface);
 }
-
 .emoji-picker button:active {
   transform: scale(0.9);
   background: var(--border);
 }
 
-/* Темна тема */
 body.dark .emoji-picker {
   background: #2a2a2a;
   border-color: #444;
 }
-
 body.dark .emoji-picker button:hover {
   background: #3a3a3a;
 }
 
-/* Адаптація для дуже маленьких екранів */
 @media (max-width: 400px) {
   .emoji-picker {
     grid-template-columns: repeat(5, 1fr);
@@ -938,7 +924,6 @@ body.dark .emoji-picker button:hover {
   }
 }
 
-/* Для планшетів і більше */
 @media (min-width: 768px) {
   .emoji-picker {
     max-width: 450px;
@@ -947,7 +932,6 @@ body.dark .emoji-picker button:hover {
   }
 }
 
-/* Для великих екранів можна переключити на absolute відносно контейнера */
 @media (min-width: 1024px) {
   .emoji-picker-container {
     position: relative;
@@ -1404,7 +1388,7 @@ body.dark .emoji-picker button:hover {
   animation: glow 2.5s ease-in-out infinite;
 }
 
-/* ========== ФІЛЬТРИ КОНТЕНТУ (НОВІ СТИЛІ) ========== */
+/* ========== ФІЛЬТРИ КОНТЕНТУ ========== */
 .feed-header {
   display: flex;
   gap: 10px;
