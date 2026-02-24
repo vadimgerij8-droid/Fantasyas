@@ -745,11 +745,18 @@ async function loadMorePosts() {
     }
 
     let q;
-    if (currentFeedType === 'new') {
+    if (currentFeedType === 'new' || currentFilterHashtag) {
+      // Нове або будь-який фільтр → за датою
       q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
     } else {
-      q = query(baseQuery, orderBy("popularity", "desc"), orderBy("createdAt", "desc"), limit(10));
+      // Популярні БЕЗ фільтра → спочатку за кількістю лайків
+      q = query(baseQuery, 
+        orderBy("likesCount", "desc"), 
+        orderBy("createdAt", "desc"), 
+        limit(10)
+      );
     }
+    
     if (lastVisible) q = query(q, startAfter(lastVisible));
     
     const snapshot = await getDocs(q);
@@ -803,7 +810,7 @@ async function addComment(postId, text) {
   });
   await updateDoc(doc(db, "posts", postId), { 
     commentsCount: increment(1),
-    popularity: increment(2)
+    popularity: increment(40)   // було +2 → тепер +40
   });
 }
 
@@ -814,7 +821,7 @@ async function incrementPostView(postId) {
   try {
     await updateDoc(doc(db, "posts", postId), { 
       views: increment(1),
-      popularity: increment(1)
+      popularity: increment(5)   // було +1 → тепер +5
     });
   } catch (e) {
     console.warn("Не вдалося оновити перегляди:", e);
@@ -1936,14 +1943,14 @@ document.addEventListener('click', async (e) => {
         await updateDoc(postRef, { 
           likes: arrayRemove(currentUser.uid), 
           likesCount: increment(-1),
-          popularity: increment(-3)
+          popularity: increment(-20)   // було -3 → тепер -20
         });
         await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayRemove(postId) });
       } else {
         await updateDoc(postRef, { 
           likes: arrayUnion(currentUser.uid), 
           likesCount: increment(1),
-          popularity: increment(3)
+          popularity: increment(20)    // було +3 → тепер +20
         });
         await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayUnion(postId) });
         vibrate(30);
