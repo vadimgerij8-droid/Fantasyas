@@ -44,7 +44,7 @@ let hasMore = true;
 const viewedPosts = new Set();
 
 // ================= НОВА ЗМІННА ДЛЯ ФІЛЬТРА =================
-let currentFilterHashtag = null; // поточний вибраний хештег для фільтра
+let currentFilterHashtag = null;
 
 // ================= Допоміжні функції =================
 const showToast = (msg) => {
@@ -218,7 +218,7 @@ backdrop.addEventListener('click', closeSidebar);
 const emojiList = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
 
 function closeAllEmojiPickers() {
-  document.querySelectorAll('.emoji-picker').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.emoji-picker').forEach(p => p.classList.remove('active'));
 }
 
 function setupEmojiPicker(buttonId, pickerId, inputId) {
@@ -229,17 +229,11 @@ function setupEmojiPicker(buttonId, pickerId, inputId) {
   
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
+    const isActive = picker.classList.contains('active');
     closeAllEmojiPickers();
-    
-    const rect = btn.getBoundingClientRect();
-    const spaceAbove = rect.top;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    picker.style.bottom = spaceAbove > 280 ? '100%' : 'auto';
-    picker.style.top = spaceBelow > 280 ? 'auto' : '100%';
-    picker.style.left = 'auto';
-    picker.style.right = '0';
-    
-    picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
+    if (!isActive) {
+      picker.classList.add('active');
+    }
   });
   
   picker.innerHTML = '';
@@ -256,14 +250,14 @@ function setupEmojiPicker(buttonId, pickerId, inputId) {
       input.value = text.substring(0, start) + emoji + text.substring(end);
       input.focus();
       input.selectionStart = input.selectionEnd = start + emoji.length;
-      picker.style.display = 'none';
+      picker.classList.remove('active');
     });
     picker.appendChild(button);
   });
   
   document.addEventListener('click', (e) => {
     if (!picker.contains(e.target) && e.target !== btn) {
-      picker.style.display = 'none';
+      picker.classList.remove('active');
     }
   });
 }
@@ -724,7 +718,7 @@ document.getElementById('addPost').onclick = async () => {
       saves: [],
       views: 0,
       hashtags: hashtags,
-      popularity: 0  // НОВЕ ПОЛЕ
+      popularity: 0
     });
     await updateDoc(doc(db, "users", currentUser.uid), { posts: arrayUnion(postDoc.id) });
     document.getElementById('postText').value = '';
@@ -735,7 +729,7 @@ document.getElementById('addPost').onclick = async () => {
   } catch (e) { showToast(e.message); }
 };
 
-// ================= ОНОВЛЕНА ФУНКЦІЯ ЗАВАНТАЖЕННЯ ПОСТІВ (З УРАХУВАННЯМ ФІЛЬТРА) =================
+// ================= ОНОВЛЕНА ФУНКЦІЯ ЗАВАНТАЖЕННЯ ПОСТІВ =================
 async function loadMorePosts() {
   if (!currentUser || loading || !hasMore) return;
   loading = true;
@@ -744,7 +738,6 @@ async function loadMorePosts() {
   
   try {
     let baseQuery;
-    // Якщо є активний фільтр, додаємо where за хештегом
     if (currentFilterHashtag) {
       baseQuery = query(collection(db, "posts"), where("hashtags", "array-contains", currentFilterHashtag));
     } else {
@@ -796,7 +789,6 @@ async function loadComments(postId, container) {
   });
 }
 
-// ================= ОНОВЛЕНА ФУНКЦІЯ ДОДАВАННЯ КОМЕНТАРЯ (збільшує popularity) =================
 async function addComment(postId, text) {
   if (!currentUser || !text.trim()) return;
   const userSnap = await getDoc(doc(db, "users", currentUser.uid));
@@ -811,11 +803,10 @@ async function addComment(postId, text) {
   });
   await updateDoc(doc(db, "posts", postId), { 
     commentsCount: increment(1),
-    popularity: increment(2)   // вага коментаря
+    popularity: increment(2)
   });
 }
 
-// ================= ОНОВЛЕНА ФУНКЦІЯ ПЕРЕГЛЯДУ (збільшує popularity) =================
 async function incrementPostView(postId) {
   if (!currentUser) return;
   if (viewedPosts.has(postId)) return;
@@ -823,7 +814,7 @@ async function incrementPostView(postId) {
   try {
     await updateDoc(doc(db, "posts", postId), { 
       views: increment(1),
-      popularity: increment(1)   // вага перегляду
+      popularity: increment(1)
     });
   } catch (e) {
     console.warn("Не вдалося оновити перегляди:", e);
@@ -900,7 +891,7 @@ function renderPosts(docs, container = null) {
           <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Напишіть коментар..." tabindex="0">
           <div class="emoji-picker-container" style="position: relative;">
             <button class="emoji-button" id="comment-emoji-${post.id}" tabindex="0">😊</button>
-            <div class="emoji-picker" id="comment-picker-${post.id}" style="display: none; bottom: 100%; right: 0; position: absolute;"></div>
+            <div class="emoji-picker" id="comment-picker-${post.id}"></div>
           </div>
           <button class="btn btn-primary btn-icon" id="submit-comment-${post.id}" tabindex="0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -1926,7 +1917,7 @@ if (sentinel) {
   observer.observe(sentinel);
 }
 
-// ================= ОНОВЛЕНИЙ ГЛОБАЛЬНИЙ ОБРОБНИК КЛІКІВ (ЛАЙКИ ТА ІНШЕ) =================
+// ================= ГЛОБАЛЬНИЙ ОБРОБНИК КЛІКІВ =================
 document.addEventListener('click', async (e) => {
   if (!currentUser) return;
   const target = e.target.closest('button');
@@ -1945,14 +1936,14 @@ document.addEventListener('click', async (e) => {
         await updateDoc(postRef, { 
           likes: arrayRemove(currentUser.uid), 
           likesCount: increment(-1),
-          popularity: increment(-3)   // вага лайка
+          popularity: increment(-3)
         });
         await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayRemove(postId) });
       } else {
         await updateDoc(postRef, { 
           likes: arrayUnion(currentUser.uid), 
           likesCount: increment(1),
-          popularity: increment(3)    // вага лайка
+          popularity: increment(3)
         });
         await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayUnion(postId) });
         vibrate(30);
