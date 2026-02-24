@@ -79,7 +79,7 @@
             <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;" tabindex="0"></textarea>
             <div class="emoji-picker-container">
               <button class="emoji-button" id="postEmojiBtn" tabindex="0">😊</button>
-              <div class="emoji-picker" id="postEmojiPicker" style="display: none;"></div>
+              <div class="emoji-picker" id="postEmojiPicker"></div>
             </div>
           </div>
           
@@ -150,7 +150,7 @@
             <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." tabindex="0"/>
             <div class="emoji-picker-container">
               <button class="emoji-button" id="chatEmojiBtn" tabindex="0">😊</button>
-              <div class="emoji-picker" id="chatEmojiPicker" style="display: none;"></div>
+              <div class="emoji-picker" id="chatEmojiPicker"></div>
             </div>
             <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -297,7 +297,7 @@
   <div class="modal-content">
     <div class="modal-header">
       <h3>Оберіть тему</h3>
-      <button class="close-modal" id="closeFilterModal">&times;</button>
+      <span class="modal-close" id="closeFilterModal">&times;</span>
     </div>
     <div class="modal-body" id="filterList" style="max-height: 400px; overflow-y: auto;"></div>
     <div class="modal-footer">
