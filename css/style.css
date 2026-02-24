@@ -9,53 +9,47 @@
 
 :root {
   --bg: #ffffff;
-  --surface: #f5f5f5;
+  --surface: #f8f9fa;
   --card: #ffffff;
-  --border: #e0e0e0;
-  --text-primary: #212121;
-  --text-secondary: #424242;
-  --text-tertiary: #757575;
-  --accent: #333333;
-  --accent-hover: #555555;
-  --accent-light: #bdbdbd;
-  --danger: #9e9e9e;
-  --danger-hover: #7a7a7a;
-  --warning: #bdbdbd;
-  --success: #757575;
-  --like: #e91e63;           /* рожевий для лайка */
-  --bookmark: #9c27b0;       /* фіолетовий для збереження */
-  --shadow-sm: 0 3px 14px rgba(0,0,0,0.05);
-  --shadow-md: 0 8px 32px rgba(0,0,0,0.07);
-  --shadow-lg: 0 16px 52px rgba(0,0,0,0.10);
-  --transition: 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
-  --transition-slow: 0.62s cubic-bezier(0.16, 1, 0.3, 1);
-  --radius-sm: 14px;
-  --radius-md: 22px;
-  --radius-lg: 30px;
-  --sidebar-width: 280px;
-  --header-height: 64px;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-light: #bfdbfe;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --warning: #f59e0b;
+  --success: #10b981;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 6px 20px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 36px rgba(0,0,0,0.10);
+  --transition: 0.24s cubic-bezier(0.22, 0.61, 0.36, 1);
+  --transition-slow: 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
 }
 
 body.dark {
-  --bg: #121212;
-  --surface: #1e1e1e;
-  --card: #2d2d2d;
-  --border: #424242;
-  --text-primary: #ffffff;
-  --text-secondary: #e0e0e0;
-  --text-tertiary: #bdbdbd;
-  --accent: #cccccc;
-  --accent-hover: #ffffff;
-  --accent-light: #aaaaaa;
-  --danger: #b0b0b0;
-  --danger-hover: #8a8a8a;
-  --warning: #bdbdbd;
-  --success: #9e9e9e;
-  --like: #f06292;           /* світліший рожевий для темної теми */
-  --bookmark: #ba68c8;       /* світліший фіолет для темної теми */
-  --shadow-sm: 0 3px 16px rgba(0,0,0,0.50);
-  --shadow-md: 0 8px 36px rgba(0,0,0,0.60);
-  --shadow-lg: 0 16px 60px rgba(0,0,0,0.70);
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --card: #1e293b;
+  --border: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --accent: #60a5fa;
+  --accent-hover: #3b82f6;
+  --accent-light: #1e40af;
+  --danger: #f87171;
+  --danger-hover: #ef4444;
+  --warning: #fbbf24;
+  --success: #34d399;
+  --shadow-sm: 0 3px 12px rgba(0,0,0,0.45);
+  --shadow-md: 0 8px 28px rgba(0,0,0,0.55);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.65);
 }
 
 body {
@@ -65,1419 +59,158 @@ body {
   overflow-x: hidden;
   transition: background var(--transition-slow), color var(--transition-slow);
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 /* ========== АНІМАЦІЇ ========== */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes slideIn {
-  from { transform: translateX(-40px); opacity: 0; filter: blur(4px); }
-  to { transform: translateX(0); opacity: 1; filter: blur(0); }
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.94); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes pulse-soft {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(51,51,51,0.3); }
-  50% { transform: scale(1.03); box-shadow: 0 0 0 16px rgba(51,51,51,0); }
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes shimmer {
-  0% { background-position: -1400px 0; }
-  100% { background-position: 1400px 0; }
-}
-
-@keyframes gentleGlow {
-  0% { box-shadow: 0 0 0 0 var(--accent-light); }
-  70% { box-shadow: 0 0 18px 4px var(--accent); }
-  100% { box-shadow: 0 0 0 0 var(--accent-light); }
-}
-
 @keyframes likePop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.35); }
-  100% { transform: scale(1); }
+  0%   { transform: scale(1) rotate(0deg); }
+  40%  { transform: scale(1.55) rotate(-12deg); }
+  60%  { transform: scale(1.35) rotate(8deg);  }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
-@keyframes heartBeat {
+@keyframes heartbeat {
   0%, 100% { transform: scale(1); }
-  40%  { transform: scale(1.32); }
-  60%  { transform: scale(0.90); }
-  80%  { transform: scale(1.18); }
+  50%      { transform: scale(1.18); }
 }
 
-@keyframes bookmarkBounce {
-  0%, 100% { transform: scale(1) translateY(0); }
-  50%  { transform: scale(1.38) translateY(-5px); }
+@keyframes bookmarkPop {
+  0%   { transform: scale(1) translateY(0); }
+  50%  { transform: scale(1.4) translateY(-4px); }
+  100% { transform: scale(1) translateY(0); }
 }
 
-@keyframes commentPop {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%  { transform: translateY(-6px) scale(1.14); }
-}
-
-/* ========== ФОКУС ========== */
-.focused {
-  outline: none !important;
-  box-shadow: 0 0 0 4px rgba(51,51,51,0.22), 0 0 32px rgba(51,51,51,0.14) !important;
-  transform: scale(1.02);
-  transition: all 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
-  z-index: 100;
-  animation: pulse-soft 2s infinite, gentleGlow 2.5s infinite;
-}
-
-/* ========== САЙДБАР ========== */
-.sidebar-backdrop {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(6px);
-  z-index: 999;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-.sidebar-backdrop.active {
-  display: block;
-  opacity: 1;
-}
-
-.app {
-  display: flex;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.sidebar {
-  width: var(--sidebar-width);
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  padding: 20px 0;
-  overflow-y: auto;
-  transition: transform var(--transition-slow), box-shadow var(--transition-slow);
-  z-index: 1000;
-  animation: slideIn 0.5s ease-out;
-}
-
-.sidebar-header {
-  padding: 0 20px 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.logo {
-  font-size: 1.9rem;
-  font-weight: 800;
-  letter-spacing: -0.6px;
-  color: var(--accent);
-  transition: color var(--transition), transform 0.3s;
-}
-.logo:hover {
-  color: var(--accent-hover);
-  transform: scale(1.02);
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 20px;
-  margin: 4px 8px;
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  transition: all var(--transition);
-  cursor: pointer;
-  font-weight: 500;
-}
-.nav-item:hover {
-  background: var(--card);
-  color: var(--text-primary);
-  transform: translateX(8px) scale(1.02);
-  box-shadow: var(--shadow-sm);
-}
-.nav-item.active {
-  background: var(--accent);
-  color: white;
-  box-shadow: var(--shadow-md);
-  animation: gentleGlow 2.2s infinite;
-}
-.nav-item .icon {
-  width: 24px;
-  height: 24px;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  fill: none;
-  transition: transform 0.25s ease;
-}
-.nav-item:hover .icon {
-  transform: scale(1.15) rotate(2deg);
-}
-.nav-item .badge {
-  margin-left: auto;
-  background: var(--accent-light);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  animation: pulse-soft 2s infinite;
-}
-
-/* ========== ГОЛОВНА ========== */
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg);
-  animation: fadeIn 0.6s ease-out;
-}
-
-.top-bar {
-  height: var(--header-height);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  gap: 16px;
-  position: relative;
-}
-
-.menu-toggle {
-  display: none;
-  width: 28px;
-  height: 20px;
-  flex-direction: column;
-  justify-content: space-between;
-  cursor: pointer;
-  position: relative;
-  z-index: 1001;
-}
-.menu-toggle span {
-  height: 2px;
-  width: 100%;
-  background: var(--text-primary);
-  border-radius: 2px;
-  transition: transform 0.35s ease, opacity 0.25s ease, background 0.25s;
-}
-.menu-toggle:hover span {
-  background: var(--accent);
-}
-.menu-toggle.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 5px); }
-.menu-toggle.active span:nth-child(2) { opacity: 0; }
-.menu-toggle.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -5px); }
-
-.top-bar-title {
-  font-size: 1.45rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent), var(--accent-light));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.content {
-  flex: 1;
-  overflow-y: auto !important;
-  padding: 24px;
-  scroll-behavior: smooth;
-  height: 100%;
-  max-height: 100%;
-  outline: none;
-}
-
-.section {
-  display: none;
-  animation: fadeIn 0.6s ease-out;
-}
-.section.active {
-  display: block;
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    transform: translateX(-100%);
-    box-shadow: var(--shadow-lg);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  .menu-toggle {
-    display: flex;
-  }
-}
-
-/* ========== КАРТКИ ========== */
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-slow), transform var(--transition-slow), border-color var(--transition);
-  animation: scaleIn 0.5s ease-out;
-}
-.card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-8px) scale(1.01);
-  border-color: var(--accent);
-}
-
-/* ========== АВАТАРИ ========== */
-.avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--surface);
-  background-size: cover;
-  background-position: center;
-  border: 2px solid var(--border);
-  cursor: pointer;
-  transition: border-color var(--transition), transform 0.3s ease, box-shadow 0.3s;
-}
-.avatar:hover {
-  border-color: var(--accent);
-  transform: scale(1.1);
-  box-shadow: 0 0 0 4px rgba(51,51,51,0.1);
-}
-.avatar.small {
-  width: 32px;
-  height: 32px;
-}
-.avatar.large {
-  width: 80px;
-  height: 80px;
-}
-
-.online-indicator {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  background: var(--success);
-  border-radius: 50%;
-  border: 2px solid var(--card);
-  margin-left: 8px;
-  animation: pulse-soft 1.8s infinite;
-}
-
-/* ========== КНОПКИ ========== */
-.btn {
-  padding: 10px 18px;
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  position: relative;
-  overflow: hidden;
-}
-.btn::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  background: rgba(51,51,51,0.4);
-  opacity: 0;
-  border-radius: 100%;
-  transform: scale(1, 1) translate(-50%);
-  transform-origin: 50% 50%;
-}
-.btn:active::after {
-  animation: ripple 0.4s ease-out;
-}
-@keyframes ripple {
-  0% { transform: scale(0, 0); opacity: 0.5; }
-  100% { transform: scale(24, 24); opacity: 0; }
-}
-.btn:hover, .btn.focused {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 8px 22px rgba(51,51,51,0.25);
-}
-.btn-primary {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-.btn-primary:hover, .btn-primary.focused {
-  background: var(--accent-hover);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 8px 24px rgba(51,51,51,0.3);
-}
-.btn-danger {
-  background: var(--danger);
-  color: white;
-  border-color: var(--danger);
-}
-.btn-danger:hover {
-  background: var(--danger-hover);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 6px 20px rgba(51,51,51,0.25);
-}
-.btn-icon {
-  padding: 10px;
-}
-.btn-follow {
-  background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  padding: 4px 12px;
-  font-size: 0.85rem;
-  border-radius: 20px;
-  margin-left: 8px;
-  transition: all 0.25s;
-}
-.btn-follow:hover {
-  background: var(--accent);
-  color: white;
-  transform: scale(1.08);
-}
-.btn-follow.following {
-  background: var(--accent);
-  color: white;
-}
-
-/* ========== ПОЛЯ ВВЕДЕННЯ ========== */
-.input {
-  width: 100%;
-  padding: 14px 18px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-primary);
-  font-size: 1rem;
-  outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition), transform 0.2s;
-}
-.input:focus, .input.focused {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(51,51,51,0.15);
-  transform: scale(1.01);
-}
-
-/* ========== ВИБІР ФАЙЛУ ========== */
-.file-input-wrapper {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-}
-.file-input-wrapper input[type="file"] {
-  position: absolute;
-  top: 0;
-  left: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-  z-index: 2;
-}
-.file-input-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px;
-  background: var(--surface);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  transition: all var(--transition);
-}
-.file-input-button:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: scale(1.03);
-  background: var(--card);
-}
-.file-preview {
-  margin-top: 8px;
-  max-width: 100%;
-  max-height: 200px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  display: none;
-  animation: scaleIn 0.4s ease-out;
-}
-.file-preview.show {
-  display: block;
-}
-
-/* ========== СТРІЧКА ПОСТІВ ========== */
-.feed {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.post {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px 16px 12px;
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
-  animation: fadeIn 0.6s ease-out;
-  position: relative;
-}
-.post:hover, .post.focused {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-8px) scale(1.015);
-  border-color: var(--accent);
-}
-
-.post-header {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.post-header .avatar {
-  width: 42px;
-  height: 42px;
-}
-.post-author-info {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-.post-author {
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-block;
-  margin-right: 6px;
-  transition: color 0.25s, transform 0.2s;
-}
-.post-author:hover {
-  color: var(--accent);
-  transform: translateX(3px);
-  text-decoration: underline;
-}
-.post-meta {
-  color: var(--text-tertiary);
-  font-size: 0.85rem;
-}
-.post-time {
-  color: var(--text-tertiary);
-  font-size: 0.75rem;
-  margin-left: auto;
-}
-
-.post-actions {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  display: flex;
-  gap: 8px;
-}
-.post-actions button {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 4px;
-  border-radius: 50%;
-  transition: background 0.25s, transform 0.3s;
-}
-.post-actions button:hover, .post-actions button.focused {
-  background: var(--surface);
-  transform: rotate(90deg) scale(1.1);
-}
-
-.post-content {
-  margin-bottom: 14px;
-  white-space: pre-wrap;
-  font-size: 1rem;
-  line-height: 1.6;
-}
-
-.hashtag {
-  color: var(--accent);
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-block;
-  margin-right: 4px;
-  transition: all 0.25s;
-}
-.hashtag:hover {
-  color: var(--accent-hover);
-  transform: translateY(-3px) scale(1.05);
-}
-
-.post-media {
-  width: 100%;
-  border-radius: var(--radius-md);
-  margin: 10px 0;
-  cursor: pointer;
-  max-height: 500px;
-  object-fit: cover;
-  transition: transform 0.4s ease, box-shadow 0.4s;
-}
-.post-media:hover {
-  transform: scale(1.04);
-  box-shadow: var(--shadow-md);
-}
-
+/* ========== ПОСТ + ФУТЕР ========== */
 .post-footer {
   display: flex;
   gap: 24px;
-  flex-wrap: wrap;
   padding-top: 10px;
   border-top: 1px solid var(--border);
   align-items: center;
 }
 
 .post-footer button {
-  background: none;
+  background: transparent;
   border: none;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--text-secondary);
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.28s ease, transform 0.28s ease;
-  font-size: 0.92rem;
+  transition: all 0.28s ease;
+  font-size: 0.94rem;
+  padding: 6px 10px;
+  border-radius: 12px;
 }
 
-.post-footer button:hover,
-.post-footer button:focus {
-  color: var(--accent);
-  transform: translateY(-2px);
+.post-footer button:hover {
+  background: var(--surface);
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
-/* Лайк – сердечко */
-.like-btn {
-  transition: all 0.32s ease;
-}
-
-.like-btn.liked,
-.like-btn:active {
-  color: var(--like);
-  animation: heartBeat 0.68s ease;
-}
-
-.like-btn.liked svg {
-  fill: var(--like);
-  animation: heartBeat 0.68s ease;
-}
-
-/* Збереження – закладка */
-.bookmark-btn {
-  transition: all 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.bookmark-btn.saved,
-.bookmark-btn:active {
-  color: var(--bookmark);
-  animation: bookmarkBounce 0.58s ease;
-}
-
-.bookmark-btn.saved svg {
-  fill: var(--bookmark);
-}
-
-/* Коментар */
-.comment-btn {
+.post-footer button svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.1;
   transition: all 0.28s ease;
 }
 
-.comment-btn:active,
-.comment-btn:focus {
-  color: var(--accent);
-  animation: commentPop 0.48s ease;
+/* Сердечко – лайк */
+.post-footer button.like-btn.active {
+  color: #ff2d55 !important;
 }
 
-.view-count {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--text-tertiary);
-  font-size: 0.9rem;
-  margin-left: auto;
+.post-footer button.like-btn.active svg {
+  fill: #ff2d55;
+  stroke: #ff2d55;
+  animation: likePop 0.55s ease, heartbeat 1.1s ease-out 0.55s;
 }
 
-.follow-btn-post {
-  background: transparent;
-  border: 1px solid var(--accent);
-  color: var(--accent);
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s;
-  margin-left: 8px;
-}
-.follow-btn-post:hover {
-  background: var(--accent);
-  color: white;
-  transform: scale(1.08);
-}
-.follow-btn-post.following {
-  background: var(--accent);
-  color: white;
+/* Закладка – збереження */
+.post-footer button.bookmark-btn.active {
+  color: #ffaa00 !important;
 }
 
-/* ========== КОМЕНТАРІ ========== */
-.comments-section {
-  margin-top: 16px;
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-  animation: fadeIn 0.5s ease-out;
+.post-footer button.bookmark-btn.active svg {
+  fill: #ffaa00;
+  stroke: #ffaa00;
+  animation: bookmarkPop 0.55s ease;
 }
 
-.comment {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
-  animation: slideIn 0.4s ease-out;
-}
-.comment-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-size: cover;
-  background-position: center;
-  flex-shrink: 0;
-  transition: transform 0.25s, box-shadow 0.25s;
-}
-.comment-avatar:hover {
-  transform: scale(1.15);
-  box-shadow: 0 0 0 3px var(--accent-light);
-}
-.comment-content {
-  flex: 1;
-  background: var(--surface);
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  transition: transform 0.25s, background 0.25s;
-}
-.comment-content:hover {
-  transform: translateX(6px);
-  background: var(--card);
-}
-.comment-author {
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  display: inline-block;
-  margin-right: 8px;
-  transition: color 0.25s;
-}
-.comment-author:hover {
-  color: var(--accent);
-}
-.comment-text {
-  font-size: 0.95rem;
-  word-break: break-word;
-}
-.comment-time {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-  margin-top: 4px;
-}
-.comment-form {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-  align-items: center;
-}
-.comment-input {
-  flex: 1;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface);
+/* ========== КНОПКИ – кращий контраст у темній/світлій ========== */
+.btn, 
+.btn-primary, 
+.btn-icon,
+.file-input-button,
+.input,
+.comment-input,
+.nav-item,
+.post-actions button {
   color: var(--text-primary);
-  transition: border-color 0.25s, box-shadow 0.25s;
-}
-.comment-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(51,51,51,0.1);
-}
-
-/* ========== ЕМОДЖІ-ПІКЕР ========== */
-.emoji-picker-container {
-  position: relative;
-  display: inline-block;
-}
-
-.emoji-button {
-  background: none;
-  border: none;
-  font-size: 1.8rem;
-  cursor: pointer;
-  padding: 12px;
-  color: var(--text-secondary);
-  border-radius: 50%;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s ease, background 0.2s ease, color 0.2s;
-  touch-action: manipulation;
-  min-width: 52px;
-  min-height: 52px;
-}
-.emoji-button:hover {
-  transform: scale(1.1);
   background: var(--surface);
-  color: var(--accent);
-}
-.emoji-button:active {
-  transform: scale(0.9);
-}
-
-.emoji-picker {
-  position: fixed;
-  left: 50%;
-  bottom: max(80px, env(safe-area-inset-bottom) + 20px);
-  transform: translateX(-50%) translateY(20px);
-  width: 92%;
-  max-width: 380px;
-  max-height: 45vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: var(--card);
-  border-radius: 32px;
-  padding: 16px 12px;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-  box-shadow: var(--shadow-lg), 0 10px 30px rgba(0,0,0,0.3);
-  z-index: 2000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--border);
 }
-.emoji-picker.active {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
-}
 
-.emoji-picker button,
-.emoji-picker .emoji-item {
-  font-size: 32px;
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  padding: 10px 4px;
-  border-radius: 24px;
-  transition: transform 0.15s ease, background 0.2s ease;
-  text-align: center;
-  line-height: 1;
-  min-width: 52px;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.emoji-picker button:hover {
-  transform: scale(1.25);
-  background: var(--surface);
-}
-.emoji-picker button:active {
-  transform: scale(0.9);
-  background: var(--border);
-}
-
-body.dark .emoji-picker {
-  background: #2a2a2a;
-  border-color: #444;
-}
-body.dark .emoji-picker button:hover {
-  background: #3a3a3a;
-}
-
-@media (max-width: 400px) {
-  .emoji-picker {
-    grid-template-columns: repeat(5, 1fr);
-    max-width: 300px;
-    max-height: 40vh;
-    bottom: 70px;
-  }
-  .emoji-picker button,
-  .emoji-picker .emoji-item {
-    font-size: 28px;
-    min-width: 48px;
-    min-height: 48px;
-  }
-}
-
-@media (min-width: 768px) {
-  .emoji-picker {
-    max-width: 450px;
-    grid-template-columns: repeat(7, 1fr);
-    bottom: 100px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .emoji-picker-container {
-    position: relative;
-  }
-  .emoji-picker {
-    position: absolute;
-    left: 0;
-    bottom: auto;
-    top: 100%;
-    transform: translateY(10px) scale(0.95);
-    width: 350px;
-    max-width: none;
-    margin-top: 8px;
-  }
-  .emoji-picker.active {
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* ========== ЧАТИ ========== */
-.chat-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.chat-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px;
-  border-radius: var(--radius-md);
-  background: var(--card);
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: all 0.25s;
-  animation: slideIn 0.4s ease-out;
-}
-.chat-item:hover, .chat-item.focused {
-  background: var(--surface);
-  transform: translateX(8px) scale(1.02);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-sm);
-}
-.chat-item.unread {
-  border-left: 3px solid var(--accent);
-}
-.chat-info {
-  flex: 1;
-}
-.chat-name {
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.chat-last {
-  color: var(--text-tertiary);
-  font-size: 0.9rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.chat-time {
-  color: var(--text-tertiary);
-  font-size: 0.8rem;
-}
-.chat-badge {
-  background: var(--accent);
-  color: white;
-  border-radius: 50%;
-  min-width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 600;
-  animation: pulse-soft 1.8s infinite;
-}
-.chat-window {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  overflow: hidden;
-  animation: scaleIn 0.4s ease-out;
-}
-.chat-header {
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.chat-messages {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.message-wrapper {
-  display: flex;
-  flex-direction: column;
-  animation: fadeIn 0.4s ease-out;
-}
-.message-wrapper.sent {
-  align-items: flex-end;
-}
-.message-wrapper.received {
-  align-items: flex-start;
-}
-.message-bubble {
-  max-width: 70%;
-  padding: 10px 14px;
-  border-radius: 20px;
-  word-break: break-word;
-  position: relative;
-  transition: transform 0.25s, box-shadow 0.25s;
-}
-.message-bubble:hover {
-  transform: scale(1.03);
-  box-shadow: var(--shadow-sm);
-}
-.message-bubble.sent {
-  background: var(--accent);
-  color: white;
-  border-bottom-right-radius: 4px;
-}
-.message-bubble.received {
-  background: var(--surface);
+body.dark .btn,
+body.dark .btn-primary,
+body.dark .file-input-button,
+body.dark .input,
+body.dark .comment-input,
+body.dark .nav-item {
   color: var(--text-primary);
-  border-bottom-left-radius: 4px;
-}
-.message-sender {
-  font-weight: 600;
-  font-size: 0.85rem;
-  margin-bottom: 2px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.message-sender-avatar {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-size: cover;
-  transition: transform 0.25s;
-}
-.message-sender-avatar:hover {
-  transform: scale(1.3);
-}
-.message-time {
-  font-size: 0.7rem;
-  color: var(--text-tertiary);
-  margin-top: 2px;
-  text-align: right;
-}
-.date-divider {
-  text-align: center;
-  margin: 16px 0;
-  font-size: 0.8rem;
-  color: var(--text-tertiary);
-  position: relative;
-}
-.date-divider::before,
-.date-divider::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 30%;
-  height: 1px;
-  background: var(--border);
-}
-.date-divider::before {
-  left: 0;
-}
-.date-divider::after {
-  right: 0;
-}
-.typing-indicator {
-  color: var(--text-tertiary);
-  font-size: 0.9rem;
-  padding: 4px 8px;
-  font-style: italic;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  animation: pulse-soft 1.5s infinite;
-}
-.chat-input-area {
-  display: flex;
-  padding: 12px;
-  border-top: 1px solid var(--border);
-  gap: 8px;
-  align-items: center;
-}
-.chat-input-area input {
-  flex: 1;
+  background: var(--surface);
+  border-color: #475569;
 }
 
-/* ========== ПРОФІЛЬ ========== */
-.profile-header {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  align-items: flex-start;
-}
-.profile-stats {
-  display: flex;
-  gap: 24px;
-  margin: 16px 0;
-}
-.profile-stats span {
-  cursor: pointer;
-  transition: all 0.25s;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-}
-.profile-stats span:hover {
-  background: var(--surface);
-  transform: translateY(-4px) scale(1.05);
-  color: var(--accent);
-}
-.profile-tabs {
-  display: flex;
-  gap: 8px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 8px;
-  margin-bottom: 20px;
-}
-.profile-tab {
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--text-secondary);
-  transition: all 0.25s;
-}
-.profile-tab:hover {
-  background: var(--surface);
-  transform: translateY(-4px);
-}
-.profile-tab.active, .profile-tab.focused {
+.btn-primary {
   background: var(--accent);
   color: white;
-  box-shadow: var(--shadow-sm);
-  animation: gentleGlow 2.2s infinite;
-}
-.profile-menu {
-  position: relative;
-  display: inline-block;
-  margin-left: auto;
-}
-.profile-menu-btn {
-  background: none;
-  border: none;
-  font-size: 1.8rem;
-  cursor: pointer;
-  padding: 0 8px;
-  color: var(--text-secondary);
-  transition: transform 0.3s;
-}
-.profile-menu-btn:hover {
-  transform: rotate(90deg) scale(1.1);
-  color: var(--accent);
-}
-.profile-menu-dropdown {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  min-width: 200px;
-  box-shadow: var(--shadow-lg);
-  z-index: 100;
-  display: none;
-  animation: scaleIn 0.3s ease-out;
-}
-.profile-menu-dropdown.show {
-  display: block;
-}
-.profile-menu-item {
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: all 0.25s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.profile-menu-item:hover {
-  background: var(--surface);
-  transform: translateX(8px);
-}
-
-/* ========== ХЕШТЕГИ ========== */
-.hashtag-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.hashtag-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.25s;
-  animation: slideIn 0.4s ease-out;
-}
-.hashtag-item:hover {
-  background: var(--surface);
-  transform: translateX(8px) scale(1.02);
   border-color: var(--accent);
 }
-.hashtag-name {
-  font-weight: 600;
-  color: var(--accent);
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
-.hashtag-count {
+
+/* ========== ФІКСИ ДЛЯ ВИДИМОСТІ ========== */
+.post-content,
+.comment-text,
+.input,
+.comment-input,
+.top-bar-title,
+.logo,
+.nav-item,
+.hashtag {
+  color: var(--text-primary) !important;
+}
+
+body.dark .post-content,
+body.dark .comment-text,
+body.dark .input,
+body.dark .comment-input {
+  color: #f1f5f9 !important;
+}
+
+/* ========== ІНШІ ДРІБНІ ПОКРАЩЕННЯ ========== */
+.post-footer .view-count {
   color: var(--text-tertiary);
+  font-size: 0.92rem;
 }
 
-/* ========== МОДАЛКИ ========== */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(8px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  animation: fadeIn 0.4s ease-out;
-}
-.modal.active {
-  display: flex;
-}
-.modal-content {
-  background: var(--card);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  max-width: 480px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: scaleIn 0.4s ease-out;
-  box-shadow: var(--shadow-lg);
-}
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.modal-close {
-  font-size: 2rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: transform 0.3s;
-}
-.modal-close:hover {
-  transform: rotate(90deg) scale(1.1);
-  color: var(--accent);
+.post-actions button {
+  padding: 6px;
+  border-radius: 50%;
 }
 
-/* ========== TOAST ========== */
-#toast {
-  position: fixed;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--accent);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 40px;
-  font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  z-index: 3000;
-  opacity: 0;
-  transition: opacity 0.4s;
-  pointer-events: none;
-  animation: slideIn 0.4s;
-}
-#toast.show {
-  opacity: 1;
-}
-
-/* ========== СКЕЛЕТОН ========== */
-.skeleton {
-  background: linear-gradient(90deg, var(--surface) 25%, var(--card) 50%, var(--surface) 75%);
-  background-size: 220% 100%;
-  animation: shimmer 2.2s infinite;
-  border-radius: var(--radius-md);
-}
-
-/* ========== КОЛЬОРОВІ ДОПОМІЖНІ КЛАСИ ========== */
-.text-danger { color: var(--danger); }
-.text-warning { color: var(--warning); }
-.text-success { color: var(--success); }
-.text-accent { color: var(--accent); }
-
-/* ========== TV-ОПТИМІЗАЦІЯ ========== */
-:focus-visible {
-  outline: 4px solid var(--accent) !important;
-  outline-offset: 4px;
-  box-shadow: 0 0 0 8px rgba(51, 51, 51, 0.2);
-  transition: outline 0.1s ease;
-}
-
-@media (hover: none) {
-  .nav-item:hover,
-  .card:hover,
-  .post:hover,
-  .btn:hover,
-  .avatar:hover,
-  .hashtag:hover {
-    transform: none !important;
-    box-shadow: none !important;
-    background: inherit !important;
-  }
-  .nav-item.active,
-  .btn:active {
-    background: var(--accent);
-    color: white;
-  }
-}
-
-/* ========== ДОДАТКОВІ АНІМАЦІЇ ========== */
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-  100% { transform: translateY(0px); }
-}
-.float-animation {
-  animation: float 4.5s ease-in-out infinite;
-}
-
-@keyframes glow {
-  0% { box-shadow: 0 0 6px var(--accent); }
-  50% { box-shadow: 0 0 26px var(--accent); }
-  100% { box-shadow: 0 0 6px var(--accent); }
-}
-.glow-animation {
-  animation: glow 2.5s ease-in-out infinite;
-}
-
-/* ========== ФІЛЬТРИ КОНТЕНТУ ========== */
-.feed-header {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.active-filter {
-  background: var(--accent);
-  color: white;
-  padding: 6px 14px;
-  border-radius: 30px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  animation: fadeIn 0.3s ease-out;
-  box-shadow: var(--shadow-sm);
-}
-
-.active-filter button {
-  background: transparent;
-  border: none;
-  color: white;
-  cursor: pointer;
-  font-size: 1.2rem;
-  line-height: 1;
-  padding: 0 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s;
-}
-
-.active-filter button:hover {
-  transform: scale(1.2);
-}
-
-#filterModal .modal-body {
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 8px 4px;
-}
-
-.filter-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
-  border-radius: var(--radius-sm);
-}
-
-.filter-item:hover {
+.post-actions button:hover {
   background: var(--surface);
-  transform: translateX(6px);
-}
-
-.filter-item .tag {
-  font-weight: 600;
   color: var(--accent);
 }
 
-.filter-item .count {
-  color: var(--text-tertiary);
-  font-size: 0.9rem;
-}
-
-#clearFilterBtn {
-  width: 100%;
-  margin-top: 12px;
-}
+/* ... решта твого CSS без змін ... */
