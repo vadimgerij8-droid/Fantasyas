@@ -86,7 +86,7 @@ const cleanupListeners = () => {
   if (unsubscribeOnlineStatus) { unsubscribeOnlineStatus(); unsubscribeOnlineStatus = null; }
   if (unsubscribeFollowing) { unsubscribeFollowing(); unsubscribeFollowing = null; }
   if (lastOnlineInterval) { clearInterval(lastOnlineInterval); lastOnlineInterval = null; }
-  clearMainFeedListeners(); // додано: відписуємось від усіх постів у стрічці
+  clearMainFeedListeners();
 };
 
 // ================= Функції для скарг, мюту, блокування =================
@@ -692,7 +692,7 @@ function resetPagination() {
   hasMore = true;
   const feed = document.getElementById('feed');
   if (feed) {
-    clearMainFeedListeners(); // відписуємось від старих постів
+    clearMainFeedListeners();
     feed.innerHTML = '';
   }
   loadMorePosts();
@@ -760,10 +760,8 @@ async function loadMorePosts() {
 
     let q;
     if (currentFeedType === 'new' || currentFilterHashtag) {
-      // Нове або будь-який фільтр → за датою
       q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
     } else {
-      // Популярні БЕЗ фільтра → спочатку за кількістю лайків
       q = query(baseQuery, 
         orderBy("likesCount", "desc"), 
         orderBy("createdAt", "desc"), 
@@ -824,7 +822,7 @@ async function addComment(postId, text) {
   });
   await updateDoc(doc(db, "posts", postId), { 
     commentsCount: increment(1),
-    popularity: increment(40)   // було +2 → тепер +40
+    popularity: increment(40)
   });
 }
 
@@ -835,7 +833,7 @@ async function incrementPostView(postId) {
   try {
     await updateDoc(doc(db, "posts", postId), { 
       views: increment(1),
-      popularity: increment(5)   // було +1 → тепер +5
+      popularity: increment(5)
     });
   } catch (e) {
     console.warn("Не вдалося оновити перегляди:", e);
@@ -1014,7 +1012,6 @@ function renderPosts(docs, container = null) {
         } else {
           // Пост видалено – видаляємо елемент
           if (postEl.parentNode) postEl.parentNode.removeChild(postEl);
-          // Відписуємось
           const unsub = postListeners.get(post.id);
           if (unsub) {
             unsub();
@@ -1983,47 +1980,44 @@ if (sentinel) {
   observer.observe(sentinel);
 }
 
-// ================= ГЛОБАЛЬНИЙ ОБРОБНИК КЛІКІВ =================
+// ================= ГЛОБАЛЬНИЙ ОБРОБНИК КЛІКІВ (ВИПРАВЛЕНИЙ) =================
 document.addEventListener('click', async (e) => {
   if (!currentUser) return;
   const target = e.target.closest('button');
   if (!target) return;
   
+  // Обробка лайків – без оптимістичного оновлення
   if (target.classList.contains('like-btn')) {
     const postId = target.dataset.postId;
-    const liked = target.classList.contains('liked');
-    const countSpan = target.querySelector('span');
-    const oldCount = parseInt(countSpan.textContent);
-    target.classList.toggle('liked');
-    countSpan.textContent = liked ? oldCount - 1 : oldCount + 1;
+    const liked = target.classList.contains('liked'); // поточний стан з DOM (але він може бути застарілим)
     try {
       const postRef = doc(db, "posts", postId);
       if (liked) {
         await updateDoc(postRef, { 
           likes: arrayRemove(currentUser.uid), 
           likesCount: increment(-1),
-          popularity: increment(-20)   // було -3 → тепер -20
+          popularity: increment(-20)
         });
         await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayRemove(postId) });
       } else {
         await updateDoc(postRef, { 
           likes: arrayUnion(currentUser.uid), 
           likesCount: increment(1),
-          popularity: increment(20)    // було +3 → тепер +20
+          popularity: increment(20)
         });
         await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayUnion(postId) });
         vibrate(30);
       }
-    } catch {
-      target.classList.toggle('liked');
-      countSpan.textContent = oldCount;
+    } catch (error) {
+      console.error("Помилка лайка:", error);
+      showToast("Не вдалося оновити лайк. Спробуйте ще.");
     }
   }
   
+  // Обробка збереження – теж без оптимістичного оновлення
   if (target.classList.contains('save-btn')) {
     const postId = target.dataset.postId;
     const saved = target.classList.contains('saved');
-    target.classList.toggle('saved');
     try {
       const userRef = doc(db, "users", currentUser.uid);
       const postRef = doc(db, "posts", postId);
@@ -2034,7 +2028,10 @@ document.addEventListener('click', async (e) => {
         await updateDoc(userRef, { savedPosts: arrayUnion(postId) });
         await updateDoc(postRef, { saves: arrayUnion(currentUser.uid) });
       }
-    } catch { target.classList.toggle('saved'); }
+    } catch (error) {
+      console.error("Помилка збереження:", error);
+      showToast("Не вдалося зберегти пост.");
+    }
   }
 });
 
