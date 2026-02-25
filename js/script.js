@@ -157,6 +157,59 @@ async function unblockUser(targetUid) {
   }
 }
 
+// ================= Функція перемикання лайка (додано) =================
+/**
+ * Перемикає стан лайка для поточного користувача.
+ * @param {string} postId - ID документа поста
+ */
+async function toggleLike(postId) {
+  if (!currentUser) {
+    showToast('Увійдіть, щоб лайкати');
+    return;
+  }
+
+  const postRef = doc(db, "posts", postId);
+
+  try {
+    // Отримуємо поточні дані поста, щоб перевірити, чи є лайк
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) {
+      showToast('Пост не знайдено');
+      return;
+    }
+
+    const postData = postSnap.data();
+    const isLiked = postData.likes?.includes(currentUser.uid) || false;
+
+    if (isLiked) {
+      // Якщо лайк вже є — прибираємо
+      await updateDoc(postRef, {
+        likes: arrayRemove(currentUser.uid),
+        likesCount: increment(-1),
+        popularity: increment(-50)
+      });
+      // Оновлюємо масив likedPosts у користувача (для сумісності)
+      await updateDoc(doc(db, "users", currentUser.uid), {
+        likedPosts: arrayRemove(postId)
+      });
+    } else {
+      // Якщо лайка немає — додаємо
+      await updateDoc(postRef, {
+        likes: arrayUnion(currentUser.uid),
+        likesCount: increment(1),
+        popularity: increment(50)
+      });
+      await updateDoc(doc(db, "users", currentUser.uid), {
+        likedPosts: arrayUnion(postId)
+      });
+      vibrate(30);
+    }
+  } catch (error) {
+    console.error('Помилка toggleLike:', error);
+    showToast('Не вдалося оновити лайк. Спробуйте ще.');
+  }
+}
+
 // ================= Навігація по розділах =================
 const sections = ['home','search','hashtags','profile','chats','settings'];
 const navItems = document.querySelectorAll('.nav-item');
@@ -1986,35 +2039,13 @@ document.addEventListener('click', async (e) => {
   const target = e.target.closest('button');
   if (!target) return;
   
-  // Обробка лайків – без оптимістичного оновлення
+  // Обробка лайків – виклик функції toggleLike
   if (target.classList.contains('like-btn')) {
     const postId = target.dataset.postId;
-    const liked = target.classList.contains('liked'); // поточний стан з DOM (але він може бути застарілим)
-    try {
-      const postRef = doc(db, "posts", postId);
-      if (liked) {
-        await updateDoc(postRef, { 
-          likes: arrayRemove(currentUser.uid), 
-          likesCount: increment(-1),
-          popularity: increment(-20)
-        });
-        await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayRemove(postId) });
-      } else {
-        await updateDoc(postRef, { 
-          likes: arrayUnion(currentUser.uid), 
-          likesCount: increment(1),
-          popularity: increment(20)
-        });
-        await updateDoc(doc(db, "users", currentUser.uid), { likedPosts: arrayUnion(postId) });
-        vibrate(30);
-      }
-    } catch (error) {
-      console.error("Помилка лайка:", error);
-      showToast("Не вдалося оновити лайк. Спробуйте ще.");
-    }
+    await toggleLike(postId);
   }
   
-  // Обробка збереження – теж без оптимістичного оновлення
+  // Обробка збереження – без оптимістичного оновлення
   if (target.classList.contains('save-btn')) {
     const postId = target.dataset.postId;
     const saved = target.classList.contains('saved');
