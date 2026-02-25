@@ -23,7 +23,7 @@
   --warning: #bdbdbd;
   --success: #757575;
   --like: #e91e63;           /* рожевий для лайка */
-  --bookmark: #9c27b0;       /* фіолетовий для збереження */
+  --bookmark: #FFC107;        /* жовтий для збереження */
   --shadow-sm: 0 3px 14px rgba(0,0,0,0.05);
   --shadow-md: 0 8px 32px rgba(0,0,0,0.07);
   --shadow-lg: 0 16px 52px rgba(0,0,0,0.10);
@@ -55,7 +55,7 @@ body.dark {
   --warning: #bdbdbd;
   --success: #9e9e9e;
   --like: #f06292;           /* світліший рожевий */
-  --bookmark: #ba68c8;       /* світліший фіолет */
+  --bookmark: #FFD54F;       /* світліший жовтий для темної теми */
   --shadow-sm: 0 3px 16px rgba(0,0,0,0.75);
   --shadow-md: 0 8px 36px rgba(0,0,0,0.85);
   --shadow-lg: 0 16px 60px rgba(0,0,0,0.95);
@@ -162,11 +162,11 @@ body {
   }
   30% {
     transform: scale(1.3) rotate(-8deg);
-    filter: drop-shadow(0 8px 12px rgba(156, 39, 176, 0.4));
+    filter: drop-shadow(0 8px 12px rgba(255, 193, 7, 0.4));
   }
   60% {
     transform: scale(0.95) rotate(4deg);
-    filter: drop-shadow(0 2px 4px rgba(156, 39, 176, 0.3));
+    filter: drop-shadow(0 2px 4px rgba(255, 193, 7, 0.3));
   }
   100% {
     transform: scale(1) rotate(0deg);
@@ -179,7 +179,7 @@ body {
   50%  { transform: translateY(-8px) scale(1.18); }
 }
 
-/* ========== ФОКУС ========== */
+/* ========== ФОКУС (загальний, не TV) ========== */
 .focused {
   outline: none !important;
   box-shadow: 0 0 0 4px rgba(51,51,51,0.22), 0 0 32px rgba(51,51,51,0.14) !important;
@@ -468,14 +468,14 @@ body {
 }
 .btn:hover, .btn.focused {
   background: var(--accent);
-  color: var(--btn-hover-text);  /* змінно для контрасту */
+  color: var(--btn-hover-text);
   border-color: var(--accent);
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 8px 22px rgba(51,51,51,0.25);
 }
 .btn-primary {
   background: var(--accent);
-  color: var(--btn-primary-text); /* змінна для контрасту */
+  color: var(--btn-primary-text);
   border-color: var(--accent);
 }
 .btn-primary:hover, .btn-primary.focused {
@@ -508,12 +508,12 @@ body {
 }
 .btn-follow:hover {
   background: var(--accent);
-  color: var(--btn-hover-text); /* використовуємо змінну */
+  color: var(--btn-hover-text);
   transform: scale(1.08);
 }
 .btn-follow.following {
   background: var(--accent);
-  color: var(--btn-primary-text); /* використовуємо змінну */
+  color: var(--btn-primary-text);
 }
 
 /* ========== ПОЛЯ ВВЕДЕННЯ ========== */
@@ -745,7 +745,7 @@ body {
   animation: heartBeat 0.68s ease;
 }
 
-/* Збереження – закладка (оновлена анімація) */
+/* Збереження – закладка (жовтий колір, анімація оновлена) */
 .bookmark-btn {
   transition: all 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -1130,7 +1130,7 @@ body.dark .emoji-picker button:hover {
 }
 .message-bubble.sent {
   background: var(--accent);
-  color: var(--btn-primary-text); /* використовуємо змінну */
+  color: var(--btn-primary-text);
   border-bottom-right-radius: 4px;
 }
 .message-bubble.received {
@@ -1251,7 +1251,7 @@ body.dark .emoji-picker button:hover {
 }
 .profile-tab.active, .profile-tab.focused {
   background: var(--accent);
-  color: var(--btn-primary-text); /* використовуємо змінну */
+  color: var(--btn-primary-text);
   box-shadow: var(--shadow-sm);
   animation: gentleGlow 2.2s infinite;
 }
@@ -1412,32 +1412,6 @@ body.dark .emoji-picker button:hover {
 .text-success { color: var(--success); }
 .text-accent { color: var(--accent); }
 
-/* ========== TV-ОПТИМІЗАЦІЯ ========== */
-:focus-visible {
-  outline: 4px solid var(--accent) !important;
-  outline-offset: 4px;
-  box-shadow: 0 0 0 8px rgba(51, 51, 51, 0.2);
-  transition: outline 0.1s ease;
-}
-
-@media (hover: none) {
-  .nav-item:hover,
-  .card:hover,
-  .post:hover,
-  .btn:hover,
-  .avatar:hover,
-  .hashtag:hover {
-    transform: none !important;
-    box-shadow: none !important;
-    background: inherit !important;
-  }
-  .nav-item.active,
-  .btn:active {
-    background: var(--accent);
-    color: white;
-  }
-}
-
 /* ========== ДОДАТКОВІ АНІМАЦІЇ ========== */
 @keyframes float {
   0% { transform: translateY(0px); }
@@ -1468,7 +1442,7 @@ body.dark .emoji-picker button:hover {
 
 .active-filter {
   background: var(--accent);
-  color: var(--btn-primary-text); /* використовуємо змінну */
+  color: var(--btn-primary-text);
   padding: 6px 14px;
   border-radius: 30px;
   font-size: 0.9rem;
@@ -1483,7 +1457,7 @@ body.dark .emoji-picker button:hover {
 .active-filter button {
   background: transparent;
   border: none;
-  color: var(--btn-primary-text); /* використовуємо змінну */
+  color: var(--btn-primary-text);
   cursor: pointer;
   font-size: 1.2rem;
   line-height: 1;
