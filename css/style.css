@@ -239,7 +239,7 @@ body {
 .content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 24px 24px calc(var(--bottom-nav-height) + 24px) 24px; /* нижній відступ для плаваючого меню */
   scroll-behavior: smooth;
   outline: none;
 }
@@ -784,7 +784,7 @@ body {
 .emoji-picker {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--bottom-nav-height) + 20px);
+  bottom: calc(var(--bottom-nav-height) + 30px);
   transform: translateX(-50%) translateY(20px);
   width: 92%;
   max-width: 380px;
@@ -851,7 +851,7 @@ body.dark .emoji-picker .emoji-item:hover {
     grid-template-columns: repeat(5, 1fr);
     max-width: 300px;
     max-height: 40vh;
-    bottom: calc(var(--bottom-nav-height) + 10px);
+    bottom: calc(var(--bottom-nav-height) + 20px);
     padding-top: 16px;
   }
   .emoji-picker button,
@@ -865,7 +865,7 @@ body.dark .emoji-picker .emoji-item:hover {
   .emoji-picker {
     max-width: 450px;
     grid-template-columns: repeat(7, 1fr);
-    bottom: calc(var(--bottom-nav-height) + 20px);
+    bottom: calc(var(--bottom-nav-height) + 30px);
   }
 }
 @media (min-width: 1024px) {
@@ -1566,7 +1566,7 @@ body.dark .emoji-picker .emoji-item:hover {
 /* ========== TOAST ========== */
 #toast {
   position: fixed;
-  bottom: calc(var(--bottom-nav-height) + 30px);
+  bottom: calc(var(--bottom-nav-height) + 40px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--accent);
@@ -1684,14 +1684,27 @@ body.dark .emoji-picker .emoji-item:hover {
 }
 
 /* ========== НИЖНЄ МЕНЮ (Telegram-стиль 2025–2026) ========== */
+@keyframes floatIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 16px;
+  left: 12px;
+  right: 12px;
+  width: calc(100% - 24px);
   height: var(--bottom-nav-height);
   background: var(--surface);
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 30px;
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -1699,12 +1712,19 @@ body.dark .emoji-picker .emoji-item:hover {
   z-index: 1000;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   transition: 
     opacity 0.36s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.36s cubic-bezier(0.4, 0, 0.2, 1),
-    background var(--transition);
-  box-shadow: 0 -1px 0 0 var(--border);
+    background var(--transition),
+    box-shadow 0.3s ease;
   will-change: opacity, transform;
+  animation: floatIn 0.5s ease-out;
+}
+
+.bottom-nav:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
 }
 
 .bottom-nav.hide-chat-mode {
@@ -1846,7 +1866,12 @@ body.dark .emoji-picker .emoji-item:hover {
 /* Темна тема — трохи яскравіші акценти */
 body.dark .bottom-nav {
   background: rgba(18, 18, 18, 0.92);
-  border-top-color: #333;
+  border-color: #333;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+body.dark .bottom-nav:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
 body.dark .bottom-nav .nav-item.active .icon {
