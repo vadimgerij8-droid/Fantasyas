@@ -28,10 +28,10 @@ let currentProfileUid = null;
 let currentEditingPost = null;
 
 let unsubscribeFeed = null;
-let unsubscribeChatList = null;      // для списку чатів
-let unsubscribeMessages = null;      // для повідомлень
-let unsubscribeTyping = null;        // для індикатора друку
-let unsubscribeChatPresence = null;  // для онлайн-статусу
+let unsubscribeChatList = null;
+let unsubscribeMessages = null;
+let unsubscribeTyping = null;
+let unsubscribeChatPresence = null;
 let unsubscribeFollowing = null;
 let lastOnlineInterval = null;
 
@@ -42,11 +42,7 @@ let loading = false;
 let hasMore = true;
 
 const viewedPosts = new Set();
-
-// ================= ЗМІННА ДЛЯ ФІЛЬТРА =================
 let currentFilterHashtag = null;
-
-// ================= ЗМІННА ДЛЯ РЕАЛЬНОГО ЧАСУ (ЛАЙКИ) =================
 const postListeners = new Map();
 
 // ================= Допоміжні функції =================
@@ -202,7 +198,7 @@ async function toggleLike(postId) {
 
 // ================= Навігація по розділах =================
 const sections = ['home','search','hashtags','profile','chats','settings'];
-const navItems = document.querySelectorAll('.bottom-nav .nav-item'); // тепер шукаємо в нижньому меню
+const navItems = document.querySelectorAll('.bottom-nav .nav-item');
 
 navItems.forEach((item) => {
   item.addEventListener('click', async () => {
@@ -212,11 +208,17 @@ navItems.forEach((item) => {
     sections.forEach(s => document.getElementById(s).classList.remove('active'));
     const sectionEl = document.getElementById(section);
     if (sectionEl) sectionEl.classList.add('active');
-    // Оновлюємо заголовок (беремо текст спану, якщо він є, інакше сам текст)
     const span = item.querySelector('span');
     document.getElementById('pageTitle').textContent = span ? span.textContent : item.textContent.trim();
     
     cleanupListeners();
+    
+    // FIX: Сховати вікно чату і показати нижнє меню при переході на інший розділ
+    const chatWindow = document.getElementById('chatWindowContainer');
+    if (chatWindow) chatWindow.style.display = 'none';
+    const chatSidebar = document.getElementById('chatListSidebar');
+    if (chatSidebar) chatSidebar.classList.remove('hide');
+    document.querySelector('.bottom-nav')?.classList.remove('hide-chat-mode');
     
     if (section === 'home' && currentUser) {
       resetPagination();
@@ -228,12 +230,11 @@ navItems.forEach((item) => {
       await loadHashtags();
     }
     if (section === 'chats' && currentUser) {
-      // Приховати вікно чату, показати список
       document.getElementById('chatWindowContainer').style.display = 'none';
       document.getElementById('chatListSidebar').classList.remove('hide');
       document.getElementById('chatSearchInput').value = '';
       document.getElementById('chatSearchResults').style.display = 'none';
-      await loadChatList(); // підписка вже є, але для першого завантаження викличемо
+      await loadChatList();
     }
     if (section === 'profile' && currentUser) {
       await viewProfile(currentUser.uid);
@@ -380,7 +381,7 @@ function searchHashtag(tag) {
   }
 }
 
-// ================= НОВІ ФУНКЦІЇ ДЛЯ ФІЛЬТРІВ =================
+// ================= Функції для фільтрів =================
 async function loadFilterHashtags() {
   const list = document.getElementById('filterList');
   if (!list) return;
@@ -669,8 +670,7 @@ onAuthStateChanged(auth, (user) => {
       unreadCount = totalUnread;
       updateUnreadBadge();
       if (document.getElementById('chats')?.classList.contains('active')) {
-        // Якщо ми в секції чатів, оновлюємо список
-        loadChatList(); // перерендеримо список (можна оптимізувати)
+        loadChatList();
       }
     }, (error) => {
       console.error('Chat list snapshot error:', error);
@@ -721,7 +721,7 @@ function resetPagination() {
 // ================= Функція завантаження на Cloudinary =================
 async function uploadToCloudinary(file) {
   const CLOUD_NAME = 'dv6ehoqiq';
-  const UPLOAD_PRESET = 'post_media'; // можна використовувати один preset для всіх медіа
+  const UPLOAD_PRESET = 'post_media';
   const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
   const formData = new FormData();
@@ -752,7 +752,7 @@ document.getElementById('addPost').onclick = async () => {
     let mediaUrl = '', mediaType = '';
     if (file) {
       mediaUrl = await uploadToCloudinary(file);
-      mediaType = file.type.split('/')[0]; // 'image' або 'video'
+      mediaType = file.type.split('/')[0];
     }
     const userSnap = await getDoc(doc(db, "users", currentUser.uid));
     const userData = userSnap.data();
@@ -1024,13 +1024,11 @@ function renderPosts(docs, container = null) {
       };
     }
 
-    // ========== ДОДАЄМО onSnapshot ДЛЯ ПОСТА (тільки для головної стрічки) ==========
     if (!container || container.id === 'feed') {
       const postRef = doc(db, "posts", post.id);
       const unsubscribe = onSnapshot(postRef, (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-          // Оновлюємо кнопку лайка
           const likeBtn = postEl.querySelector('.like-btn');
           if (likeBtn) {
             const liked = data.likes?.includes(currentUser?.uid) || false;
@@ -1042,7 +1040,6 @@ function renderPosts(docs, container = null) {
             }
             if (countSpan) countSpan.textContent = data.likesCount || 0;
           }
-          // Оновлюємо кнопку збереження
           const saveBtn = postEl.querySelector('.save-btn');
           if (saveBtn) {
             const saved = data.saves?.includes(currentUser?.uid) || false;
@@ -1053,7 +1050,6 @@ function renderPosts(docs, container = null) {
             }
           }
         } else {
-          // Пост видалено – видаляємо елемент
           if (postEl.parentNode) postEl.parentNode.removeChild(postEl);
           const unsub = postListeners.get(post.id);
           if (unsub) {
@@ -1164,7 +1160,6 @@ document.getElementById('deletePostBtn').onclick = async () => {
   if (!currentEditingPost || !currentUser) return;
   if (!confirm('Видалити пост?')) return;
   try {
-    // Видаляємо пост з Firestore (медіа на Cloudinary залишається)
     await deleteDoc(doc(db, "posts", currentEditingPost.id));
     await updateDoc(doc(db, "users", currentUser.uid), { posts: arrayRemove(currentEditingPost.id) });
     showToast('Пост видалено');
@@ -1241,7 +1236,6 @@ async function loadMyProfile() {
 
 function viewProfile(uid) {
   currentProfileUid = uid;
-  // Активуємо пункт меню "Профіль"
   document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
   const profileNav = document.querySelector('[data-section="profile"]');
   if (profileNav) profileNav.classList.add('active');
@@ -1701,6 +1695,9 @@ async function openChat(chatId, otherUid, otherName, otherUserId, otherAvatar) {
     document.getElementById('chatListSidebar').classList.add('hide');
   }
 
+  // FIX: Ховаємо нижнє меню при відкритті чату
+  document.querySelector('.bottom-nav')?.classList.add('hide-chat-mode');
+
   // Скидаємо лічильник непрочитаних для цього чату
   const chatRef = doc(db, "chats", chatId);
   await updateDoc(chatRef, {
@@ -1728,7 +1725,7 @@ async function openChat(chatId, otherUid, otherName, otherUserId, otherAvatar) {
     }
   });
 
-  setTimeout(() => document.getElementById('chatText').focus(), 200);
+  setTimeout(() => document.getElementById('chatText')?.focus(), 200);
 }
 
 function subscribeToMessages(chatId) {
@@ -1887,8 +1884,8 @@ function formatMessageDate(timestamp) {
 }
 
 // Відправка повідомлення
-document.getElementById('sendMessage').addEventListener('click', sendMessage);
-document.getElementById('chatText').addEventListener('keypress', (e) => {
+document.getElementById('sendMessage')?.addEventListener('click', sendMessage);
+document.getElementById('chatText')?.addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
@@ -1898,9 +1895,9 @@ document.getElementById('chatText').addEventListener('keypress', (e) => {
 let typingTimeout;
 async function sendMessage() {
   const textInput = document.getElementById('chatText');
-  const text = textInput.value.trim();
+  const text = textInput?.value.trim() || '';
   const fileInput = document.getElementById('chatAttachFile');
-  const file = fileInput.files[0];
+  const file = fileInput?.files[0];
 
   if (!text && !file) return;
   if (!currentUser || !currentChatId || !currentChatPartner) {
@@ -1940,9 +1937,10 @@ async function sendMessage() {
       [`unread.${currentChatPartner}`]: increment(1)
     });
 
-    textInput.value = '';
-    fileInput.value = '';
-    document.getElementById('chatAttachBtn').innerHTML = '📎';
+    if (textInput) textInput.value = '';
+    if (fileInput) fileInput.value = '';
+    const attachBtn = document.getElementById('chatAttachBtn');
+    if (attachBtn) attachBtn.innerHTML = '📎';
 
     const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
     await setDoc(typingRef, { isTyping: false }, { merge: true });
@@ -1953,7 +1951,7 @@ async function sendMessage() {
 }
 
 // Індикатор друку
-document.getElementById('chatText').addEventListener('input', () => {
+document.getElementById('chatText')?.addEventListener('input', () => {
   if (!currentUser || !currentChatId || !currentChatPartner) return;
   
   const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
@@ -1966,12 +1964,13 @@ document.getElementById('chatText').addEventListener('input', () => {
 });
 
 // Прикріплення файлу
-document.getElementById('chatAttachBtn').addEventListener('click', () => {
-  document.getElementById('chatAttachFile').click();
+document.getElementById('chatAttachBtn')?.addEventListener('click', () => {
+  document.getElementById('chatAttachFile')?.click();
 });
-document.getElementById('chatAttachFile').addEventListener('change', function() {
+document.getElementById('chatAttachFile')?.addEventListener('change', function() {
   if (this.files && this.files[0]) {
-    document.getElementById('chatAttachBtn').innerHTML = '📁';
+    const btn = document.getElementById('chatAttachBtn');
+    if (btn) btn.innerHTML = '📁';
   }
 });
 
@@ -1983,6 +1982,7 @@ function showMessageContextMenu(event, msg) {
   selectedMessageId = msg.id;
 
   const menu = document.getElementById('messageContextMenu');
+  if (!menu) return;
   menu.style.left = event.pageX + 'px';
   menu.style.top = event.pageY + 'px';
   menu.classList.add('show');
@@ -1991,11 +1991,11 @@ function showMessageContextMenu(event, msg) {
   const deleteEveryoneItem = menu.querySelector('[data-action="deleteEveryone"]');
   
   if (msg.from === currentUser.uid) {
-    editItem.style.display = 'block';
-    deleteEveryoneItem.style.display = 'block';
+    if (editItem) editItem.style.display = 'block';
+    if (deleteEveryoneItem) deleteEveryoneItem.style.display = 'block';
   } else {
-    editItem.style.display = 'none';
-    deleteEveryoneItem.style.display = 'none';
+    if (editItem) editItem.style.display = 'none';
+    if (deleteEveryoneItem) deleteEveryoneItem.style.display = 'none';
   }
 
   const closeMenu = (e) => {
@@ -2007,7 +2007,7 @@ function showMessageContextMenu(event, msg) {
   setTimeout(() => document.addEventListener('click', closeMenu), 0);
 }
 
-document.getElementById('messageContextMenu').addEventListener('click', async (e) => {
+document.getElementById('messageContextMenu')?.addEventListener('click', async (e) => {
   const action = e.target.dataset.action;
   if (!action || !selectedMessageId || !currentChatId) return;
 
@@ -2033,7 +2033,6 @@ document.getElementById('messageContextMenu').addEventListener('click', async (e
       break;
     case 'delete':
       if (confirm('Видалити це повідомлення для себе?')) {
-        // Можна додати логіку deletedFor
         showToast('Функція видалення для себе буде реалізована');
       }
       break;
@@ -2043,7 +2042,7 @@ document.getElementById('messageContextMenu').addEventListener('click', async (e
       }
       break;
   }
-  document.getElementById('messageContextMenu').classList.remove('show');
+  document.getElementById('messageContextMenu')?.classList.remove('show');
 });
 
 // Реакції
@@ -2073,9 +2072,15 @@ async function toggleReaction(messageId, emoji) {
 }
 
 // Кнопка назад на мобілках
-document.getElementById('chatBackBtn').addEventListener('click', () => {
-  document.getElementById('chatWindowContainer').style.display = 'none';
-  document.getElementById('chatListSidebar').classList.remove('hide');
+document.getElementById('chatBackBtn')?.addEventListener('click', () => {
+  const chatWindow = document.getElementById('chatWindowContainer');
+  if (chatWindow) chatWindow.style.display = 'none';
+  const chatSidebar = document.getElementById('chatListSidebar');
+  if (chatSidebar) chatSidebar.classList.remove('hide');
+  
+  // FIX: Показуємо нижнє меню при закритті чату
+  document.querySelector('.bottom-nav')?.classList.remove('hide-chat-mode');
+  
   if (unsubscribeMessages) unsubscribeMessages();
   if (unsubscribeTyping) unsubscribeTyping();
   if (unsubscribeChatPresence) unsubscribeChatPresence();
@@ -2085,11 +2090,13 @@ document.getElementById('chatBackBtn').addEventListener('click', () => {
 
 // Пошук користувачів для нового чату
 let searchTimeout;
-document.getElementById('chatSearchInput').addEventListener('input', (e) => {
+document.getElementById('chatSearchInput')?.addEventListener('input', (e) => {
   clearTimeout(searchTimeout);
   const val = e.target.value.trim();
+  const resultsContainer = document.getElementById('chatSearchResults');
+  if (!resultsContainer) return;
   if (!val) {
-    document.getElementById('chatSearchResults').style.display = 'none';
+    resultsContainer.style.display = 'none';
     return;
   }
   searchTimeout = setTimeout(() => searchUsersForChat(val), 300);
@@ -2099,6 +2106,7 @@ async function searchUsersForChat(query) {
   if (!currentUser) return;
   const qLower = query.toLowerCase();
   const resultsContainer = document.getElementById('chatSearchResults');
+  if (!resultsContainer) return;
   resultsContainer.innerHTML = '';
 
   const q1 = query(collection(db, "users"), where("userId", ">=", qLower.startsWith('@') ? qLower : `@${qLower}`), where("userId", "<=", (qLower.startsWith('@') ? qLower : `@${qLower}`) + '\uf8ff'));
@@ -2150,30 +2158,31 @@ async function searchUsersForChat(query) {
 }
 
 // Клік на аватар в шапці чату
-document.getElementById('chatAvatar').addEventListener('click', () => {
+document.getElementById('chatAvatar')?.addEventListener('click', () => {
   if (currentChatPartner) viewProfile(currentChatPartner);
 });
 
 // Меню в шапці чату
-document.getElementById('chatMenuBtn').addEventListener('click', (e) => {
+document.getElementById('chatMenuBtn')?.addEventListener('click', (e) => {
   e.stopPropagation();
-  document.getElementById('chatMenuDropdown').classList.toggle('show');
+  const dropdown = document.getElementById('chatMenuDropdown');
+  if (dropdown) dropdown.classList.toggle('show');
 });
 document.addEventListener('click', () => {
-  document.getElementById('chatMenuDropdown').classList.remove('show');
+  const dropdown = document.getElementById('chatMenuDropdown');
+  if (dropdown) dropdown.classList.remove('show');
 });
-document.getElementById('chatMenuDropdown').addEventListener('click', async (e) => {
+document.getElementById('chatMenuDropdown')?.addEventListener('click', async (e) => {
   const action = e.target.dataset.action;
   if (!action || !currentChatPartner) return;
-  document.getElementById('chatMenuDropdown').classList.remove('show');
+  document.getElementById('chatMenuDropdown')?.classList.remove('show');
   
   if (action === 'viewProfile') {
     viewProfile(currentChatPartner);
   } else if (action === 'block') {
     await blockUser(currentChatPartner);
   } else if (action === 'clearHistory') {
-    // Очистити історію – видалити всі повідомлення в чаті
-    if (confirm('Очистити історію повідомлень? Це не можна скасувати.')) {
+    if (confirm('Очистити історію повідомлень? Це не можна скасувати.') && currentChatId) {
       const messagesRef = collection(db, `chats/${currentChatId}/messages`);
       const snapshot = await getDocs(messagesRef);
       const batch = writeBatch(db);
