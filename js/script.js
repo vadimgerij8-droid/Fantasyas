@@ -1,7 +1,7 @@
 // ================= Firebase імпорти =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, OAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, getDocs, increment, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, getDocs, increment, limit, startAfter, writeBatch } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ================= Конфігурація =================
 const firebaseConfig = {
@@ -43,10 +43,10 @@ let hasMore = true;
 
 const viewedPosts = new Set();
 
-// ================= НОВА ЗМІННА ДЛЯ ФІЛЬТРА =================
+// ================= ЗМІННА ДЛЯ ФІЛЬТРА =================
 let currentFilterHashtag = null;
 
-// ================= НОВА ЗМІННА ДЛЯ РЕАЛЬНОГО ЧАСУ (ЛАЙКИ) =================
+// ================= ЗМІННА ДЛЯ РЕАЛЬНОГО ЧАСУ (ЛАЙКИ) =================
 const postListeners = new Map();
 
 // ================= Допоміжні функції =================
@@ -202,7 +202,8 @@ async function toggleLike(postId) {
 
 // ================= Навігація по розділах =================
 const sections = ['home','search','hashtags','profile','chats','settings'];
-const navItems = document.querySelectorAll('.nav-item');
+const navItems = document.querySelectorAll('.bottom-nav .nav-item'); // тепер шукаємо в нижньому меню
+
 navItems.forEach((item) => {
   item.addEventListener('click', async () => {
     const section = item.dataset.section;
@@ -211,7 +212,9 @@ navItems.forEach((item) => {
     sections.forEach(s => document.getElementById(s).classList.remove('active'));
     const sectionEl = document.getElementById(section);
     if (sectionEl) sectionEl.classList.add('active');
-    document.getElementById('pageTitle').textContent = item.textContent.trim();
+    // Оновлюємо заголовок (беремо текст спану, якщо він є, інакше сам текст)
+    const span = item.querySelector('span');
+    document.getElementById('pageTitle').textContent = span ? span.textContent : item.textContent.trim();
     
     cleanupListeners();
     
@@ -238,37 +241,8 @@ navItems.forEach((item) => {
     if (section === 'settings') {
       // нічого не завантажуємо
     }
-    
-    closeSidebar();
   });
 });
-
-const sidebar = document.getElementById('sidebar');
-const menuToggle = document.getElementById('menuToggle');
-const backdrop = document.getElementById('sidebarBackdrop');
-
-function openSidebar() {
-  sidebar.classList.add('open');
-  menuToggle.classList.add('active');
-  backdrop.classList.add('active');
-}
-
-function closeSidebar() {
-  sidebar.classList.remove('open');
-  menuToggle.classList.remove('active');
-  backdrop.classList.remove('active');
-}
-
-menuToggle.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (sidebar.classList.contains('open')) {
-    closeSidebar();
-  } else {
-    openSidebar();
-  }
-});
-
-backdrop.addEventListener('click', closeSidebar);
 
 // ================= Емоджі-пікер =================
 const emojiList = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
@@ -1267,7 +1241,8 @@ async function loadMyProfile() {
 
 function viewProfile(uid) {
   currentProfileUid = uid;
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  // Активуємо пункт меню "Профіль"
+  document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
   const profileNav = document.querySelector('[data-section="profile"]');
   if (profileNav) profileNav.classList.add('active');
   sections.forEach(s => document.getElementById(s).classList.remove('active'));
@@ -1280,8 +1255,6 @@ function viewProfile(uid) {
   } else {
     loadUserProfile(uid);
   }
-  
-  closeSidebar();
 }
 
 async function loadUserProfile(uid) {
@@ -1616,7 +1589,7 @@ document.getElementById('saveProfileEdit').onclick = async () => {
   }
 };
 
-// ================= ФУНКЦІЇ ЧАТІВ (НОВА РЕАЛІЗАЦІЯ) =================
+// ================= ФУНКЦІЇ ЧАТІВ =================
 const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
 
 async function loadChatList() {
@@ -1624,13 +1597,8 @@ async function loadChatList() {
   const listEl = document.getElementById('chatList');
   if (!listEl) return;
 
-  // Використовуємо onSnapshot для real-time оновлень
-  const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
-  // Вже підписано в onAuthStateChanged, тому тут просто рендеримо з наявних даних?
-  // Але для початкового завантаження зробимо запит один раз, а потім покладаємось на підписку.
-  // Щоб не дублювати, просто виконаємо запит і відобразимо.
   try {
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid)));
     const chatItems = [];
 
     for (const docSnap of snapshot.docs) {
@@ -1668,7 +1636,6 @@ async function loadChatList() {
     }
 
     chatItems.sort((a, b) => b.updatedAt - a.updatedAt);
-
     renderChatList(chatItems);
   } catch (error) {
     console.error('Помилка завантаження списку чатів:', error);
@@ -1928,6 +1895,7 @@ document.getElementById('chatText').addEventListener('keypress', (e) => {
   }
 });
 
+let typingTimeout;
 async function sendMessage() {
   const textInput = document.getElementById('chatText');
   const text = textInput.value.trim();
