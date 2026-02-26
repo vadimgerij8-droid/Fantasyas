@@ -1683,7 +1683,7 @@ body.dark .emoji-picker .emoji-item:hover {
   margin-top: 12px;
 }
 
-/* ========== НИЖНЄ МЕНЮ (TЕLEGRAM 2026) ========== */
+/* ========== НИЖНЄ МЕНЮ (Telegram-стиль 2025–2026) ========== */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -1697,12 +1697,25 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   padding: 0 8px;
   z-index: 1000;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: background var(--transition);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: 
+    opacity 0.36s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.36s cubic-bezier(0.4, 0, 0.2, 1),
+    background var(--transition);
+  box-shadow: 0 -1px 0 0 var(--border);
+  will-change: opacity, transform;
 }
 
+.bottom-nav.hide-chat-mode {
+  opacity: 0;
+  transform: translateY(100%);
+  pointer-events: none;
+}
+
+/* Контейнер для іконки + тексту */
 .bottom-nav .nav-item {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1711,67 +1724,136 @@ body.dark .emoji-picker .emoji-item:hover {
   padding: 8px 12px;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  transition: all var(--transition);
+  transition: 
+    color 0.28s ease,
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
   font-weight: 500;
-  font-size: 0.8rem;
-  min-width: 60px;
-  position: relative;
+  font-size: 0.78rem;
+  min-width: 64px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.bottom-nav .nav-item .icon {
-  width: 24px;
-  height: 24px;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  fill: none;
-  transition: transform 0.2s;
+.bottom-nav .nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  opacity: 0;
+  transform: scale(0.65);
+  transition: all 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+  z-index: -1;
+  pointer-events: none;
 }
 
-.bottom-nav .nav-item:hover {
-  color: var(--accent);
-  background: var(--card);
+.bottom-nav .nav-item:active::before {
+  opacity: 0.12;
+  transform: scale(1.1);
+  transition: transform 0.18s ease-out, opacity 0.14s ease-out;
 }
 
+/* Активний стан */
 .bottom-nav .nav-item.active {
   color: var(--accent);
-  transform: translateY(-2px);
+  transform: translateY(-4px) scale(1.08);
+}
+
+.bottom-nav .nav-item.active::before {
+  opacity: 0.08;
+  transform: scale(1.4);
+}
+
+/* Іконка */
+.bottom-nav .nav-item .icon {
+  width: 26px;
+  height: 26px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  fill: none;
+  transition: 
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+    stroke 0.28s ease,
+    fill 0.28s ease;
 }
 
 .bottom-nav .nav-item.active .icon {
+  transform: scale(1.14) translateY(-1px);
   stroke: var(--accent);
   fill: var(--accent);
 }
 
+/* Текст під іконкою */
+.bottom-nav .nav-item span {
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-size: 0.76rem;
+  letter-spacing: -0.01em;
+}
+
+.bottom-nav .nav-item.active span {
+  transform: scale(1.06);
+}
+
+/* Бейдж (наприклад, непрочитані повідомлення) */
 .bottom-nav .nav-item .badge {
   position: absolute;
-  top: 2px;
+  top: 4px;
   right: 8px;
-  background: var(--accent-light);
+  background: #ef5350;
   color: white;
-  padding: 2px 6px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  animation: pulse-soft 2s infinite;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(239, 83, 80, 0.4);
+  animation: pulse-soft 2.4s infinite;
 }
 
-@media (max-width: 768px) {
+/* Приховування тексту на дуже маленьких екранах */
+@media (max-width: 380px) {
   .bottom-nav .nav-item span {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
   }
   .bottom-nav .nav-item .icon {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
+  }
+  .bottom-nav .nav-item {
+    min-width: 52px;
+    padding: 8px 6px;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 320px) {
   .bottom-nav .nav-item span {
     display: none;
   }
   .bottom-nav .nav-item {
     min-width: auto;
-    padding: 8px;
+    padding: 10px 8px;
   }
+  .bottom-nav .nav-item .icon {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* Темна тема — трохи яскравіші акценти */
+body.dark .bottom-nav {
+  background: rgba(18, 18, 18, 0.92);
+  border-top-color: #333;
+}
+
+body.dark .bottom-nav .nav-item.active .icon {
+  filter: brightness(1.15);
+}
+
+body.dark .bottom-nav .nav-item .badge {
+  background: #e91e63;
+  box-shadow: 0 2px 8px rgba(233, 30, 99, 0.5);
 }
