@@ -213,7 +213,7 @@ navItems.forEach((item) => {
     
     cleanupListeners();
     
-    // FIX: Сховати вікно чату і показати нижнє меню при переході на інший розділ
+    // При переході на інший розділ ховаємо вікно чату і показуємо меню
     const chatWindow = document.getElementById('chatWindowContainer');
     if (chatWindow) chatWindow.style.display = 'none';
     const chatSidebar = document.getElementById('chatListSidebar');
@@ -1335,7 +1335,20 @@ function renderProfile(data, uid, isOwn) {
     const profileMessageBtn = document.getElementById('profileMessageBtn');
     if (profileMessageBtn) {
       profileMessageBtn.onclick = () => {
-        openChat(null, uid, data.nickname, data.userId, data.avatar);
+        // 🔥 Відкриваємо чат з цим користувачем
+        const chatId = getChatId(currentUser.uid, uid);
+        getDoc(doc(db, "chats", chatId)).then(async (docSnap) => {
+          if (!docSnap.exists()) {
+            await setDoc(doc(db, "chats", chatId), {
+              participants: [currentUser.uid, uid],
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              lastMessage: '',
+              unread: { [currentUser.uid]: 0, [uid]: 0 }
+            });
+          }
+          openChat(chatId, uid, data.nickname, data.userId, data.avatar);
+        });
       };
     }
 
@@ -1695,8 +1708,11 @@ async function openChat(chatId, otherUid, otherName, otherUserId, otherAvatar) {
     document.getElementById('chatListSidebar').classList.add('hide');
   }
 
-  // FIX: Ховаємо нижнє меню при відкритті чату
-  document.querySelector('.bottom-nav')?.classList.add('hide-chat-mode');
+  // 🔥 Ховаємо нижнє меню
+  const bottomNav = document.querySelector('.bottom-nav');
+  if (bottomNav) {
+    bottomNav.classList.add('hide-chat-mode');
+  }
 
   // Скидаємо лічильник непрочитаних для цього чату
   const chatRef = doc(db, "chats", chatId);
@@ -2078,8 +2094,11 @@ document.getElementById('chatBackBtn')?.addEventListener('click', () => {
   const chatSidebar = document.getElementById('chatListSidebar');
   if (chatSidebar) chatSidebar.classList.remove('hide');
   
-  // FIX: Показуємо нижнє меню при закритті чату
-  document.querySelector('.bottom-nav')?.classList.remove('hide-chat-mode');
+  // 🔥 Показуємо нижнє меню
+  const bottomNav = document.querySelector('.bottom-nav');
+  if (bottomNav) {
+    bottomNav.classList.remove('hide-chat-mode');
+  }
   
   if (unsubscribeMessages) unsubscribeMessages();
   if (unsubscribeTyping) unsubscribeTyping();
@@ -2088,15 +2107,19 @@ document.getElementById('chatBackBtn')?.addEventListener('click', () => {
   currentChatPartner = null;
 });
 
-// Пошук користувачів для нового чату
+// ================= ПОШУК КОРИСТУВАЧІВ У ЧАТАХ (виправлено) =================
 let searchTimeout;
 document.getElementById('chatSearchInput')?.addEventListener('input', (e) => {
   clearTimeout(searchTimeout);
   const val = e.target.value.trim();
   const resultsContainer = document.getElementById('chatSearchResults');
-  if (!resultsContainer) return;
+  if (!resultsContainer) {
+    console.error('Елемент chatSearchResults не знайдено!');
+    return;
+  }
   if (!val) {
     resultsContainer.style.display = 'none';
+    resultsContainer.innerHTML = '';
     return;
   }
   searchTimeout = setTimeout(() => searchUsersForChat(val), 300);
@@ -2104,43 +2127,83 @@ document.getElementById('chatSearchInput')?.addEventListener('input', (e) => {
 
 async function searchUsersForChat(query) {
   if (!currentUser) return;
+  
   const qLower = query.toLowerCase();
   const resultsContainer = document.getElementById('chatSearchResults');
-  if (!resultsContainer) return;
-  resultsContainer.innerHTML = '';
-
-  const q1 = query(collection(db, "users"), where("userId", ">=", qLower.startsWith('@') ? qLower : `@${qLower}`), where("userId", "<=", (qLower.startsWith('@') ? qLower : `@${qLower}`) + '\uf8ff'));
-  const q2 = query(collection(db, "users"), where("nickname_lower", ">=", qLower), where("nickname_lower", "<=", qLower + '\uf8ff'));
-  
-  const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-  const usersMap = new Map();
-  snap1.forEach(d => usersMap.set(d.id, d.data()));
-  snap2.forEach(d => usersMap.set(d.id, d.data()));
-
-  if (usersMap.size === 0) {
-    resultsContainer.style.display = 'none';
+  if (!resultsContainer) {
+    console.error('Елемент chatSearchResults не знайдено!');
     return;
   }
-
+  
+  resultsContainer.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
   resultsContainer.style.display = 'block';
-  usersMap.forEach((data, uid) => {
-    if (uid === currentUser.uid) return;
-    const div = document.createElement('div');
-    div.className = 'chat-item';
-    div.tabIndex = 0;
-    div.innerHTML = `
-      <div class="avatar small" style="background-image:url(${data.avatar || ''})"></div>
-      <div class="chat-info">
-        <div class="chat-name">${data.nickname}</div>
-        <div class="chat-last">${data.userId}</div>
-      </div>
-      <button class="btn btn-primary btn-small">Написати</button>
-    `;
-    div.addEventListener('click', () => {
-      const chatId = getChatId(currentUser.uid, uid);
-      getDoc(doc(db, "chats", chatId)).then(async (docSnap) => {
-        if (!docSnap.exists()) {
-          await setDoc(doc(db, "chats", chatId), {
+
+  try {
+    // Пошук за userId (з @ або без)
+    const searchTerm = qLower.startsWith('@') ? qLower : `@${qLower}`;
+    const q1 = query(
+      collection(db, "users"), 
+      where("userId", ">=", searchTerm), 
+      where("userId", "<=", searchTerm + '\uf8ff')
+    );
+    
+    // Пошук за nickname
+    const q2 = query(
+      collection(db, "users"), 
+      where("nickname_lower", ">=", qLower), 
+      where("nickname_lower", "<=", qLower + '\uf8ff')
+    );
+    
+    const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+    const usersMap = new Map();
+    
+    snap1.forEach(d => {
+      if (d.id !== currentUser.uid) usersMap.set(d.id, d.data());
+    });
+    snap2.forEach(d => {
+      if (d.id !== currentUser.uid) usersMap.set(d.id, d.data());
+    });
+
+    if (usersMap.size === 0) {
+      resultsContainer.innerHTML = '<p style="text-align:center; padding:20px;">Користувачів не знайдено</p>';
+      return;
+    }
+
+    resultsContainer.innerHTML = '';
+    usersMap.forEach((data, uid) => {
+      const div = document.createElement('div');
+      div.className = 'chat-item';
+      div.style.cursor = 'pointer';
+      div.tabIndex = 0;
+      div.innerHTML = `
+        <div class="avatar small" style="background-image:url(${data.avatar || ''})"></div>
+        <div class="chat-info">
+          <div class="chat-name">${data.nickname}</div>
+          <div class="chat-last">${data.userId}</div>
+        </div>
+        <button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem;">Написати</button>
+      `;
+      
+      // Клік на весь елемент (крім кнопки) відкриває профіль
+      div.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+        viewProfile(uid);
+        // Ховаємо результати пошуку
+        resultsContainer.style.display = 'none';
+        resultsContainer.innerHTML = '';
+        document.getElementById('chatSearchInput').value = '';
+      });
+      
+      // Клік на кнопку "Написати"
+      const btn = div.querySelector('button');
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const chatId = getChatId(currentUser.uid, uid);
+        const chatRef = doc(db, "chats", chatId);
+        const chatSnap = await getDoc(chatRef);
+        
+        if (!chatSnap.exists()) {
+          await setDoc(chatRef, {
             participants: [currentUser.uid, uid],
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
@@ -2148,13 +2211,21 @@ async function searchUsersForChat(query) {
             unread: { [currentUser.uid]: 0, [uid]: 0 }
           });
         }
+        
         openChat(chatId, uid, data.nickname, data.userId, data.avatar);
+        
+        // Ховаємо результати пошуку
         resultsContainer.style.display = 'none';
+        resultsContainer.innerHTML = '';
         document.getElementById('chatSearchInput').value = '';
       });
+      
+      resultsContainer.appendChild(div);
     });
-    resultsContainer.appendChild(div);
-  });
+  } catch (error) {
+    console.error('Помилка пошуку користувачів:', error);
+    resultsContainer.innerHTML = '<p style="text-align:center; padding:20px;">Помилка пошуку</p>';
+  }
 }
 
 // Клік на аватар в шапці чату
