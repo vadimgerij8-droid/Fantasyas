@@ -21,15 +21,17 @@ let currentUser = null;
 let currentUserFollowing = [];
 let currentChatPartner = null;
 let currentChatPartnerName = '';
+let currentChatPartnerAvatar = '';
+let currentChatPartnerUserId = '';
 let currentChatId = null;
 let currentProfileUid = null;
 let currentEditingPost = null;
 
 let unsubscribeFeed = null;
-let unsubscribeChat = null;
-let unsubscribeChatList = null;
-let unsubscribeTyping = null;
-let unsubscribeOnlineStatus = null;
+let unsubscribeChatList = null;      // для списку чатів
+let unsubscribeMessages = null;      // для повідомлень
+let unsubscribeTyping = null;        // для індикатора друку
+let unsubscribeChatPresence = null;  // для онлайн-статусу
 let unsubscribeFollowing = null;
 let lastOnlineInterval = null;
 
@@ -45,7 +47,7 @@ const viewedPosts = new Set();
 let currentFilterHashtag = null;
 
 // ================= НОВА ЗМІННА ДЛЯ РЕАЛЬНОГО ЧАСУ (ЛАЙКИ) =================
-const postListeners = new Map(); // postId -> unsubscribe function
+const postListeners = new Map();
 
 // ================= Допоміжні функції =================
 const showToast = (msg) => {
@@ -70,18 +72,16 @@ const updateUnreadBadge = () => {
 };
 
 const clearMainFeedListeners = () => {
-  postListeners.forEach((unsubscribe, postId) => {
-    unsubscribe();
-  });
+  postListeners.forEach((unsubscribe) => unsubscribe());
   postListeners.clear();
 };
 
 const cleanupListeners = () => {
   if (unsubscribeFeed) { unsubscribeFeed(); unsubscribeFeed = null; }
-  if (unsubscribeChat) { unsubscribeChat(); unsubscribeChat = null; }
   if (unsubscribeChatList) { unsubscribeChatList(); unsubscribeChatList = null; }
+  if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
   if (unsubscribeTyping) { unsubscribeTyping(); unsubscribeTyping = null; }
-  if (unsubscribeOnlineStatus) { unsubscribeOnlineStatus(); unsubscribeOnlineStatus = null; }
+  if (unsubscribeChatPresence) { unsubscribeChatPresence(); unsubscribeChatPresence = null; }
   if (unsubscribeFollowing) { unsubscribeFollowing(); unsubscribeFollowing = null; }
   if (lastOnlineInterval) { clearInterval(lastOnlineInterval); lastOnlineInterval = null; }
   clearMainFeedListeners();
@@ -225,10 +225,12 @@ navItems.forEach((item) => {
       await loadHashtags();
     }
     if (section === 'chats' && currentUser) {
-      document.getElementById('chatWindow').style.display = 'none';
-      await loadChatList();
-      document.getElementById('chatSearchResults').style.display = 'none';
+      // Приховати вікно чату, показати список
+      document.getElementById('chatWindowContainer').style.display = 'none';
+      document.getElementById('chatListSidebar').classList.remove('hide');
       document.getElementById('chatSearchInput').value = '';
+      document.getElementById('chatSearchResults').style.display = 'none';
+      await loadChatList(); // підписка вже є, але для першого завантаження викличемо
     }
     if (section === 'profile' && currentUser) {
       await viewProfile(currentUser.uid);
@@ -680,6 +682,7 @@ onAuthStateChanged(auth, (user) => {
     resetPagination();
     loadMyProfile();
     
+    // Підписка на список чатів для оновлення непрочитаних
     const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
     unsubscribeChatList = onSnapshot(q, (snapshot) => {
       let totalUnread = 0;
@@ -692,11 +695,11 @@ onAuthStateChanged(auth, (user) => {
       unreadCount = totalUnread;
       updateUnreadBadge();
       if (document.getElementById('chats')?.classList.contains('active')) {
-        loadChatList();
+        // Якщо ми в секції чатів, оновлюємо список
+        loadChatList(); // перерендеримо список (можна оптимізувати)
       }
     }, (error) => {
       console.error('Chat list snapshot error:', error);
-      alert('Помилка в реальному часі (список чатів):\n' + error.message + '\nКод: ' + error.code);
       showToast('Помилка оновлення списку чатів. Перевірте індекси Firestore.');
     });
 
@@ -762,7 +765,7 @@ async function uploadToCloudinary(file) {
   }
 
   const data = await response.json();
-  return data.secure_url; // гарантовано HTTPS
+  return data.secure_url;
 }
 
 // ================= Додавання поста =================
@@ -1365,7 +1368,7 @@ function renderProfile(data, uid, isOwn) {
     const profileMessageBtn = document.getElementById('profileMessageBtn');
     if (profileMessageBtn) {
       profileMessageBtn.onclick = () => {
-        openChat(data.nickname, uid, data.userId);
+        openChat(null, uid, data.nickname, data.userId, data.avatar);
       };
     }
 
@@ -1593,7 +1596,6 @@ document.getElementById('saveProfileEdit').onclick = async () => {
   try {
     let avatarUrl;
     if (avatarFile) {
-      // Завантажуємо аватар на Cloudinary
       avatarUrl = await uploadToCloudinary(avatarFile);
     }
     
@@ -1614,46 +1616,51 @@ document.getElementById('saveProfileEdit').onclick = async () => {
   }
 };
 
+// ================= ФУНКЦІЇ ЧАТІВ (НОВА РЕАЛІЗАЦІЯ) =================
 const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
 
 async function loadChatList() {
   if (!currentUser) return;
-  const list = document.getElementById('chatList');
-  if (!list) return;
-  list.innerHTML = '';
+  const listEl = document.getElementById('chatList');
+  if (!listEl) return;
 
+  // Використовуємо onSnapshot для real-time оновлень
+  const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
+  // Вже підписано в onAuthStateChanged, тому тут просто рендеримо з наявних даних?
+  // Але для початкового завантаження зробимо запит один раз, а потім покладаємось на підписку.
+  // Щоб не дублювати, просто виконаємо запит і відобразимо.
   try {
-    const q = query(collection(db, "chats"), where("participants", "array-contains", currentUser.uid));
     const snapshot = await getDocs(q);
-
-    if (snapshot.empty) {
-      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає чатів</p>';
-      return;
-    }
-
     const chatItems = [];
+
     for (const docSnap of snapshot.docs) {
       const chat = docSnap.data();
       const otherUid = chat.participants.find(uid => uid !== currentUser.uid);
       if (!otherUid) continue;
 
       const userSnap = await getDoc(doc(db, "users", otherUid));
+      if (!userSnap.exists()) continue;
       const user = userSnap.data();
-      if (!user) continue;
 
       const unread = chat.unread?.[currentUser.uid] || 0;
       const lastMsg = chat.lastMessage || '';
-      const updatedAt = chat.updatedAt?.seconds || 0;
-      const time = updatedAt ? new Date(updatedAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-      const lastOnline = user.lastOnline?.seconds || 0;
-      const isOnline = (Date.now() / 1000 - lastOnline) < 60;
+      const lastMsgType = chat.lastMessageType || 'text';
+      let displayLast = lastMsg;
+      if (lastMsgType === 'photo') displayLast = '📷 Фото';
+      else if (lastMsgType === 'video') displayLast = '🎥 Відео';
+      
+      const updatedAt = chat.updatedAt?.seconds * 1000 || 0;
+      const time = updatedAt ? new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      
+      const lastOnline = user.lastOnline?.seconds * 1000 || 0;
+      const isOnline = (Date.now() - lastOnline) < 60000;
 
       chatItems.push({
         chatId: docSnap.id,
         otherUid,
         user,
         unread,
-        lastMsg,
+        lastMsg: displayLast,
         time,
         isOnline,
         updatedAt
@@ -1662,150 +1669,236 @@ async function loadChatList() {
 
     chatItems.sort((a, b) => b.updatedAt - a.updatedAt);
 
-    if (chatItems.length === 0) {
-      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає чатів</p>';
-      return;
-    }
-
-    chatItems.forEach(item => {
-      const div = document.createElement('div');
-      div.className = `chat-item ${item.unread > 0 ? 'unread' : ''}`;
-      div.dataset.chatId = item.chatId;
-      div.dataset.otherUid = item.otherUid;
-      div.tabIndex = 0;
-      div.innerHTML = `
-        <div class="avatar small" style="background-image:url(${item.user.avatar || ''})" tabindex="0"></div>
-        <div class="chat-info">
-          <div class="chat-name">${item.user.nickname} ${item.isOnline ? '<span class="online-indicator" style="display:inline-block;"></span>' : ''}</div>
-          <div class="chat-last">${item.lastMsg}</div>
-        </div>
-        <div class="chat-time">${item.time}</div>
-        ${item.unread > 0 ? `<div class="chat-badge">${item.unread}</div>` : ''}
-      `;
-      div.onclick = () => openChatFromList(item.chatId, item.otherUid, item.user.nickname, item.user.userId, item.user.avatar);
-      list.appendChild(div);
-    });
+    renderChatList(chatItems);
   } catch (error) {
-    console.error('Error loading chat list:', error);
-    alert('Помилка завантаження списку чатів:\n' + (error.message || 'Невідома помилка') + '\nКод: ' + (error.code || 'N/A'));
-    showToast('Помилка завантаження списку чатів.');
+    console.error('Помилка завантаження списку чатів:', error);
+    showToast('Не вдалося завантажити чати');
   }
 }
 
-async function openChatFromList(chatId, otherUid, otherName, otherUserId, otherAvatar) {
-  if (!currentUser) return;
-  currentChatPartner = otherUid;
-  currentChatPartnerName = otherName;
-  currentChatId = chatId;
-  
-  const chatWindow = document.getElementById('chatWindow');
-  if (chatWindow) chatWindow.style.display = 'flex';
-  const chatName = document.getElementById('chatName');
-  if (chatName) chatName.textContent = otherName;
-  const chatUserId = document.getElementById('chatUserId');
-  if (chatUserId) chatUserId.textContent = otherUserId || '';
-  const chatAvatar = document.getElementById('chatAvatar');
-  if (chatAvatar) chatAvatar.style.backgroundImage = `url(${otherAvatar || ''})`;
-  
-  const chatRef = doc(db, "chats", chatId);
-  await updateDoc(chatRef, { [`unread.${currentUser.uid}`]: 0 }).catch(console.error);
-  
-  setTimeout(() => {
-    subscribeToChat(chatId).catch(err => {
-      console.error('Error subscribing to chat:', err);
-      showToast('Помилка завантаження повідомлень');
+function renderChatList(chatItems) {
+  const listEl = document.getElementById('chatList');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  if (chatItems.length === 0) {
+    listEl.innerHTML = '<p style="text-align:center; padding:20px;">Немає чатів</p>';
+    return;
+  }
+
+  chatItems.forEach(item => {
+    const div = document.createElement('div');
+    div.className = `chat-item ${item.unread > 0 ? 'unread' : ''}`;
+    div.dataset.chatId = item.chatId;
+    div.dataset.otherUid = item.otherUid;
+    div.tabIndex = 0;
+
+    div.innerHTML = `
+      <div class="chat-avatar">
+        <div class="avatar small" style="background-image:url(${item.user.avatar || ''})"></div>
+        ${item.isOnline ? '<span class="online-indicator"></span>' : ''}
+      </div>
+      <div class="chat-info">
+        <div class="chat-name">${item.user.nickname}</div>
+        <div class="chat-last">${item.lastMsg}</div>
+      </div>
+      <div class="chat-time">${item.time}</div>
+      ${item.unread > 0 ? `<div class="chat-badge">${item.unread}</div>` : ''}
+    `;
+
+    div.addEventListener('click', () => {
+      openChat(item.chatId, item.otherUid, item.user.nickname, item.user.userId, item.user.avatar);
     });
-  }, 100);
-  
-  if (unsubscribeOnlineStatus) unsubscribeOnlineStatus();
-  unsubscribeOnlineStatus = onSnapshot(doc(db, "users", otherUid), (snap) => {
-    const lastOnline = snap.data()?.lastOnline?.seconds || 0;
-    const isOnline = (Date.now()/1000 - lastOnline) < 60;
-    const indicator = document.getElementById('onlineIndicator');
-    if (indicator) indicator.style.display = isOnline ? 'inline-block' : 'none';
-  }, (error) => {
-    console.error('Online status error:', error);
+
+    listEl.appendChild(div);
   });
-  
-  setTimeout(() => { document.getElementById('chatText').focus(); }, 200);
 }
 
-function openChat(otherName, otherUid, otherUserId) {
+async function openChat(chatId, otherUid, otherName, otherUserId, otherAvatar) {
   if (!currentUser) return;
+
+  currentChatId = chatId;
   currentChatPartner = otherUid;
   currentChatPartnerName = otherName;
+  currentChatPartnerUserId = otherUserId;
+  currentChatPartnerAvatar = otherAvatar;
+
+  document.getElementById('chatName').textContent = otherName;
+  document.getElementById('chatStatus').textContent = '';
+  const avatarEl = document.getElementById('chatAvatar');
+  avatarEl.style.backgroundImage = `url(${otherAvatar || ''})`;
   
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const chatsNav = document.querySelector('[data-section="chats"]');
-  if (chatsNav) chatsNav.classList.add('active');
-  sections.forEach(s => document.getElementById(s).classList.remove('active'));
-  const chatsSection = document.getElementById('chats');
-  if (chatsSection) chatsSection.classList.add('active');
-  document.getElementById('pageTitle').textContent = 'Чати';
-  
-  const chatWindow = document.getElementById('chatWindow');
-  if (chatWindow) chatWindow.style.display = 'flex';
-  const chatName = document.getElementById('chatName');
-  if (chatName) chatName.textContent = otherName;
-  const chatUserId = document.getElementById('chatUserId');
-  if (chatUserId) chatUserId.textContent = otherUserId || '';
-  
-  getDoc(doc(db, "users", otherUid)).then(snap => {
-    if (snap.exists()) {
-      const chatAvatar = document.getElementById('chatAvatar');
-      if (chatAvatar) chatAvatar.style.backgroundImage = `url(${snap.data().avatar || ''})`;
-      const lastOnline = snap.data().lastOnline?.seconds || 0;
-      const isOnline = (Date.now()/1000 - lastOnline) < 60;
-      const indicator = document.getElementById('onlineIndicator');
-      if (indicator) indicator.style.display = isOnline ? 'inline-block' : 'none';
-    }
-  }).catch(console.error);
-  
-  if (unsubscribeOnlineStatus) unsubscribeOnlineStatus();
-  unsubscribeOnlineStatus = onSnapshot(doc(db, "users", otherUid), (snap) => {
-    const lastOnline = snap.data()?.lastOnline?.seconds || 0;
-    const isOnline = (Date.now()/1000 - lastOnline) < 60;
-    const indicator = document.getElementById('onlineIndicator');
-    if (indicator) indicator.style.display = isOnline ? 'inline-block' : 'none';
-  }, (error) => {
-    console.error('Online status error:', error);
-  });
-  
-  const chatId = getChatId(currentUser.uid, otherUid);
-  currentChatId = chatId;
+  const chatWindowContainer = document.getElementById('chatWindowContainer');
+  chatWindowContainer.style.display = 'flex';
+  if (window.innerWidth < 768) {
+    document.getElementById('chatListSidebar').classList.add('hide');
+  }
+
+  // Скидаємо лічильник непрочитаних для цього чату
   const chatRef = doc(db, "chats", chatId);
-  getDoc(chatRef).then(async (docSnap) => {
-    try {
-      if (!docSnap.exists()) {
-        await setDoc(chatRef, {
-          participants: [currentUser.uid, otherUid],
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          lastMessage: '',
-          unread: { [currentUser.uid]: 0, [otherUid]: 0 }
-        });
-      } else {
-        await updateDoc(chatRef, { [`unread.${currentUser.uid}`]: 0 });
-      }
-      setTimeout(() => {
-        subscribeToChat(chatId).catch(err => {
-          console.error('Error subscribing to chat:', err);
-          showToast('Помилка завантаження повідомлень');
-        });
-      }, 100);
-      loadChatList();
-    } catch (error) {
-      console.error('Error opening chat:', error);
-      alert('Помилка відкриття чату:\n' + error.message);
-      showToast('Помилка відкриття чату');
-    }
-  }).catch(error => {
-    console.error('Error getting chat doc:', error);
-    alert('Помилка доступу до чату:\n' + error.message);
-    showToast('Помилка доступу до чату');
+  await updateDoc(chatRef, {
+    [`unread.${currentUser.uid}`]: 0
+  }).catch(console.error);
+
+  subscribeToMessages(chatId);
+
+  if (unsubscribeChatPresence) unsubscribeChatPresence();
+  unsubscribeChatPresence = onSnapshot(doc(db, "users", otherUid), (snap) => {
+    const lastOnline = snap.data()?.lastOnline?.seconds * 1000 || 0;
+    const isOnline = (Date.now() - lastOnline) < 60000;
+    const statusEl = document.getElementById('chatStatus');
+    statusEl.textContent = isOnline ? 'онлайн' : 'був(ла) нещодавно';
   });
+
+  if (unsubscribeTyping) unsubscribeTyping();
+  const typingRef = doc(db, `chats/${chatId}/typing/${otherUid}`);
+  unsubscribeTyping = onSnapshot(typingRef, (docSnap) => {
+    const indicator = document.getElementById('typingIndicator');
+    if (docSnap.exists() && docSnap.data().isTyping) {
+      indicator.style.display = 'flex';
+    } else {
+      indicator.style.display = 'none';
+    }
+  });
+
+  setTimeout(() => document.getElementById('chatText').focus(), 200);
+}
+
+function subscribeToMessages(chatId) {
+  if (!currentUser) return;
+  if (unsubscribeMessages) unsubscribeMessages();
+
+  const messagesContainer = document.getElementById('chatMessages');
+  messagesContainer.innerHTML = '';
+
+  const q = query(collection(db, `chats/${chatId}/messages`), orderBy("createdAt", "asc"));
+  unsubscribeMessages = onSnapshot(q, (snapshot) => {
+    let lastDate = '';
+    messagesContainer.innerHTML = '';
+
+    snapshot.forEach(docSnap => {
+      const msg = { id: docSnap.id, ...docSnap.data() };
+      const msgDate = formatMessageDate(msg.createdAt);
+      if (msgDate !== lastDate) {
+        lastDate = msgDate;
+        const divider = document.createElement('div');
+        divider.className = 'date-divider';
+        divider.textContent = msgDate;
+        messagesContainer.appendChild(divider);
+      }
+
+      const messageEl = createMessageElement(msg);
+      messagesContainer.appendChild(messageEl);
+    });
+
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }, (error) => {
+    console.error('Помилка отримання повідомлень:', error);
+    showToast('Помилка завантаження повідомлень');
+  });
+}
+
+function createMessageElement(msg) {
+  const isMine = msg.from === currentUser.uid;
+  const wrapper = document.createElement('div');
+  wrapper.className = `message-wrapper ${isMine ? 'sent' : 'received'}`;
+  wrapper.dataset.messageId = msg.id;
+
+  const bubble = document.createElement('div');
+  bubble.className = `message-bubble ${isMine ? 'sent' : 'received'}`;
+
+  if (!isMine) {
+    const senderDiv = document.createElement('div');
+    senderDiv.className = 'message-sender';
+    senderDiv.innerHTML = `
+      <div class="message-sender-avatar" style="background-image:url(${currentChatPartnerAvatar || ''})"></div>
+      <span>${currentChatPartnerName}</span>
+    `;
+    bubble.appendChild(senderDiv);
+  }
+
+  if (msg.text) {
+    const textDiv = document.createElement('div');
+    textDiv.className = `message-text ${msg.edited ? 'edited' : ''}`;
+    textDiv.textContent = msg.text;
+    bubble.appendChild(textDiv);
+  }
+
+  if (msg.mediaUrl) {
+    const mediaEl = msg.mediaType === 'image' ? document.createElement('img') : document.createElement('video');
+    mediaEl.src = msg.mediaUrl;
+    mediaEl.className = 'message-media';
+    if (msg.mediaType === 'video') mediaEl.controls = true;
+    mediaEl.addEventListener('click', () => window.open(msg.mediaUrl, '_blank'));
+    bubble.appendChild(mediaEl);
+  }
+
+  if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+    const reactionsDiv = document.createElement('div');
+    reactionsDiv.className = 'message-reactions';
+    for (const [emoji, users] of Object.entries(msg.reactions)) {
+      if (users.length === 0) continue;
+      const reactionItem = document.createElement('span');
+      reactionItem.className = `reaction-item ${users.includes(currentUser.uid) ? 'user-reacted' : ''}`;
+      reactionItem.dataset.emoji = emoji;
+      reactionItem.innerHTML = `<span class="emoji">${emoji}</span><span class="count">${users.length}</span>`;
+      reactionItem.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleReaction(msg.id, emoji);
+      });
+      reactionsDiv.appendChild(reactionItem);
+    }
+    bubble.appendChild(reactionsDiv);
+  }
+
+  const footer = document.createElement('div');
+  footer.className = 'message-footer';
   
-  setTimeout(() => { document.getElementById('chatText').focus(); }, 200);
+  const timeSpan = document.createElement('span');
+  timeSpan.className = 'message-time';
+  timeSpan.textContent = formatMessageTime(msg.createdAt);
+  footer.appendChild(timeSpan);
+
+  if (isMine) {
+    const statusSpan = document.createElement('span');
+    statusSpan.className = 'message-status';
+    let status = 'sent';
+    if (msg.readBy && msg.readBy.includes(currentChatPartner)) {
+      status = 'read';
+    } else if (msg.deliveredTo && msg.deliveredTo.includes(currentChatPartner)) {
+      status = 'delivered';
+    }
+    statusSpan.innerHTML = getStatusIcon(status);
+    footer.appendChild(statusSpan);
+  }
+
+  bubble.appendChild(footer);
+  wrapper.appendChild(bubble);
+
+  // Довге натискання
+  wrapper.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showMessageContextMenu(e, msg);
+  });
+  let longPressTimer;
+  wrapper.addEventListener('touchstart', (e) => {
+    longPressTimer = setTimeout(() => {
+      showMessageContextMenu(e, msg);
+    }, 500);
+  });
+  wrapper.addEventListener('touchend', () => clearTimeout(longPressTimer));
+  wrapper.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+
+  return wrapper;
+}
+
+function getStatusIcon(status) {
+  const icons = {
+    sent: '<svg class="status-icon sent" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>',
+    delivered: '<svg class="status-icon delivered" viewBox="0 0 24 24"><path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.68 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12z"/></svg>',
+    read: '<svg class="status-icon read" viewBox="0 0 24 24"><path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.68 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12z"/></svg>'
+  };
+  return icons[status] || icons.sent;
 }
 
 function formatMessageTime(timestamp) {
@@ -1823,126 +1916,206 @@ function formatMessageDate(timestamp) {
   
   if (date.toDateString() === today.toDateString()) return 'Сьогодні';
   if (date.toDateString() === yesterday.toDateString()) return 'Вчора';
-  return date.toLocaleDateString();
+  return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
 }
 
-async function subscribeToChat(chatId) {
-  if (!currentUser) throw new Error('No current user');
-  if (unsubscribeChat) unsubscribeChat();
-  if (unsubscribeTyping) unsubscribeTyping();
-
-  const messagesContainer = document.getElementById('chatMessages');
-  if (!messagesContainer) {
-    throw new Error('chatMessages container not found');
-  }
-
-  const otherUserSnap = await getDoc(doc(db, "users", currentChatPartner));
-  const otherUser = otherUserSnap.data();
-
-  const q = query(collection(db, `chats/${chatId}/messages`), orderBy("createdAt"));
-  let lastDate = '';
-  unsubscribeChat = onSnapshot(q, (snap) => {
-    messagesContainer.innerHTML = '';
-    snap.forEach(doc => {
-      const msg = doc.data();
-      const msgDate = formatMessageDate(msg.createdAt);
-      if (msgDate !== lastDate) {
-        lastDate = msgDate;
-        const divider = document.createElement('div');
-        divider.className = 'date-divider';
-        divider.textContent = msgDate;
-        messagesContainer.appendChild(divider);
-      }
-
-      const wrapper = document.createElement('div');
-      wrapper.className = `message-wrapper ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
-
-      const bubble = document.createElement('div');
-      bubble.className = `message-bubble ${msg.from === currentUser.uid ? 'sent' : 'received'}`;
-
-      if (msg.from !== currentUser.uid) {
-        const senderDiv = document.createElement('div');
-        senderDiv.className = 'message-sender';
-        senderDiv.innerHTML = `
-          <div class="message-sender-avatar" style="background-image:url(${otherUser?.avatar || ''})"></div>
-          <span>${currentChatPartnerName}</span>
-        `;
-        bubble.appendChild(senderDiv);
-      }
-
-      const textDiv = document.createElement('div');
-      textDiv.textContent = msg.text;
-      bubble.appendChild(textDiv);
-
-      const timeDiv = document.createElement('div');
-      timeDiv.className = 'message-time';
-      timeDiv.textContent = formatMessageTime(msg.createdAt);
-      bubble.appendChild(timeDiv);
-
-      wrapper.appendChild(bubble);
-      messagesContainer.appendChild(wrapper);
-    });
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }, (error) => {
-    console.error('Error in messages snapshot:', error);
-    alert('Помилка отримання повідомлень:\n' + error.message);
-    showToast('Помилка отримання повідомлень');
-  });
-  
-  if (currentChatPartner) {
-    const typingRef = doc(db, `chats/${chatId}/typing/${currentChatPartner}`);
-    unsubscribeTyping = onSnapshot(typingRef, (docSnap) => {
-      const indicator = document.getElementById('typingIndicator');
-      if (indicator) {
-        if (docSnap.exists() && docSnap.data().isTyping) {
-          indicator.style.display = 'flex';
-        } else {
-          indicator.style.display = 'none';
-        }
-      }
-    }, (error) => {
-      console.error('Typing indicator error:', error);
-    });
-  }
-}
-
-document.getElementById('chatText').addEventListener('input', () => {
-  if (!currentUser || !currentChatPartner || !currentChatId) return;
-  const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
-  setDoc(typingRef, { isTyping: true }, { merge: true }).catch(console.error);
-  clearTimeout(window.typingTimeout);
-  window.typingTimeout = setTimeout(() => setDoc(typingRef, { isTyping: false }, { merge: true }).catch(console.error), 2000);
-});
-
-document.getElementById('sendMessage').onclick = async () => {
-  const text = document.getElementById('chatText').value.trim();
-  if (!text || !currentUser || !currentChatPartner || !currentChatId) return;
-  const chatRef = doc(db, "chats", currentChatId);
-  const messageRef = collection(db, `chats/${currentChatId}/messages`);
-  try {
-    await addDoc(messageRef, { from: currentUser.uid, text, createdAt: serverTimestamp() });
-    await updateDoc(chatRef, {
-      lastMessage: text,
-      updatedAt: serverTimestamp(),
-      [`unread.${currentChatPartner}`]: increment(1)
-    });
-    document.getElementById('chatText').value = '';
-    
-    const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
-    await setDoc(typingRef, { isTyping: false }, { merge: true });
-  } catch (error) {
-    console.error('Send message error:', error);
-    alert('Помилка відправлення повідомлення:\n' + error.message);
-  }
-};
-
+// Відправка повідомлення
+document.getElementById('sendMessage').addEventListener('click', sendMessage);
 document.getElementById('chatText').addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
-    document.getElementById('sendMessage').click();
+    sendMessage();
   }
 });
 
+async function sendMessage() {
+  const textInput = document.getElementById('chatText');
+  const text = textInput.value.trim();
+  const fileInput = document.getElementById('chatAttachFile');
+  const file = fileInput.files[0];
+
+  if (!text && !file) return;
+  if (!currentUser || !currentChatId || !currentChatPartner) {
+    showToast('Чат не вибрано');
+    return;
+  }
+
+  try {
+    let mediaUrl = null;
+    let mediaType = null;
+    if (file) {
+      mediaUrl = await uploadToCloudinary(file);
+      mediaType = file.type.split('/')[0];
+    }
+
+    const messageData = {
+      from: currentUser.uid,
+      text: text || '',
+      createdAt: serverTimestamp(),
+      readBy: [currentUser.uid],
+      deliveredTo: [currentUser.uid],
+      reactions: {}
+    };
+    if (mediaUrl) {
+      messageData.mediaUrl = mediaUrl;
+      messageData.mediaType = mediaType;
+    }
+
+    const messageRef = collection(db, `chats/${currentChatId}/messages`);
+    await addDoc(messageRef, messageData);
+
+    const chatRef = doc(db, "chats", currentChatId);
+    await updateDoc(chatRef, {
+      lastMessage: text || (mediaType === 'image' ? '📷 Фото' : '🎥 Відео'),
+      lastMessageType: mediaType || 'text',
+      updatedAt: serverTimestamp(),
+      [`unread.${currentChatPartner}`]: increment(1)
+    });
+
+    textInput.value = '';
+    fileInput.value = '';
+    document.getElementById('chatAttachBtn').innerHTML = '📎';
+
+    const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
+    await setDoc(typingRef, { isTyping: false }, { merge: true });
+  } catch (error) {
+    console.error('Помилка відправки:', error);
+    showToast('Не вдалося відправити повідомлення');
+  }
+}
+
+// Індикатор друку
+document.getElementById('chatText').addEventListener('input', () => {
+  if (!currentUser || !currentChatId || !currentChatPartner) return;
+  
+  const typingRef = doc(db, `chats/${currentChatId}/typing/${currentUser.uid}`);
+  setDoc(typingRef, { isTyping: true }, { merge: true }).catch(console.error);
+  
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    setDoc(typingRef, { isTyping: false }, { merge: true }).catch(console.error);
+  }, 2000);
+});
+
+// Прикріплення файлу
+document.getElementById('chatAttachBtn').addEventListener('click', () => {
+  document.getElementById('chatAttachFile').click();
+});
+document.getElementById('chatAttachFile').addEventListener('change', function() {
+  if (this.files && this.files[0]) {
+    document.getElementById('chatAttachBtn').innerHTML = '📁';
+  }
+});
+
+// Контекстне меню повідомлення
+let selectedMessageId = null;
+
+function showMessageContextMenu(event, msg) {
+  event.preventDefault();
+  selectedMessageId = msg.id;
+
+  const menu = document.getElementById('messageContextMenu');
+  menu.style.left = event.pageX + 'px';
+  menu.style.top = event.pageY + 'px';
+  menu.classList.add('show');
+
+  const editItem = menu.querySelector('[data-action="edit"]');
+  const deleteEveryoneItem = menu.querySelector('[data-action="deleteEveryone"]');
+  
+  if (msg.from === currentUser.uid) {
+    editItem.style.display = 'block';
+    deleteEveryoneItem.style.display = 'block';
+  } else {
+    editItem.style.display = 'none';
+    deleteEveryoneItem.style.display = 'none';
+  }
+
+  const closeMenu = (e) => {
+    if (!menu.contains(e.target)) {
+      menu.classList.remove('show');
+      document.removeEventListener('click', closeMenu);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', closeMenu), 0);
+}
+
+document.getElementById('messageContextMenu').addEventListener('click', async (e) => {
+  const action = e.target.dataset.action;
+  if (!action || !selectedMessageId || !currentChatId) return;
+
+  const messageRef = doc(db, `chats/${currentChatId}/messages/${selectedMessageId}`);
+
+  switch (action) {
+    case 'reply':
+      showToast('Функція відповіді в розробці');
+      break;
+    case 'edit':
+      const msgEl = e.target.closest('.message-wrapper')?.querySelector('.message-text');
+      const oldText = msgEl ? msgEl.textContent : '';
+      const newText = prompt('Редагувати повідомлення:', oldText);
+      if (newText !== null) {
+        await updateDoc(messageRef, { text: newText, edited: true });
+      }
+      break;
+    case 'copy':
+      const text = e.target.closest('.message-wrapper')?.querySelector('.message-text')?.textContent;
+      if (text) {
+        navigator.clipboard.writeText(text).then(() => showToast('Скопійовано'));
+      }
+      break;
+    case 'delete':
+      if (confirm('Видалити це повідомлення для себе?')) {
+        // Можна додати логіку deletedFor
+        showToast('Функція видалення для себе буде реалізована');
+      }
+      break;
+    case 'deleteEveryone':
+      if (confirm('Видалити це повідомлення для всіх?')) {
+        await deleteDoc(messageRef);
+      }
+      break;
+  }
+  document.getElementById('messageContextMenu').classList.remove('show');
+});
+
+// Реакції
+async function toggleReaction(messageId, emoji) {
+  if (!currentUser || !currentChatId) return;
+  const messageRef = doc(db, `chats/${currentChatId}/messages/${messageId}`);
+  const messageSnap = await getDoc(messageRef);
+  if (!messageSnap.exists()) return;
+
+  const reactions = messageSnap.data().reactions || {};
+  const users = reactions[emoji] || [];
+  const userIndex = users.indexOf(currentUser.uid);
+  
+  if (userIndex === -1) {
+    users.push(currentUser.uid);
+  } else {
+    users.splice(userIndex, 1);
+  }
+  
+  if (users.length === 0) {
+    delete reactions[emoji];
+  } else {
+    reactions[emoji] = users;
+  }
+
+  await updateDoc(messageRef, { reactions });
+}
+
+// Кнопка назад на мобілках
+document.getElementById('chatBackBtn').addEventListener('click', () => {
+  document.getElementById('chatWindowContainer').style.display = 'none';
+  document.getElementById('chatListSidebar').classList.remove('hide');
+  if (unsubscribeMessages) unsubscribeMessages();
+  if (unsubscribeTyping) unsubscribeTyping();
+  if (unsubscribeChatPresence) unsubscribeChatPresence();
+  currentChatId = null;
+  currentChatPartner = null;
+});
+
+// Пошук користувачів для нового чату
 let searchTimeout;
 document.getElementById('chatSearchInput').addEventListener('input', (e) => {
   clearTimeout(searchTimeout);
@@ -1954,26 +2127,25 @@ document.getElementById('chatSearchInput').addEventListener('input', (e) => {
   searchTimeout = setTimeout(() => searchUsersForChat(val), 300);
 });
 
-async function searchUsersForChat(queryText) {
+async function searchUsersForChat(query) {
   if (!currentUser) return;
-  const val = queryText.toLowerCase();
+  const qLower = query.toLowerCase();
   const resultsContainer = document.getElementById('chatSearchResults');
-  if (!resultsContainer) return;
   resultsContainer.innerHTML = '';
-  
-  const q1 = query(collection(db, "users"), where("userId", ">=", val.startsWith('@') ? val : `@${val}`), where("userId", "<=", (val.startsWith('@') ? val : `@${val}`) + '\uf8ff'));
-  const q2 = query(collection(db, "users"), where("nickname_lower", ">=", val), where("nickname_lower", "<=", val + '\uf8ff'));
+
+  const q1 = query(collection(db, "users"), where("userId", ">=", qLower.startsWith('@') ? qLower : `@${qLower}`), where("userId", "<=", (qLower.startsWith('@') ? qLower : `@${qLower}`) + '\uf8ff'));
+  const q2 = query(collection(db, "users"), where("nickname_lower", ">=", qLower), where("nickname_lower", "<=", qLower + '\uf8ff'));
   
   const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
   const usersMap = new Map();
   snap1.forEach(d => usersMap.set(d.id, d.data()));
   snap2.forEach(d => usersMap.set(d.id, d.data()));
-  
+
   if (usersMap.size === 0) {
     resultsContainer.style.display = 'none';
     return;
   }
-  
+
   resultsContainer.style.display = 'block';
   usersMap.forEach((data, uid) => {
     if (uid === currentUser.uid) return;
@@ -1981,31 +2153,70 @@ async function searchUsersForChat(queryText) {
     div.className = 'chat-item';
     div.tabIndex = 0;
     div.innerHTML = `
-      <div class="avatar small" style="background-image:url(${data.avatar || ''})" tabindex="0"></div>
+      <div class="avatar small" style="background-image:url(${data.avatar || ''})"></div>
       <div class="chat-info">
         <div class="chat-name">${data.nickname}</div>
         <div class="chat-last">${data.userId}</div>
       </div>
-      <button class="btn" tabindex="0">Написати</button>
+      <button class="btn btn-primary btn-small">Написати</button>
     `;
-    div.onclick = () => {
-      openChat(data.nickname, uid, data.userId);
-      resultsContainer.style.display = 'none';
-      document.getElementById('chatSearchInput').value = '';
-    };
-    const btn = div.querySelector('button');
-    if (btn) {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        openChat(data.nickname, uid, data.userId);
+    div.addEventListener('click', () => {
+      const chatId = getChatId(currentUser.uid, uid);
+      getDoc(doc(db, "chats", chatId)).then(async (docSnap) => {
+        if (!docSnap.exists()) {
+          await setDoc(doc(db, "chats", chatId), {
+            participants: [currentUser.uid, uid],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            lastMessage: '',
+            unread: { [currentUser.uid]: 0, [uid]: 0 }
+          });
+        }
+        openChat(chatId, uid, data.nickname, data.userId, data.avatar);
         resultsContainer.style.display = 'none';
         document.getElementById('chatSearchInput').value = '';
-      };
-    }
+      });
+    });
     resultsContainer.appendChild(div);
   });
 }
 
+// Клік на аватар в шапці чату
+document.getElementById('chatAvatar').addEventListener('click', () => {
+  if (currentChatPartner) viewProfile(currentChatPartner);
+});
+
+// Меню в шапці чату
+document.getElementById('chatMenuBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('chatMenuDropdown').classList.toggle('show');
+});
+document.addEventListener('click', () => {
+  document.getElementById('chatMenuDropdown').classList.remove('show');
+});
+document.getElementById('chatMenuDropdown').addEventListener('click', async (e) => {
+  const action = e.target.dataset.action;
+  if (!action || !currentChatPartner) return;
+  document.getElementById('chatMenuDropdown').classList.remove('show');
+  
+  if (action === 'viewProfile') {
+    viewProfile(currentChatPartner);
+  } else if (action === 'block') {
+    await blockUser(currentChatPartner);
+  } else if (action === 'clearHistory') {
+    // Очистити історію – видалити всі повідомлення в чаті
+    if (confirm('Очистити історію повідомлень? Це не можна скасувати.')) {
+      const messagesRef = collection(db, `chats/${currentChatId}/messages`);
+      const snapshot = await getDocs(messagesRef);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      showToast('Історію очищено');
+    }
+  }
+});
+
+// ================= Інші обробники =================
 document.getElementById('toggleTheme').onclick = () => {
   document.body.classList.toggle('dark');
   localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
@@ -2038,13 +2249,11 @@ document.addEventListener('click', async (e) => {
   const target = e.target.closest('button');
   if (!target) return;
   
-  // Обробка лайків
   if (target.classList.contains('like-btn')) {
     const postId = target.dataset.postId;
     await toggleLike(postId);
   }
   
-  // Обробка збереження
   if (target.classList.contains('save-btn')) {
     const postId = target.dataset.postId;
     const saved = target.classList.contains('saved');
