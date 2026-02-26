@@ -155,11 +155,7 @@ async function unblockUser(targetUid) {
   }
 }
 
-// ================= Функція перемикання лайка (додано) =================
-/**
- * Перемикає стан лайка для поточного користувача.
- * @param {string} postId - ID документа поста
- */
+// ================= Функція перемикання лайка =================
 async function toggleLike(postId) {
   if (!currentUser) {
     showToast('Увійдіть, щоб лайкати');
@@ -169,7 +165,6 @@ async function toggleLike(postId) {
   const postRef = doc(db, "posts", postId);
 
   try {
-    // Отримуємо поточні дані поста, щоб перевірити, чи є лайк
     const postSnap = await getDoc(postRef);
     if (!postSnap.exists()) {
       showToast('Пост не знайдено');
@@ -180,18 +175,15 @@ async function toggleLike(postId) {
     const isLiked = postData.likes?.includes(currentUser.uid) || false;
 
     if (isLiked) {
-      // Якщо лайк вже є — прибираємо
       await updateDoc(postRef, {
         likes: arrayRemove(currentUser.uid),
         likesCount: increment(-1),
         popularity: increment(-50)
       });
-      // Оновлюємо масив likedPosts у користувача (для сумісності)
       await updateDoc(doc(db, "users", currentUser.uid), {
         likedPosts: arrayRemove(postId)
       });
     } else {
-      // Якщо лайка немає — додаємо
       await updateDoc(postRef, {
         likes: arrayUnion(currentUser.uid),
         likesCount: increment(1),
@@ -752,7 +744,7 @@ function resetPagination() {
 // ================= Функція завантаження на Cloudinary =================
 async function uploadToCloudinary(file) {
   const CLOUD_NAME = 'dv6ehoqiq';
-  const UPLOAD_PRESET = 'post_media';
+  const UPLOAD_PRESET = 'post_media'; // можна використовувати один preset для всіх медіа
   const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
   const formData = new FormData();
@@ -817,7 +809,7 @@ document.getElementById('addPost').onclick = async () => {
   } catch (e) { showToast(e.message); }
 };
 
-// ================= Функція завантаження постів (без змін) =================
+// ================= Функція завантаження постів =================
 async function loadMorePosts() {
   if (!currentUser || loading || !hasMore) return;
   loading = true;
@@ -914,7 +906,7 @@ async function incrementPostView(postId) {
   }
 }
 
-// ================= Рендеринг постів (без змін, крім видалення storage) =================
+// ================= Рендеринг постів =================
 function renderPosts(docs, container = null) {
   const feed = container || document.getElementById('feed');
   if (!feed) return;
@@ -1178,7 +1170,6 @@ document.getElementById('savePostEdit').onclick = async () => {
     let updateData = { text: newText };
     updateData.hashtags = extractHashtags(newText);
     if (file) {
-      // Завантажуємо нове медіа на Cloudinary
       const mediaUrl = await uploadToCloudinary(file);
       const mediaType = file.type.split('/')[0];
       updateData.mediaUrl = mediaUrl;
@@ -1196,7 +1187,7 @@ document.getElementById('deletePostBtn').onclick = async () => {
   if (!currentEditingPost || !currentUser) return;
   if (!confirm('Видалити пост?')) return;
   try {
-    // Видаляємо пост з Firestore (медіа на Cloudinary залишається — для повного видалення потрібен signed upload)
+    // Видаляємо пост з Firestore (медіа на Cloudinary залишається)
     await deleteDoc(doc(db, "posts", currentEditingPost.id));
     await updateDoc(doc(db, "users", currentUser.uid), { posts: arrayRemove(currentEditingPost.id) });
     showToast('Пост видалено');
@@ -1602,12 +1593,8 @@ document.getElementById('saveProfileEdit').onclick = async () => {
   try {
     let avatarUrl;
     if (avatarFile) {
-      // Аватар тепер теж можна завантажувати на Cloudinary, але для простоти залишимо як було (або теж можна змінити)
-      // Тут ми не змінюємо логіку аватара, вона залишається через Firebase Storage, але якщо хочете повністю прибрати Storage, 
-      // доведеться і аватар перенести. Для цього завдання вимагається лише пости, тому аватар залишаємо як є.
-      const storageRef = ref(storage, `avatars/${currentUser.uid}/${Date.now()}_${avatarFile.name}`);
-      await uploadBytes(storageRef, avatarFile);
-      avatarUrl = await getDownloadURL(storageRef);
+      // Завантажуємо аватар на Cloudinary
+      avatarUrl = await uploadToCloudinary(avatarFile);
     }
     
     const updateData = { 
@@ -2045,19 +2032,19 @@ if (sentinel) {
   observer.observe(sentinel);
 }
 
-// ================= ГЛОБАЛЬНИЙ ОБРОБНИК КЛІКІВ (ВИПРАВЛЕНИЙ) =================
+// ================= ГЛОБАЛЬНИЙ ОБРОБНИК КЛІКІВ =================
 document.addEventListener('click', async (e) => {
   if (!currentUser) return;
   const target = e.target.closest('button');
   if (!target) return;
   
-  // Обробка лайків – виклик функції toggleLike
+  // Обробка лайків
   if (target.classList.contains('like-btn')) {
     const postId = target.dataset.postId;
     await toggleLike(postId);
   }
   
-  // Обробка збереження – без оптимістичного оновлення
+  // Обробка збереження
   if (target.classList.contains('save-btn')) {
     const postId = target.dataset.postId;
     const saved = target.classList.contains('saved');
