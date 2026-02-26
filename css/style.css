@@ -748,22 +748,18 @@ body {
 }
 
 /* ========== ВИПРАВЛЕННЯ ДЛЯ ЗАКЛАДКИ ========== */
-/* Використовуємо клас .save-btn (як у HTML) замість .bookmark-btn */
 .save-btn {
   transition: all 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-
 .save-btn svg {
   fill: currentColor;
   transition: fill 0.2s ease;
 }
-
 .save-btn.saved,
 .save-btn:active {
   color: var(--bookmark);
   animation: bookmarkTikTok 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-
 .save-btn.saved svg {
   fill: var(--bookmark);
 }
@@ -772,7 +768,6 @@ body {
 .comment-btn {
   transition: all 0.28s ease;
 }
-
 .comment-btn:active,
 .comment-btn:focus {
   color: var(--accent);
@@ -920,12 +915,10 @@ body {
   transform: scale(0.9);
 }
 
-/* ========== ВИПРАВЛЕННЯ ЕМОДЖІ-ПІКЕРА ========== */
-/* Зменшено відступ знизу, щоб пікер був нижче (ближче до краю) */
 .emoji-picker {
   position: fixed;
   left: 50%;
-  bottom: 20px; /* змінено з 80px на 20px, щоб був ще нижче */
+  bottom: 20px;
   transform: translateX(-50%) translateY(20px);
   width: 92%;
   max-width: 380px;
@@ -952,7 +945,6 @@ body {
   pointer-events: auto;
   transform: translateX(-50%) translateY(0);
 }
-
 .emoji-picker button,
 .emoji-picker .emoji-item {
   font-size: 32px;
@@ -980,7 +972,6 @@ body {
   transform: scale(0.9);
   background: var(--border);
 }
-
 body.dark .emoji-picker {
   background: #1a1a1a;
   border-color: #444;
@@ -989,13 +980,12 @@ body.dark .emoji-picker button:hover,
 body.dark .emoji-picker .emoji-item:hover {
   background: #2a2a2a;
 }
-
 @media (max-width: 400px) {
   .emoji-picker {
     grid-template-columns: repeat(5, 1fr);
     max-width: 300px;
     max-height: 40vh;
-    bottom: 10px; /* ще нижче для дуже маленьких екранів */
+    bottom: 10px;
     padding-top: 16px;
   }
   .emoji-picker button,
@@ -1005,7 +995,6 @@ body.dark .emoji-picker .emoji-item:hover {
     min-height: 48px;
   }
 }
-
 @media (min-width: 768px) {
   .emoji-picker {
     max-width: 450px;
@@ -1013,7 +1002,6 @@ body.dark .emoji-picker .emoji-item:hover {
     bottom: 20px;
   }
 }
-
 @media (min-width: 1024px) {
   .emoji-picker-container {
     position: relative;
@@ -1033,35 +1021,77 @@ body.dark .emoji-picker .emoji-item:hover {
   }
 }
 
-/* ========== ЧАТИ ========== */
-.chat-list {
+/* ========== ЧАТИ – НОВІ СТИЛІ (Telegram-стиль) ========== */
+.chats-container {
+  display: flex;
+  height: 100%;
+  gap: 12px;
+}
+
+/* Ліва панель зі списком чатів */
+.chat-list-sidebar {
+  width: 360px;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
 }
+
+.chat-search {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-search .input {
+  background: var(--surface);
+}
+
+.chat-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Елемент списку чатів */
 .chat-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px;
+  gap: 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
-  background: var(--card);
-  border: 1px solid var(--border);
   cursor: pointer;
-  transition: all 0.25s;
-  animation: slideIn 0.4s ease-out;
+  transition: background 0.2s;
+  position: relative;
 }
-.chat-item:hover, .chat-item.focused {
+.chat-item:hover {
   background: var(--surface);
-  transform: translateX(8px) scale(1.02);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-sm);
 }
 .chat-item.unread {
-  border-left: 3px solid var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+.chat-item.unread .chat-name {
+  font-weight: 700;
+}
+.chat-avatar {
+  position: relative;
+}
+.chat-avatar .online-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--card);
 }
 .chat-info {
   flex: 1;
+  min-width: 0;
 }
 .chat-name {
   font-weight: 600;
@@ -1070,76 +1100,159 @@ body.dark .emoji-picker .emoji-item:hover {
   gap: 6px;
 }
 .chat-last {
-  color: var(--text-tertiary);
   font-size: 0.9rem;
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .chat-time {
+  font-size: 0.75rem;
   color: var(--text-tertiary);
-  font-size: 0.8rem;
+  white-space: nowrap;
 }
 .chat-badge {
   background: var(--accent);
   color: var(--btn-primary-text);
-  border-radius: 50%;
   min-width: 22px;
   height: 22px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.8rem;
   font-weight: 600;
-  animation: pulse-soft 1.8s infinite;
+  margin-left: 8px;
 }
-.chat-window {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+
+/* Права панель – вікно чату */
+.chat-window-container {
+  flex: 1;
   background: var(--card);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   overflow: hidden;
-  animation: scaleIn 0.4s ease-out;
+  display: flex;
+  flex-direction: column;
 }
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Шапка чату */
 .chat-header {
-  padding: 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   gap: 12px;
+  background: var(--surface);
 }
+.chat-back-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+}
+.chat-back-btn:hover {
+  background: var(--border);
+}
+.chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  cursor: pointer;
+}
+.chat-header-text {
+  line-height: 1.3;
+}
+.chat-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.chat-status {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+.chat-header-menu {
+  position: relative;
+}
+.chat-menu-btn {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+.chat-menu-btn:hover {
+  background: var(--border);
+}
+.chat-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  min-width: 200px;
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  display: none;
+}
+.chat-menu-dropdown.show {
+  display: block;
+}
+.chat-menu-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.chat-menu-item:hover {
+  background: var(--surface);
+}
+
+/* Область повідомлень */
 .chat-messages {
   flex: 1;
-  padding: 16px;
   overflow-y: auto;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  background: var(--bg);
 }
+
+/* Контейнер повідомлення */
 .message-wrapper {
   display: flex;
   flex-direction: column;
-  animation: fadeIn 0.4s ease-out;
+  max-width: 70%;
 }
 .message-wrapper.sent {
-  align-items: flex-end;
+  align-self: flex-end;
 }
 .message-wrapper.received {
-  align-items: flex-start;
+  align-self: flex-start;
 }
+
+/* Бульбашка */
 .message-bubble {
-  max-width: 70%;
-  padding: 10px 14px;
-  border-radius: 20px;
+  padding: 8px 12px;
+  border-radius: 18px;
   word-break: break-word;
   position: relative;
-  transition: transform 0.25s, box-shadow 0.25s;
-}
-.message-bubble:hover {
-  transform: scale(1.03);
-  box-shadow: var(--shadow-sm);
+  font-size: 1rem;
+  line-height: 1.4;
 }
 .message-bubble.sent {
   background: var(--accent);
@@ -1151,34 +1264,109 @@ body.dark .emoji-picker .emoji-item:hover {
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
+
+/* Інформація про автора (для отриманих) */
 .message-sender {
-  font-weight: 600;
-  font-size: 0.85rem;
-  margin-bottom: 2px;
-  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 .message-sender-avatar {
   width: 20px;
   height: 20px;
   border-radius: 50%;
   background-size: cover;
-  transition: transform 0.25s;
 }
-.message-sender-avatar:hover {
-  transform: scale(1.3);
+
+/* Текст повідомлення */
+.message-text {
+  white-space: pre-wrap;
 }
-.message-time {
+.message-text.edited::after {
+  content: ' відредаговано';
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+/* Медіа в повідомленні */
+.message-media {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+  margin-top: 6px;
+  cursor: pointer;
+  object-fit: cover;
+}
+
+/* Час і статус */
+.message-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
   font-size: 0.7rem;
   color: var(--text-tertiary);
-  margin-top: 2px;
-  text-align: right;
 }
+.message-time {
+  white-space: nowrap;
+}
+.message-status {
+  display: flex;
+  align-items: center;
+}
+.status-icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+.status-icon.sent { color: var(--text-tertiary); }
+.status-icon.delivered { color: var(--text-tertiary); }
+.status-icon.read { color: var(--accent); }
+
+/* Реакції */
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  margin-bottom: 2px;
+}
+.reaction-item {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.reaction-item:hover {
+  background: var(--card);
+}
+.reaction-item .emoji {
+  font-size: 1.1rem;
+}
+.reaction-item .count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.reaction-item.user-reacted {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+/* Дата-розділювач */
 .date-divider {
   text-align: center;
-  margin: 16px 0;
+  margin: 16px 0 8px;
   font-size: 0.8rem;
   color: var(--text-tertiary);
   position: relative;
@@ -1192,31 +1380,174 @@ body.dark .emoji-picker .emoji-item:hover {
   height: 1px;
   background: var(--border);
 }
-.date-divider::before {
-  left: 0;
-}
-.date-divider::after {
-  right: 0;
-}
+.date-divider::before { left: 0; }
+.date-divider::after { right: 0; }
+
+/* Індикатор друку */
 .typing-indicator {
+  padding: 8px 16px;
   color: var(--text-tertiary);
   font-size: 0.9rem;
-  padding: 4px 8px;
-  font-style: italic;
   display: flex;
   align-items: center;
-  gap: 4px;
-  animation: pulse-soft 1.5s infinite;
+  gap: 8px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
 }
+.typing-dots span {
+  animation: typingDot 1.4s infinite;
+  opacity: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.typing-dots span:nth-child(1) { animation-delay: 0s; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingDot {
+  0%, 60% { opacity: 0; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+
+/* Панель введення */
 .chat-input-area {
   display: flex;
-  padding: 12px;
-  border-top: 1px solid var(--border);
-  gap: 8px;
   align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
 }
-.chat-input-area input {
+.chat-attach-btn {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+}
+.chat-attach-btn:hover {
+  transform: scale(1.1);
+}
+#chatText {
   flex: 1;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 10px 16px;
+  font-size: 1rem;
+}
+#chatText:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
+}
+
+/* Контекстне меню */
+.context-menu {
+  position: fixed;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  padding: 4px 0;
+}
+.context-menu.show {
+  display: flex;
+}
+.context-menu-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 0.95rem;
+}
+.context-menu-item:hover {
+  background: var(--surface);
+}
+
+/* Меню реакцій */
+.reaction-picker {
+  position: fixed;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  display: none;
+  gap: 6px;
+  z-index: 2000;
+}
+.reaction-picker.show {
+  display: flex;
+}
+.reaction-btn {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.reaction-btn:hover {
+  transform: scale(1.2);
+  background: var(--surface);
+}
+.reaction-btn.more {
+  font-size: 1.4rem;
+  color: var(--text-secondary);
+}
+
+/* Адаптивність */
+@media (max-width: 768px) {
+  .chats-container {
+    flex-direction: column;
+  }
+  .chat-list-sidebar {
+    width: 100%;
+    height: 100%;
+  }
+  .chat-window-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    border-radius: 0;
+    display: none;
+  }
+  .chat-window-container.active {
+    display: flex;
+  }
+  .chat-back-btn {
+    display: block;
+  }
+  .chat-list-sidebar.hide {
+    display: none;
+  }
+  .message-wrapper {
+    max-width: 85%;
+  }
+}
+
+/* Додаткові класи для статусів */
+.online-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: var(--success);
+  border-radius: 50%;
+  margin-left: 6px;
+  border: 2px solid var(--card);
 }
 
 /* ========== ПРОФІЛЬ ========== */
@@ -1429,7 +1760,6 @@ body.dark .emoji-picker .emoji-item:hover {
 .float-animation {
   animation: float 4.5s ease-in-out infinite;
 }
-
 .glow-animation {
   animation: glow 2.5s ease-in-out infinite;
 }
@@ -1442,7 +1772,6 @@ body.dark .emoji-picker .emoji-item:hover {
   flex-wrap: wrap;
   align-items: center;
 }
-
 .active-filter {
   background: var(--accent);
   color: var(--btn-primary-text);
@@ -1456,22 +1785,17 @@ body.dark .emoji-picker .emoji-item:hover {
   animation: fadeIn 0.3s ease-out;
   box-shadow: var(--shadow-sm);
 }
-
-/* ========== ВИПРАВЛЕННЯ ЧОРНОГО КВАДРАТИКА ========== */
-/* Забезпечуємо, що всі SVG всередині active-filter мають правильний розмір і колір */
 .active-filter svg {
   width: 1.2em;
   height: 1.2em;
   fill: currentColor;
-  stroke: currentColor; /* додано для безпеки */
+  stroke: currentColor;
   display: inline-block;
 }
-
-/* Кнопка закриття фільтра (хрестик) */
 .active-filter button {
   background: transparent;
   border: none;
-  color: var(--btn-primary-text); /* успадковує колір від батька, але для надійності */
+  color: var(--btn-primary-text);
   cursor: pointer;
   font-size: 1.2rem;
   line-height: 1;
@@ -1481,22 +1805,14 @@ body.dark .emoji-picker .emoji-item:hover {
   justify-content: center;
   transition: transform 0.2s;
 }
-
 .active-filter button:hover {
   transform: scale(1.2);
 }
-
-/* Якщо хрестик це текстовий символ, він також буде білим */
-.active-filter button {
-  color: inherit; /* важливо, щоб колір брався від .active-filter */
-}
-
 #filterModal .modal-body {
   max-height: 400px;
   overflow-y: auto;
   padding: 8px 4px;
 }
-
 .filter-item {
   display: flex;
   justify-content: space-between;
@@ -1507,22 +1823,18 @@ body.dark .emoji-picker .emoji-item:hover {
   transition: background 0.2s, transform 0.2s;
   border-radius: var(--radius-sm);
 }
-
 .filter-item:hover {
   background: var(--surface);
   transform: translateX(6px);
 }
-
 .filter-item .tag {
   font-weight: 600;
   color: var(--accent);
 }
-
 .filter-item .count {
   color: var(--text-tertiary);
   font-size: 0.9rem;
 }
-
 #clearFilterBtn {
   width: 100%;
   margin-top: 12px;
