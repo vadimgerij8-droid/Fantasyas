@@ -79,53 +79,23 @@ body {
 
 /* ========== АНІМАЦІЇ ========== */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(30px) scale(0.96);
-    filter: blur(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
-  }
+  from { opacity: 0; transform: translateY(30px) scale(0.96); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
 @keyframes slideIn {
-  from {
-    transform: translateX(-50px) rotate(-2deg);
-    opacity: 0;
-    filter: blur(8px);
-  }
-  to {
-    transform: translateX(0) rotate(0);
-    opacity: 1;
-    filter: blur(0);
-  }
+  from { transform: translateX(-50px) rotate(-2deg); opacity: 0; filter: blur(8px); }
+  to { transform: translateX(0) rotate(0); opacity: 1; filter: blur(0); }
 }
 
 @keyframes scaleIn {
-  from {
-    transform: scale(0.9) translateY(10px);
-    opacity: 0;
-    filter: blur(4px);
-  }
-  to {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-    filter: blur(0);
-  }
+  from { transform: scale(0.9) translateY(10px); opacity: 0; filter: blur(4px); }
+  to { transform: scale(1) translateY(0); opacity: 1; filter: blur(0); }
 }
 
 @keyframes pulse-soft {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.2);
-  }
-  50% {
-    transform: scale(1.04);
-    box-shadow: 0 0 0 20px rgba(var(--accent-rgb), 0);
-  }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.2); }
+  50% { transform: scale(1.04); box-shadow: 0 0 0 20px rgba(var(--accent-rgb), 0); }
 }
 
 @keyframes shimmer {
@@ -181,31 +151,14 @@ body {
   30% { opacity: 1; transform: translateY(-4px); }
 }
 
-@keyframes floatUp {
-  0% { transform: translateY(0); opacity: 1; }
-  100% { transform: translateY(-20px); opacity: 0; }
-}
-
 @keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes messageSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes navItemBounce {
@@ -213,17 +166,13 @@ body {
   50% { transform: translateY(-6px); }
 }
 
-/* ========== ФОКУС (ПОКРАЩЕНО) ========== */
+/* ========== ФОКУС ========== */
 .focused {
   outline: none !important;
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.25), 0 0 20px rgba(var(--accent-rgb), 0.15) !important;
   transform: scale(1.02);
   transition: all var(--transition);
   z-index: 100;
-}
-
-.focused-animated {
-  animation: gentleGlow 2s ease-out;
 }
 
 /* ========== ОСНОВНИЙ ЛАЯУТ ========== */
@@ -297,7 +246,7 @@ body {
   border-color: var(--accent);
 }
 
-/* ========== АВАТАРИ (ПОКРАЩЕНО) ========== */
+/* ========== АВАТАРИ ========== */
 .avatar {
   width: 48px;
   height: 48px;
@@ -344,7 +293,7 @@ body {
   flex-shrink: 0;
 }
 
-/* ========== КНОПКИ (ПОКРАЩЕНО) ========== */
+/* ========== КНОПКИ ========== */
 .btn {
   padding: 10px 18px;
   border-radius: var(--radius-md);
@@ -384,22 +333,13 @@ body {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 8px 22px rgba(var(--accent-rgb), 0.25);
 }
-.btn.focused {
-  background: var(--accent);
-  color: var(--btn-hover-text);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.25), 0 8px 22px rgba(var(--accent-rgb), 0.25);
-  transform: translateY(-4px) scale(1.02);
-}
 .btn-primary {
   background: var(--accent);
   color: var(--btn-primary-text);
   border-color: var(--accent);
 }
-.btn-primary:hover, .btn-primary.focused {
+.btn-primary:hover {
   background: var(--accent-hover);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.3);
 }
 .btn-danger {
   background: var(--danger);
@@ -408,35 +348,6 @@ body {
 }
 .btn-danger:hover {
   background: var(--danger-hover);
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-}
-.btn-icon {
-  padding: 10px;
-}
-.btn-follow, .follow-btn-post {
-  background: transparent;
-  border: 1.5px solid var(--accent);
-  color: var(--accent);
-  padding: 6px 16px;
-  font-size: 0.85rem;
-  border-radius: 20px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.btn-follow:hover, .follow-btn-post:hover {
-  background: var(--accent);
-  color: var(--btn-hover-text);
-  transform: scale(1.08);
-  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.2);
-}
-.btn-follow.following, .follow-btn-post.following {
-  background: var(--accent);
-  color: var(--btn-primary-text);
 }
 
 /* ========== ПОЛЯ ВВЕДЕННЯ ========== */
@@ -451,7 +362,7 @@ body {
   outline: none;
   transition: border-color var(--transition), box-shadow var(--transition), transform 0.2s;
 }
-.input:focus, .input.focused {
+.input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15);
   transform: scale(1.01);
@@ -522,278 +433,13 @@ body {
   animation: fadeIn 0.6s ease-out;
   position: relative;
 }
-.post:hover, .post.focused {
+.post:hover {
   box-shadow: var(--shadow-lg);
   transform: translateY(-8px) scale(1.015);
   border-color: var(--accent);
 }
 
-.post-header {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.post-header .avatar {
-  width: 42px;
-  height: 42px;
-}
-.post-author-info {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.post-author {
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-block;
-  margin-right: 6px;
-  transition: color 0.25s, transform 0.2s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.post-author:hover {
-  color: var(--accent);
-  transform: translateX(3px);
-  text-decoration: underline;
-}
-.post-meta {
-  color: var(--text-tertiary);
-  font-size: 0.85rem;
-}
-.post-time {
-  color: var(--text-tertiary);
-  font-size: 0.75rem;
-  margin-left: auto;
-  white-space: nowrap;
-}
-
-.post-actions {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  display: flex;
-  gap: 8px;
-}
-.post-actions button {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 6px;
-  border-radius: 50%;
-  transition: all 0.25s;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.post-actions button:hover, .post-actions button.focused {
-  background: var(--surface);
-  color: var(--accent);
-  transform: scale(1.15);
-}
-
-.post-content {
-  margin-bottom: 14px;
-  white-space: pre-wrap;
-  font-size: 1rem;
-  line-height: 1.6;
-  word-break: break-word;
-}
-
-.hashtag {
-  color: var(--accent);
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-block;
-  margin-right: 4px;
-  transition: all 0.25s;
-}
-.hashtag:hover {
-  color: var(--accent-hover);
-  transform: translateY(-3px) scale(1.05);
-}
-
-.post-media {
-  width: 100%;
-  border-radius: var(--radius-md);
-  margin: 10px 0;
-  cursor: pointer;
-  max-height: 500px;
-  object-fit: cover;
-  transition: transform 0.4s ease, box-shadow 0.4s;
-}
-.post-media:hover {
-  transform: scale(1.02);
-  box-shadow: var(--shadow-md);
-}
-
-.post-footer {
-  display: flex;
-  gap: 24px;
-  flex-wrap: wrap;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  align-items: center;
-}
-
-.post-footer button {
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-secondary);
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.28s ease, transform 0.28s ease;
-  font-size: 0.92rem;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-}
-
-.post-footer button:hover,
-.post-footer button:focus {
-  color: var(--accent);
-  transform: translateY(-2px);
-  background: var(--surface);
-}
-
-.like-btn {
-  transition: all 0.32s ease;
-}
-.like-btn.liked,
-.like-btn:active {
-  color: var(--like);
-  animation: heartBeat 0.68s ease;
-}
-.like-btn.liked svg {
-  fill: var(--like);
-  animation: heartBeat 0.68s ease;
-}
-
-.save-btn {
-  transition: all 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.save-btn svg {
-  fill: currentColor;
-  transition: fill 0.2s ease;
-}
-.save-btn.saved,
-.save-btn:active {
-  color: var(--bookmark);
-  animation: bookmarkTikTok 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.save-btn.saved svg {
-  fill: var(--bookmark);
-}
-
-.comment-btn {
-  transition: all 0.28s ease;
-}
-.comment-btn:active,
-.comment-btn:focus {
-  color: var(--accent);
-  animation: commentPop 0.48s ease;
-}
-
-.view-count {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--text-tertiary);
-  font-size: 0.9rem;
-  margin-left: auto;
-}
-
-/* ========== КОМЕНТАРІ ========== */
-.comments-section {
-  margin-top: 16px;
-  border-top: 1px solid var(--border);
-  padding-top: 16px;
-  animation: fadeIn 0.5s ease-out;
-}
-
-.comment {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
-  animation: slideIn 0.4s ease-out;
-}
-.comment-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-size: cover;
-  background-position: center;
-  flex-shrink: 0;
-  transition: transform 0.25s, box-shadow 0.25s;
-}
-.comment-avatar:hover {
-  transform: scale(1.15);
-  box-shadow: 0 0 0 3px var(--accent-light);
-}
-.comment-content {
-  flex: 1;
-  background: var(--surface);
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  transition: transform 0.25s, background 0.25s;
-  min-width: 0;
-}
-.comment-content:hover {
-  transform: translateX(6px);
-  background: var(--card);
-}
-.comment-author {
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  display: inline-block;
-  margin-right: 8px;
-  transition: color 0.25s;
-}
-.comment-author:hover {
-  color: var(--accent);
-}
-.comment-text {
-  font-size: 0.95rem;
-  word-break: break-word;
-}
-.comment-time {
-  font-size: 0.75rem;
-  color: var(--text-tertiary);
-  margin-top: 4px;
-}
-.comment-form {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-  align-items: center;
-}
-.comment-input {
-  flex: 1;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-primary);
-  transition: border-color 0.25s, box-shadow 0.25s;
-}
-.comment-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
-}
-
-/* ========== ЕМОДЖІ-ПІКЕР (ПОКРАЩЕНО) ========== */
+/* ========== ЕМОДЖІ-ПІКЕР (ПОКРАЩЕНО - ТЕПЕР НИЖЧЕ) ========== */
 .emoji-picker-container {
   position: relative;
   display: inline-block;
@@ -819,29 +465,9 @@ body {
   overflow: hidden;
 }
 
-.emoji-button::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--accent);
-  opacity: 0;
-  transform: scale(0);
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
 .emoji-button:hover {
   transform: scale(1.15) rotate(10deg);
   color: var(--accent);
-}
-
-.emoji-button:hover::before {
-  opacity: 0.1;
-  transform: scale(1);
-}
-
-.emoji-button:active {
-  transform: scale(0.9) rotate(-5deg);
 }
 
 .emoji-button.active {
@@ -849,15 +475,10 @@ body {
   transform: scale(1.1);
 }
 
-.emoji-button.active::before {
-  opacity: 0.15;
-  transform: scale(1);
-}
-
 .emoji-picker {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--bottom-nav-height) + 30px);
+  bottom: 20px; /* Значно нижче, ближче до клавіатури */
   transform: translateX(-50%) translateY(20px) scale(0.95);
   width: 92%;
   max-width: 380px;
@@ -888,8 +509,7 @@ body {
   transform: translateX(-50%) translateY(0) scale(1);
 }
 
-.emoji-picker button,
-.emoji-picker .emoji-item {
+.emoji-picker button {
   font-size: 32px;
   cursor: pointer;
   background: transparent;
@@ -904,49 +524,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
 }
 
-.emoji-picker button:hover,
-.emoji-picker .emoji-item:hover {
+.emoji-picker button:hover {
   transform: scale(1.35) translateY(-4px);
   background: var(--surface);
   z-index: 10;
   box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-}
-
-.emoji-picker button:active,
-.emoji-picker .emoji-item:active {
-  transform: scale(0.95);
-}
-
-.emoji-picker button::after,
-.emoji-picker .emoji-item::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 28px;
-  background: var(--accent);
-  opacity: 0;
-  transform: scale(0.8);
-  transition: all 0.3s ease;
-  z-index: -1;
-}
-
-.emoji-picker button:hover::after,
-.emoji-picker .emoji-item:hover::after {
-  opacity: 0.08;
-  transform: scale(1);
-}
-
-body.dark .emoji-picker {
-  background: rgba(26, 26, 26, 0.95);
-  border-color: #444;
-}
-
-body.dark .emoji-picker button:hover,
-body.dark .emoji-picker .emoji-item:hover {
-  background: rgba(255,255,255,0.1);
 }
 
 @media (max-width: 400px) {
@@ -954,12 +538,9 @@ body.dark .emoji-picker .emoji-item:hover {
     grid-template-columns: repeat(5, 1fr);
     max-width: 300px;
     max-height: 40vh;
-    bottom: calc(var(--bottom-nav-height) + 20px);
-    padding-top: 16px;
-    border-radius: 24px;
+    bottom: 10px; /* Ще нижче для маленьких екранів */
   }
-  .emoji-picker button,
-  .emoji-picker .emoji-item {
+  .emoji-picker button {
     font-size: 28px;
     min-width: 48px;
     min-height: 48px;
@@ -970,7 +551,7 @@ body.dark .emoji-picker .emoji-item:hover {
   .emoji-picker {
     max-width: 450px;
     grid-template-columns: repeat(7, 1fr);
-    bottom: calc(var(--bottom-nav-height) + 30px);
+    bottom: 30px;
   }
 }
 
@@ -993,7 +574,7 @@ body.dark .emoji-picker .emoji-item:hover {
   }
 }
 
-/* ========== ЧАТИ (ПОКРАЩЕНО З АНІМАЦІЯМИ) ========== */
+/* ========== ЧАТИ (ПОКРАЩЕНО З НОВИМИ АНІМАЦІЯМИ) ========== */
 .chats-container {
   display: flex;
   height: 100%;
@@ -1018,9 +599,6 @@ body.dark .emoji-picker .emoji-item:hover {
   padding: 12px;
   border-bottom: 1px solid var(--border);
 }
-.chat-search .input {
-  background: var(--surface);
-}
 
 .chat-list {
   flex: 1;
@@ -1041,6 +619,7 @@ body.dark .emoji-picker .emoji-item:hover {
   transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   animation: slideIn 0.4s ease-out;
+  background: var(--card);
 }
 
 .chat-item:hover {
@@ -1049,25 +628,10 @@ body.dark .emoji-picker .emoji-item:hover {
   box-shadow: var(--shadow-sm);
 }
 
-.chat-item.active {
-  background: var(--accent);
-  color: var(--btn-primary-text);
-  transform: translateX(12px) scale(1.03);
-  box-shadow: var(--shadow-md);
-}
-
-.chat-item.active .chat-last,
-.chat-item.active .chat-time,
-.chat-item.active .chat-name-text {
-  color: var(--btn-primary-text);
-  opacity: 0.9;
-}
-
 .chat-item.unread {
   background: rgba(var(--accent-rgb), 0.08);
   position: relative;
 }
-
 .chat-item.unread::before {
   content: '';
   position: absolute;
@@ -1080,20 +644,14 @@ body.dark .emoji-picker .emoji-item:hover {
   border-radius: 0 4px 4px 0;
 }
 
-.chat-item.unread .chat-name-text {
-  font-weight: 700;
-}
-
 .chat-avatar {
   position: relative;
   flex-shrink: 0;
   transition: transform 0.3s ease;
 }
-
 .chat-item:hover .chat-avatar {
   transform: scale(1.1) rotate(5deg);
 }
-
 .chat-avatar .online-indicator {
   position: absolute;
   bottom: 2px;
@@ -1118,7 +676,6 @@ body.dark .emoji-picker .emoji-item:hover {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: all 0.2s;
 }
 
 .chat-last {
@@ -1128,14 +685,12 @@ body.dark .emoji-picker .emoji-item:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
-  transition: all 0.2s;
 }
 
 .chat-time {
   font-size: 0.75rem;
   color: var(--text-tertiary);
   white-space: nowrap;
-  transition: all 0.2s;
 }
 
 .chat-badge {
@@ -1198,7 +753,6 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   justify-content: center;
 }
-
 .chat-back-btn:hover {
   background: var(--border);
   transform: scale(1.1);
@@ -1213,7 +767,6 @@ body.dark .emoji-picker .emoji-item:hover {
   min-width: 0;
   transition: all 0.2s;
 }
-
 .chat-header-info:hover {
   transform: translateX(4px);
 }
@@ -1223,7 +776,7 @@ body.dark .emoji-picker .emoji-item:hover {
   min-width: 0;
 }
 
-.chat-header-name {
+.chat-name {
   font-weight: 700;
   font-size: 1.1rem;
   white-space: nowrap;
@@ -1238,7 +791,6 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   gap: 6px;
 }
-
 .chat-status.online::before {
   content: '';
   width: 8px;
@@ -1267,7 +819,6 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   justify-content: center;
 }
-
 .chat-menu-btn:hover {
   background: var(--border);
   transform: rotate(90deg) scale(1.1);
@@ -1289,7 +840,6 @@ body.dark .emoji-picker .emoji-item:hover {
   margin-top: 8px;
   overflow: hidden;
 }
-
 .chat-menu-dropdown.show {
   display: block;
 }
@@ -1302,7 +852,6 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   gap: 12px;
 }
-
 .chat-menu-item:hover {
   background: var(--surface);
   transform: translateX(4px);
@@ -1326,14 +875,8 @@ body.dark .emoji-picker .emoji-item:hover {
   animation: messageSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
 }
-
-.message-wrapper.sent {
-  align-self: flex-end;
-}
-
-.message-wrapper.received {
-  align-self: flex-start;
-}
+.message-wrapper.sent { align-self: flex-end; }
+.message-wrapper.received { align-self: flex-start; }
 
 .message-bubble {
   padding: 12px 16px;
@@ -1345,19 +888,15 @@ body.dark .emoji-picker .emoji-item:hover {
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
 }
-
 .message-bubble:hover {
   transform: scale(1.02);
   box-shadow: var(--shadow-md);
 }
-
 .message-bubble.sent {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: var(--btn-primary-text);
   border-bottom-right-radius: 6px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
 }
-
 .message-bubble.received {
   background: var(--surface);
   color: var(--text-primary);
@@ -1374,17 +913,12 @@ body.dark .emoji-picker .emoji-item:hover {
   font-weight: 600;
   opacity: 0.8;
 }
-
 .message-sender-avatar {
   width: 20px;
   height: 20px;
   border-radius: 50%;
   background-size: cover;
   border: 2px solid var(--card);
-}
-
-.message-text {
-  white-space: pre-wrap;
 }
 
 .message-text.edited::after {
@@ -1403,7 +937,6 @@ body.dark .emoji-picker .emoji-item:hover {
   object-fit: cover;
   transition: all 0.3s ease;
 }
-
 .message-media:hover {
   transform: scale(1.03);
   box-shadow: var(--shadow-md);
@@ -1419,26 +952,17 @@ body.dark .emoji-picker .emoji-item:hover {
   opacity: 0.7;
   transition: opacity 0.2s;
 }
-
-.message-wrapper:hover .message-footer {
-  opacity: 1;
-}
-
-.message-time {
-  white-space: nowrap;
-}
+.message-wrapper:hover .message-footer { opacity: 1; }
 
 .message-status {
   display: flex;
   align-items: center;
 }
-
 .status-icon {
   width: 16px;
   height: 16px;
   fill: currentColor;
 }
-
 .status-icon.sent { color: var(--text-tertiary); }
 .status-icon.delivered { color: var(--text-tertiary); }
 .status-icon.read { color: var(--accent); }
@@ -1464,23 +988,11 @@ body.dark .emoji-picker .emoji-item:hover {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-
 .reaction-item:hover {
   background: var(--card);
   transform: scale(1.1);
   box-shadow: var(--shadow-sm);
 }
-
-.reaction-item .emoji {
-  font-size: 1.1rem;
-}
-
-.reaction-item .count {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
 .reaction-item.user-reacted {
   background: var(--accent-light);
   border-color: var(--accent);
@@ -1495,7 +1007,6 @@ body.dark .emoji-picker .emoji-item:hover {
   position: relative;
   font-weight: 500;
 }
-
 .date-divider::before,
 .date-divider::after {
   content: '';
@@ -1505,7 +1016,6 @@ body.dark .emoji-picker .emoji-item:hover {
   height: 1px;
   background: var(--border);
 }
-
 .date-divider::before { left: 0; }
 .date-divider::after { right: 0; }
 
@@ -1520,12 +1030,10 @@ body.dark .emoji-picker .emoji-item:hover {
   border-top: 1px solid var(--border);
   animation: slideUpFade 0.3s ease-out;
 }
-
 .typing-dots {
   display: flex;
   gap: 4px;
 }
-
 .typing-dots span {
   animation: typingDot 1.4s infinite;
   opacity: 0;
@@ -1533,7 +1041,6 @@ body.dark .emoji-picker .emoji-item:hover {
   line-height: 1;
   color: var(--accent);
 }
-
 .typing-dots span:nth-child(1) { animation-delay: 0s; }
 .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
 .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
@@ -1547,6 +1054,40 @@ body.dark .emoji-picker .emoji-item:hover {
   border-top: 1px solid var(--border);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+.reply-preview {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: slideUpFade 0.3s ease-out;
+  box-shadow: var(--shadow-sm);
+}
+.reply-preview span {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reply-preview button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 4px 8px;
+}
+.reply-preview button:hover {
+  color: var(--accent);
 }
 
 .chat-attach-btn {
@@ -1564,15 +1105,10 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   justify-content: center;
 }
-
 .chat-attach-btn:hover {
   transform: scale(1.15) rotate(-10deg);
   background: var(--border);
   color: var(--accent);
-}
-
-.chat-attach-btn:active {
-  transform: scale(0.9);
 }
 
 #chatText {
@@ -1584,7 +1120,6 @@ body.dark .emoji-picker .emoji-item:hover {
   font-size: 1rem;
   transition: all 0.2s ease;
 }
-
 #chatText:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15), var(--shadow-glow);
@@ -1605,10 +1140,7 @@ body.dark .emoji-picker .emoji-item:hover {
   animation: scaleIn 0.2s ease-out;
   overflow: hidden;
 }
-
-.context-menu.show {
-  display: flex;
-}
+.context-menu.show { display: flex; }
 
 .context-menu-item {
   padding: 12px 16px;
@@ -1619,7 +1151,6 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   gap: 12px;
 }
-
 .context-menu-item:hover {
   background: var(--surface);
   transform: translateX(4px);
@@ -1639,10 +1170,7 @@ body.dark .emoji-picker .emoji-item:hover {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
-
-.reaction-picker.show {
-  display: flex;
-}
+.reaction-picker.show { display: flex; }
 
 .reaction-btn {
   background: none;
@@ -1658,22 +1186,14 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   justify-content: center;
 }
-
 .reaction-btn:hover {
   transform: scale(1.3) translateY(-4px);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
 
-.reaction-btn.more {
-  font-size: 1.4rem;
-  color: var(--text-secondary);
-}
-
 @media (max-width: 768px) {
-  .chats-container {
-    flex-direction: column;
-  }
+  .chats-container { flex-direction: column; }
   .chat-list-sidebar {
     width: 100%;
     height: 100%;
@@ -1690,25 +1210,13 @@ body.dark .emoji-picker .emoji-item:hover {
     border-radius: 0;
     display: none;
   }
-  .chat-window-container.active {
-    display: flex;
-    animation: slideIn 0.3s ease-out;
-  }
-  .chat-back-btn {
-    display: flex !important;
-  }
-  .chat-list-sidebar.hide {
-    display: none;
-  }
-  .message-wrapper {
-    max-width: 85%;
-  }
-  .chat-header {
-    padding-top: env(safe-area-inset-top, 12px);
-  }
+  .chat-window-container.active { display: flex; animation: slideIn 0.3s ease-out; }
+  .chat-back-btn { display: flex !important; }
+  .chat-list-sidebar.hide { display: none; }
+  .message-wrapper { max-width: 85%; }
 }
 
-/* ========== ПРОФІЛЬ (ПОКРАЩЕНО З АНІМАЦІЯМИ) ========== */
+/* ========== ПРОФІЛЬ ========== */
 .profile-header {
   display: flex;
   gap: 24px;
@@ -1723,7 +1231,6 @@ body.dark .emoji-picker .emoji-item:hover {
   flex-shrink: 0;
   animation: scaleIn 0.6s ease-out 0.2s both;
 }
-
 .profile-avatar-section .avatar.large {
   width: 120px;
   height: 120px;
@@ -1731,33 +1238,9 @@ body.dark .emoji-picker .emoji-item:hover {
   box-shadow: var(--shadow-md);
   transition: all var(--transition-bounce);
 }
-
 .profile-avatar-section .avatar.large:hover {
   transform: scale(1.08) rotate(2deg);
   box-shadow: var(--shadow-lg), 0 0 30px rgba(var(--accent-rgb), 0.2);
-}
-
-.profile-avatar-edit {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  background: var(--accent);
-  color: var(--btn-primary-text);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border: 3px solid var(--card);
-  transition: all var(--transition-bounce);
-  box-shadow: var(--shadow-sm);
-}
-
-.profile-avatar-edit:hover {
-  transform: scale(1.15) rotate(15deg);
-  box-shadow: var(--shadow-md);
 }
 
 .profile-info-section {
@@ -1773,7 +1256,6 @@ body.dark .emoji-picker .emoji-item:hover {
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
-
 .profile-name {
   font-size: 1.8rem;
   font-weight: 700;
@@ -1784,18 +1266,7 @@ body.dark .emoji-picker .emoji-item:hover {
   background-clip: text;
   animation: fadeIn 0.8s ease-out 0.4s both;
 }
-
-.profile-verified {
-  color: var(--accent);
-  animation: pulse-soft 2s infinite;
-}
-
-.profile-handle {
-  color: var(--text-tertiary);
-  font-size: 1rem;
-  margin-bottom: 12px;
-  animation: fadeIn 0.8s ease-out 0.5s both;
-}
+.profile-verified { color: var(--accent); animation: pulse-soft 2s infinite; }
 
 .profile-bio {
   color: var(--text-secondary);
@@ -1812,7 +1283,6 @@ body.dark .emoji-picker .emoji-item:hover {
   flex-wrap: wrap;
   animation: fadeIn 0.8s ease-out 0.7s both;
 }
-
 .profile-stat-item {
   display: flex;
   flex-direction: column;
@@ -1824,23 +1294,17 @@ body.dark .emoji-picker .emoji-item:hover {
   background: transparent;
   min-width: 80px;
 }
-
 .profile-stat-item:hover {
   background: var(--surface);
   transform: translateY(-4px) scale(1.05);
 }
-
 .profile-stat-value {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-primary);
   transition: color 0.25s;
 }
-
-.profile-stat-item:hover .profile-stat-value {
-  color: var(--accent);
-}
-
+.profile-stat-item:hover .profile-stat-value { color: var(--accent); }
 .profile-stat-label {
   font-size: 0.9rem;
   color: var(--text-tertiary);
@@ -1854,11 +1318,7 @@ body.dark .emoji-picker .emoji-item:hover {
   flex-wrap: wrap;
   animation: fadeIn 0.8s ease-out 0.8s both;
 }
-
-.profile-actions .btn {
-  min-width: 120px;
-  justify-content: center;
-}
+.profile-actions .btn { min-width: 120px; justify-content: center; }
 
 .profile-tabs {
   display: flex;
@@ -1871,11 +1331,7 @@ body.dark .emoji-picker .emoji-item:hover {
   -ms-overflow-style: none;
   animation: fadeIn 0.8s ease-out 0.9s both;
 }
-
-.profile-tabs::-webkit-scrollbar {
-  display: none;
-}
-
+.profile-tabs::-webkit-scrollbar { display: none; }
 .profile-tab {
   padding: 10px 20px;
   border-radius: var(--radius-md);
@@ -1887,7 +1343,6 @@ body.dark .emoji-picker .emoji-item:hover {
   position: relative;
   overflow: hidden;
 }
-
 .profile-tab::after {
   content: '';
   position: absolute;
@@ -1900,33 +1355,22 @@ body.dark .emoji-picker .emoji-item:hover {
   transform: translateX(-50%);
   border-radius: 3px;
 }
-
 .profile-tab:hover {
   background: var(--surface);
   color: var(--text-primary);
   transform: translateY(-2px);
 }
-
 .profile-tab.active {
   color: var(--accent);
   background: transparent;
 }
-
-.profile-tab.active::after {
-  width: 80%;
-}
-
-.profile-tab.focused {
-  background: var(--surface);
-  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
-}
+.profile-tab.active::after { width: 80%; }
 
 .profile-menu {
   position: relative;
   display: inline-block;
   margin-left: auto;
 }
-
 .profile-menu-btn {
   background: none;
   border: none;
@@ -1942,13 +1386,11 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   justify-content: center;
 }
-
 .profile-menu-btn:hover {
   transform: rotate(90deg) scale(1.1);
   color: var(--accent);
   background: var(--surface);
 }
-
 .profile-menu-dropdown {
   position: absolute;
   right: 0;
@@ -1963,11 +1405,7 @@ body.dark .emoji-picker .emoji-item:hover {
   animation: scaleIn 0.3s ease-out;
   margin-top: 8px;
 }
-
-.profile-menu-dropdown.show {
-  display: block;
-}
-
+.profile-menu-dropdown.show { display: block; }
 .profile-menu-item {
   padding: 12px 16px;
   cursor: pointer;
@@ -1977,20 +1415,10 @@ body.dark .emoji-picker .emoji-item:hover {
   gap: 12px;
   color: var(--text-primary);
 }
-
 .profile-menu-item:hover {
   background: var(--surface);
   transform: translateX(8px);
   color: var(--accent);
-}
-
-.profile-menu-item.danger {
-  color: var(--danger);
-}
-
-.profile-menu-item.danger:hover {
-  color: var(--danger-hover);
-  background: rgba(158, 158, 158, 0.1);
 }
 
 @media (max-width: 768px) {
@@ -2000,321 +1428,218 @@ body.dark .emoji-picker .emoji-item:hover {
     text-align: center;
     gap: 20px;
   }
-  
-  .profile-avatar-section .avatar.large {
-    width: 100px;
-    height: 100px;
-  }
-  
-  .profile-name {
-    font-size: 1.5rem;
-  }
-  
-  .profile-stats {
-    justify-content: center;
-    width: 100%;
-    gap: 16px;
-  }
-  
+  .profile-avatar-section .avatar.large { width: 100px; height: 100px; }
+  .profile-name { font-size: 1.5rem; }
+  .profile-stats { justify-content: center; width: 100%; gap: 16px; }
   .profile-stat-item {
     align-items: center;
     flex: 1;
     min-width: 70px;
     max-width: 100px;
   }
-  
-  .profile-actions {
-    justify-content: center;
-    width: 100%;
-  }
-  
-  .profile-actions .btn {
-    flex: 1;
-    max-width: 150px;
-  }
-  
-  .profile-menu {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    margin: 0;
-  }
+  .profile-actions { justify-content: center; width: 100%; }
+  .profile-actions .btn { flex: 1; max-width: 150px; }
+  .profile-menu { position: absolute; top: 16px; right: 16px; margin: 0; }
 }
 
-@media (max-width: 480px) {
-  .profile-avatar-section .avatar.large {
-    width: 80px;
-    height: 80px;
-  }
-  
-  .profile-avatar-edit {
-    width: 30px;
-    height: 30px;
-    bottom: 4px;
-    right: 4px;
-  }
-  
-  .profile-name {
-    font-size: 1.3rem;
-  }
-  
-  .profile-stat-value {
-    font-size: 1.2rem;
-  }
-  
-  .profile-stat-label {
-    font-size: 0.8rem;
-  }
-  
-  .profile-tabs {
-    gap: 4px;
-  }
-  
-  .profile-tab {
-    padding: 8px 14px;
-    font-size: 0.9rem;
-  }
+/* ========== НАЛАШТУВАННЯ (СУЧАСНИЙ ДИЗАЙН) ========== */
+.settings-container {
+  display: flex;
+  gap: 30px;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  animation: fadeIn 0.8s ease-out;
 }
 
-/* ========== ХЕШТЕГИ ========== */
-.hashtag-list {
+.settings-sidebar {
+  width: 200px;
+  background: var(--surface);
+  padding: 20px 0;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.settings-tab {
+  padding: 14px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.25s ease;
+  position: relative;
+  border-left: 3px solid transparent;
+}
+
+.settings-tab:hover {
+  background: rgba(var(--accent-rgb), 0.05);
+  color: var(--accent);
+  border-left-color: var(--accent-light);
+  transform: translateX(4px);
+}
+
+.settings-tab.active {
+  background: rgba(var(--accent-rgb), 0.1);
+  color: var(--accent);
+  border-left-color: var(--accent);
+  font-weight: 700;
+}
+
+.settings-content {
+  flex: 1;
+  padding: 24px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.settings-pane {
+  display: none;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.settings-pane.active {
+  display: block;
+}
+
+.settings-pane h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: var(--accent);
+}
+
+.settings-pane label {
+  display: block;
+  margin: 16px 0 6px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.settings-pane .input,
+.settings-pane select {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.settings-pane .input:focus,
+.settings-pane select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15);
+  outline: none;
+}
+
+.settings-pane input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  accent-color: var(--accent);
+  transform: scale(1.2);
+  cursor: pointer;
+}
+
+.settings-pane input[type="color"] {
+  width: 60px;
+  height: 40px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.blocked-list {
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.hashtag-item {
+.blocked-user-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.25s;
-  animation: slideIn 0.4s ease-out;
-}
-
-.hashtag-item:hover {
+  gap: 12px;
+  padding: 10px;
   background: var(--surface);
-  transform: translateX(8px) scale(1.02);
-  border-color: var(--accent);
-}
-
-.hashtag-name {
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.hashtag-count {
-  color: var(--text-tertiary);
-}
-
-/* ========== МОДАЛКИ ========== */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(8px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  animation: fadeIn 0.4s ease-out;
-  padding: 16px;
-}
-
-.modal.active {
-  display: flex;
-}
-
-.modal-content {
-  background: var(--card);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  max-width: 480px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  animation: scaleIn 0.4s ease-out;
-  box-shadow: var(--shadow-lg);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.modal-close {
-  font-size: 2rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: transform 0.3s;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.modal-close:hover {
-  transform: rotate(90deg) scale(1.1);
-  color: var(--accent);
-  background: var(--surface);
-}
-
-/* ========== TOAST ========== */
-#toast {
-  position: fixed;
-  bottom: calc(var(--bottom-nav-height) + 40px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--accent);
-  color: var(--btn-primary-text);
-  padding: 12px 24px;
-  border-radius: 40px;
-  font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  z-index: 3000;
-  opacity: 0;
-  transition: opacity 0.4s, transform 0.4s;
-  pointer-events: none;
-  animation: fadeIn 0.4s;
-}
-
-#toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-/* ========== СКЕЛЕТОН ========== */
-.skeleton {
-  background: linear-gradient(90deg, var(--surface) 25%, var(--card) 50%, var(--surface) 75%);
-  background-size: 220% 100%;
-  animation: shimmer 2.2s infinite;
   border-radius: var(--radius-md);
-}
-
-/* ========== КОЛЬОРОВІ ДОПОМІЖНІ КЛАСИ ========== */
-.text-danger { color: var(--danger); }
-.text-warning { color: var(--warning); }
-.text-success { color: var(--success); }
-.text-accent { color: var(--accent); }
-
-/* ========== ДОДАТКОВІ АНІМАЦІЇ ========== */
-.float-animation {
-  animation: float 4.5s ease-in-out infinite;
-}
-
-.glow-animation {
-  animation: glow 2.5s ease-in-out infinite;
-}
-
-/* ========== ФІЛЬТРИ КОНТЕНТУ ========== */
-.feed-header {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.active-filter {
-  background: var(--accent);
-  color: var(--btn-primary-text);
-  padding: 6px 14px;
-  border-radius: 30px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  animation: fadeIn 0.3s ease-out;
-  box-shadow: var(--shadow-sm);
-}
-
-.active-filter svg {
-  width: 1.2em;
-  height: 1.2em;
-  fill: currentColor;
-  stroke: currentColor;
-  display: inline-block;
-}
-
-.active-filter button {
-  background: transparent;
-  border: none;
-  color: var(--btn-primary-text);
-  cursor: pointer;
-  font-size: 1.2rem;
-  line-height: 1;
-  padding: 0 2px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   transition: transform 0.2s;
 }
 
-.active-filter button:hover {
-  transform: scale(1.2);
+.blocked-user-item:hover {
+  transform: translateX(8px);
+  background: var(--card);
 }
 
-#filterModal .modal-body {
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 8px 4px;
+.blocked-user-item .avatar.small {
+  width: 40px;
+  height: 40px;
 }
 
-.filter-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
+.blocked-user-item button {
+  margin-left: auto;
+  background: var(--danger);
+  color: white;
+  border: none;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.filter-item:hover {
-  background: var(--surface);
-  transform: translateX(6px);
+.blocked-user-item button:hover {
+  background: var(--danger-hover);
+  transform: scale(1.05);
 }
 
-.filter-item .tag {
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.filter-item .count {
-  color: var(--text-tertiary);
-  font-size: 0.9rem;
-}
-
-#clearFilterBtn {
+#saveSettingsBtn {
+  margin-top: 30px;
   width: 100%;
-  margin-top: 12px;
+  padding: 14px;
+  font-size: 1.1rem;
 }
 
-/* ========== НИЖНЄ МЕНЮ (СТИЛЬНЕ З АНІМАЦІЯМИ) ========== */
+@media (max-width: 768px) {
+  .settings-container {
+    flex-direction: column;
+  }
+  
+  .settings-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    overflow-x: auto;
+    padding: 10px;
+  }
+  
+  .settings-tab {
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    padding: 10px 20px;
+    white-space: nowrap;
+  }
+  
+  .settings-tab.active {
+    border-bottom-color: var(--accent);
+  }
+  
+  .settings-tab:hover {
+    transform: translateY(-2px);
+  }
+  
+  .settings-content {
+    max-height: none;
+  }
+}
+
+/* ========== НИЖНЄ МЕНЮ (ДОРОБЛЕНО) ========== */
 @keyframes floatIn {
-  0% {
-    opacity: 0;
-    transform: translateY(30px) scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes navGlow {
-  0%, 100% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(var(--accent-rgb), 0.1); }
-  50% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), 0 0 20px 2px rgba(var(--accent-rgb), 0.15); }
+  0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes iconPulse {
@@ -2357,7 +1682,6 @@ body.dark .emoji-picker .emoji-item:hover {
   pointer-events: none;
 }
 
-/* Контейнер для іконки + тексту */
 .bottom-nav .nav-item {
   position: relative;
   display: flex;
@@ -2406,7 +1730,6 @@ body.dark .emoji-picker .emoji-item:hover {
   opacity: 0;
 }
 
-/* Активний стан */
 .bottom-nav .nav-item.active {
   color: var(--accent);
   transform: translateY(-8px) scale(1.15);
@@ -2423,7 +1746,6 @@ body.dark .emoji-picker .emoji-item:hover {
   bottom: 4px;
 }
 
-/* Іконка */
 .bottom-nav .nav-item .icon {
   width: 26px;
   height: 26px;
@@ -2441,7 +1763,6 @@ body.dark .emoji-picker .emoji-item:hover {
   animation: iconPulse 2s ease-in-out infinite;
 }
 
-/* Текст під іконкою */
 .bottom-nav .nav-item span {
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   font-size: 0.72rem;
@@ -2457,7 +1778,6 @@ body.dark .emoji-picker .emoji-item:hover {
   font-weight: 700;
 }
 
-/* Бейдж */
 .bottom-nav .nav-item .badge {
   position: absolute;
   top: 6px;
@@ -2484,7 +1804,6 @@ body.dark .emoji-picker .emoji-item:hover {
   box-shadow: 0 4px 12px rgba(239, 83, 80, 0.5);
 }
 
-/* Ефект при наведенні на неактивні */
 .bottom-nav .nav-item:not(.active):hover {
   color: var(--accent);
   transform: translateY(-4px) scale(1.05);
@@ -2496,7 +1815,6 @@ body.dark .emoji-picker .emoji-item:hover {
   filter: drop-shadow(0 4px 8px rgba(var(--accent-rgb), 0.2));
 }
 
-/* Адаптивність для мобільних */
 @media (max-width: 480px) {
   .bottom-nav {
     bottom: 16px;
@@ -2506,237 +1824,79 @@ body.dark .emoji-picker .emoji-item:hover {
     border-radius: 28px;
     padding: 0 12px;
   }
-  
   .bottom-nav .nav-item {
     min-width: 64px;
     padding: 8px 12px;
     gap: 4px;
   }
-  
-  .bottom-nav .nav-item .icon {
-    width: 24px;
-    height: 24px;
-  }
-  
-  .bottom-nav .nav-item span {
-    font-size: 0.68rem;
-  }
-  
-  .bottom-nav .nav-item .badge {
-    min-width: 18px;
-    height: 18px;
-    font-size: 0.65rem;
-    top: 4px;
-    right: 8px;
-  }
-  
-  .bottom-nav .nav-item.active {
-    transform: translateY(-6px) scale(1.12);
-  }
-}
-
-@media (max-width: 380px) {
-  .bottom-nav {
-    height: 64px;
-    border-radius: 24px;
-    padding: 0 8px;
-  }
-  
-  .bottom-nav .nav-item span {
-    font-size: 0.65rem;
-    letter-spacing: 0;
-  }
-  
-  .bottom-nav .nav-item .icon {
-    width: 22px;
-    height: 22px;
-  }
-  
-  .bottom-nav .nav-item {
-    min-width: 56px;
-    padding: 6px 8px;
-  }
+  .bottom-nav .nav-item .icon { width: 24px; height: 24px; }
+  .bottom-nav .nav-item span { font-size: 0.68rem; }
+  .bottom-nav .nav-item.active { transform: translateY(-6px) scale(1.12); }
 }
 
 @media (max-width: 320px) {
   .bottom-nav {
     height: 60px;
     border-radius: 20px;
-    bottom: 12px;
   }
-  
-  .bottom-nav .nav-item span {
-    display: none;
-  }
-  
-  .bottom-nav .nav-item {
-    min-width: auto;
-    padding: 10px;
-    flex: 1;
-    max-width: none;
-  }
-  
-  .bottom-nav .nav-item .icon {
-    width: 28px;
-    height: 28px;
-  }
-  
-  .bottom-nav .nav-item.active {
-    transform: translateY(-4px) scale(1.15);
-  }
-  
-  .bottom-nav .nav-item.active::after {
-    bottom: 2px;
-  }
+  .bottom-nav .nav-item span { display: none; }
+  .bottom-nav .nav-item .icon { width: 28px; height: 28px; }
 }
 
-/* Альбомна орієнтація */
-@media (max-height: 500px) and (orientation: landscape) {
-  .bottom-nav {
-    bottom: 12px;
-    left: auto;
-    right: 12px;
-    transform: none;
-    width: auto;
-    min-width: auto;
-    max-width: none;
-    height: 56px;
-    border-radius: 28px;
-    padding: 0 20px;
-    flex-direction: row;
-    gap: 8px;
-  }
-  
-  .bottom-nav:hover {
-    transform: translateY(-4px) scale(1.02);
-  }
-  
-  .bottom-nav .nav-item span {
-    display: none;
-  }
-  
-  .bottom-nav .nav-item {
-    padding: 10px;
-    min-width: 48px;
-  }
-  
-  .bottom-nav .nav-item.active {
-    transform: translateY(-4px) scale(1.15);
-  }
-}
-
-/* Темна тема */
 body.dark .bottom-nav {
   background: rgba(18, 18, 18, 0.9);
   border-color: rgba(255,255,255,0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05);
 }
 
-body.dark .bottom-nav:hover {
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 30px rgba(var(--accent-rgb), 0.15);
+/* ========== TOAST ========== */
+#toast {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + 40px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: var(--btn-primary-text);
+  padding: 12px 24px;
+  border-radius: 40px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 3000;
+  opacity: 0;
+  transition: opacity 0.4s, transform 0.4s;
+  pointer-events: none;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
-body.dark .bottom-nav .nav-item.active .icon {
-  filter: brightness(1.2) drop-shadow(0 4px 8px rgba(var(--accent-rgb), 0.4));
-}
-
-body.dark .bottom-nav .nav-item .badge {
-  background: linear-gradient(135deg, #e91e63 0%, #f06292 100%);
-  box-shadow: 0 3px 10px rgba(233, 30, 99, 0.5);
-  border-color: rgba(18, 18, 18, 0.9);
-}
-
-/* Safe area для iPhone X+ */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .bottom-nav {
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
-    bottom: calc(20px + env(safe-area-inset-bottom));
-  }
-  
-  @media (max-width: 480px) {
-    .bottom-nav {
-      bottom: calc(16px + env(safe-area-inset-bottom));
-      padding-bottom: calc(6px + env(safe-area-inset-bottom));
-    }
-  }
-  
-  @media (max-width: 320px) {
-    .bottom-nav {
-      bottom: calc(12px + env(safe-area-inset-bottom));
-    }
-  }
+/* ========== СКЕЛЕТОН ========== */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--card) 50%, var(--surface) 75%);
+  background-size: 220% 100%;
+  animation: shimmer 2.2s infinite;
+  border-radius: var(--radius-md);
 }
 
 /* ========== ДОДАТКОВІ УТИЛІТИ ========== */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
+.text-danger { color: var(--danger); }
+.text-success { color: var(--success); }
+.text-accent { color: var(--accent); }
 
-/* Покращена прокрутка */
 .content::-webkit-scrollbar,
 .chat-list::-webkit-scrollbar,
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
-
-.content::-webkit-scrollbar-track,
-.chat-list::-webkit-scrollbar-track,
-.chat-messages::-webkit-scrollbar-track {
-  background: transparent;
-}
-
 .content::-webkit-scrollbar-thumb,
 .chat-list::-webkit-scrollbar-thumb,
 .chat-messages::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
 }
-
 .content::-webkit-scrollbar-thumb:hover,
 .chat-list::-webkit-scrollbar-thumb:hover,
 .chat-messages::-webkit-scrollbar-thumb:hover {
   background: var(--accent-light);
-}
-
-/* Плавні переходи для всіх інтерактивних елементів */
-button, a, input, textarea, .card, .post, .chat-item, .comment {
-  transition: all 0.2s ease;
-}
-
-/* Фокус для accessibility */
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Покращення для touch пристроїв */
-@media (hover: none) {
-  .bottom-nav .nav-item:hover {
-    transform: none;
-    background: transparent;
-  }
-  
-  .bottom-nav .nav-item:active {
-    transform: scale(0.95);
-    background: rgba(var(--accent-rgb), 0.1);
-  }
-  
-  .post:hover {
-    transform: none;
-  }
-  
-  .chat-item:hover {
-    transform: none;
-  }
 }
