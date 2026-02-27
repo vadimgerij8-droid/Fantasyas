@@ -2,8 +2,11 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
-  <title>FANTASYAS · Підписки</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <title>FANTASYAS · Соціальна мережа</title>
 
   <!-- ========== ІКОНКИ ТА МАНІФЕСТ ========== -->
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -12,10 +15,13 @@
   <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
-  <!-- Колір теми (чорний, щоб пасувало до логотипу) -->
-  <meta name="theme-color" content="#000000" />
+  <!-- Колір теми -->
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 
   <!-- ========== ШРИФТИ ТА СТИЛІ ========== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -23,359 +29,771 @@
 <div class="app">
   <main class="main">
     <div class="top-bar">
+      <button class="menu-toggle" id="menuToggle" aria-label="Відкрити меню" aria-expanded="false">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
       <div class="top-bar-title" id="pageTitle">Головна</div>
+      <div class="top-bar-actions">
+        <button class="icon-btn" id="notificationsBtn" aria-label="Сповіщення">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+        </button>
+      </div>
     </div>
 
-    <div class="content" id="content">
+    <div class="content" id="content" role="main">
       <!-- ================= Секція ГОЛОВНА ================= -->
-      <div id="home" class="section active">
-        <div class="card" id="authBox">
-          <div id="loginForm">
-            <input type="text" id="loginNickname" class="input" placeholder="Псевдонім (без @)" autocomplete="off" tabindex="0"/>
-            <input type="password" id="loginPassword" class="input" placeholder="Пароль" tabindex="0"/>
-            <button class="btn btn-primary" id="loginBtn" style="width:100%; margin-top:12px;" tabindex="0">Увійти</button>
-            <div style="display:flex; gap:10px; margin-top:15px;">
-              <button class="btn" id="googleLoginBtn" style="flex:1;" tabindex="0">Google</button>
-              <button class="btn" id="appleLoginBtn" style="flex:1;" tabindex="0">Apple</button>
-            </div>
-            <p style="margin-top:18px;">Немає акаунта? <span id="toRegister" style="color:var(--accent);cursor:pointer;" tabindex="0">Зареєструватися</span></p>
-            <p><a href="#" id="forgotPassword" style="color:var(--accent);" tabindex="0">Забули пароль?</a></p>
-          </div>
-          <div id="registerForm" style="display:none;">
-            <input type="text" id="registerNickname" class="input" placeholder="Псевдонім (без @)" tabindex="0"/>
-            <input type="password" id="registerPassword" class="input" placeholder="Пароль" tabindex="0"/>
-            <button class="btn btn-primary" id="registerBtn" style="width:100%; margin-top:12px;" tabindex="0">Зареєструватися</button>
-            <p style="margin-top:18px;">Вже є акаунт? <span id="toLogin" style="color:var(--accent);cursor:pointer;" tabindex="0">Увійти</span></p>
-          </div>
-        </div>
-
-        <div class="card" id="newPostBox" style="display:none;">
-          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
-            <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;" tabindex="0"></textarea>
-            <div class="emoji-picker-container">
-              <button class="emoji-button" id="postEmojiBtn" tabindex="0">😊</button>
-              <div class="emoji-picker" id="postEmojiPicker"></div>
-            </div>
+      <section id="home" class="section active" aria-labelledby="pageTitle">
+        <!-- Авторизація -->
+        <div class="auth-container" id="authBox">
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login">Вхід</button>
+            <button class="auth-tab" data-tab="register">Реєстрація</button>
           </div>
           
-          <div class="file-input-wrapper">
-            <input type="file" id="postMedia" accept="image/*,video/*">
-            <div class="file-input-button">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <span id="postMediaLabel">Обрати фото/відео</span>
+          <div id="loginForm" class="auth-form active">
+            <div class="input-group">
+              <label for="loginNickname" class="input-label">Псевдонім</label>
+              <input type="text" id="loginNickname" class="input" placeholder="Ваш псевдонім без @" autocomplete="username" inputmode="text" enterkeyhint="next"/>
+            </div>
+            <div class="input-group">
+              <label for="loginPassword" class="input-label">Пароль</label>
+              <div class="password-wrapper">
+                <input type="password" id="loginPassword" class="input" placeholder="Ваш пароль" autocomplete="current-password" enterkeyhint="go"/>
+                <button type="button" class="password-toggle" aria-label="Показати пароль">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" id="loginBtn">Увійти</button>
+            
+            <div class="social-login">
+              <span class="divider">або</span>
+              <div class="social-buttons">
+                <button class="btn btn-social btn-google" id="googleLoginBtn">
+                  <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Google
+                </button>
+                <button class="btn btn-social btn-apple" id="appleLoginBtn">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                  </svg>
+                  Apple
+                </button>
+              </div>
+            </div>
+            
+            <div class="auth-links">
+              <a href="#" id="forgotPassword">Забули пароль?</a>
             </div>
           </div>
-          <img id="postMediaPreview" class="file-preview" />
-          
-          <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
+
+          <div id="registerForm" class="auth-form">
+            <div class="input-group">
+              <label for="registerNickname" class="input-label">Псевдонім</label>
+              <input type="text" id="registerNickname" class="input" placeholder="Придумайте псевдонім без @" autocomplete="username" inputmode="text" enterkeyhint="next"/>
+            </div>
+            <div class="input-group">
+              <label for="registerPassword" class="input-label">Пароль</label>
+              <div class="password-wrapper">
+                <input type="password" id="registerPassword" class="input" placeholder="Мінімум 6 символів" autocomplete="new-password" enterkeyhint="done"/>
+                <button type="button" class="password-toggle" aria-label="Показати пароль">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" id="registerBtn">Створити акаунт</button>
+            <p class="auth-switch">Вже є акаунт? <a href="#" id="toLogin">Увійти</a></p>
+          </div>
         </div>
 
-        <!-- Кнопки перемикання стрічки + фільтр -->
-        <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
-          <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
-          <button class="btn" id="feedPopularBtn" tabindex="0">Популярні</button>
-          <button class="btn" id="filterBtn" tabindex="0">Фільтри</button>
-          <div id="activeFilter" class="active-filter"></div>
+        <!-- Створення поста -->
+        <div class="create-post card" id="newPostBox" style="display:none;">
+          <div class="create-post-header">
+            <div class="avatar small" id="currentUserAvatar"></div>
+            <span class="create-post-prompt">Що нового?</span>
+          </div>
+          <div class="create-post-body">
+            <textarea id="postText" class="input input-transparent" placeholder="Розкажіть щось цікаве... #хештег" rows="2"></textarea>
+            <div class="create-post-actions">
+              <div class="post-tools">
+                <button class="tool-btn" id="postEmojiBtn" aria-label="Додати емодзі">
+                  <span class="tool-icon">😊</span>
+                </button>
+                <button class="tool-btn" id="postMediaBtn" aria-label="Додати фото">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                </button>
+                <input type="file" id="postMedia" accept="image/*,video/*" hidden>
+              </div>
+              <button class="btn btn-primary btn-small" id="addPost">Опублікувати</button>
+            </div>
+            <div class="emoji-picker" id="postEmojiPicker"></div>
+            <div class="media-preview" id="postMediaPreviewContainer" style="display: none;">
+              <img id="postMediaPreview" class="media-preview-img" alt="Превью"/>
+              <button class="media-remove" id="removeMedia" aria-label="Видалити медіа">×</button>
+            </div>
+          </div>
         </div>
 
-        <div class="feed" id="feed"></div>
-        <div class="feed-end-sentinel" id="feedSentinel"></div>
-        <div id="skeletonContainer" style="display:none;">
-          <div class="skeleton" style="height:200px; margin-bottom:20px;"></div>
-          <div class="skeleton" style="height:200px;"></div>
+        <!-- Фільтри стрічки -->
+        <div class="feed-controls">
+          <div class="feed-tabs">
+            <button class="feed-tab active" id="feedNewBtn">Нові</button>
+            <button class="feed-tab" id="feedPopularBtn">Популярні</button>
+            <button class="feed-tab" id="feedFollowingBtn">Підписки</button>
+          </div>
+          <button class="btn btn-icon filter-btn" id="filterBtn" aria-label="Фільтри">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+          </button>
         </div>
-      </div>
+        
+        <div id="activeFilter" class="active-filter"></div>
+
+        <!-- Стрічка -->
+        <div class="feed" id="feed" role="feed" aria-busy="false"></div>
+        
+        <div class="loading-state" id="loadingState" style="display: none;">
+          <div class="skeleton skeleton-post"></div>
+          <div class="skeleton skeleton-post"></div>
+        </div>
+        
+        <div class="feed-end" id="feedEnd" style="display: none;">
+          <span>Ви дійшли до кінця стрічки</span>
+        </div>
+      </section>
 
       <!-- ================= Секція ПОШУК ================= -->
-      <div id="search" class="section">
-        <input type="text" id="searchInput" class="input" placeholder="Пошук за @id, ім'ям або #хештегом..." tabindex="0"/>
-        <div class="user-list" id="userList" style="margin-top:20px;"></div>
-      </div>
+      <section id="search" class="section" aria-label="Пошук">
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="search" id="searchInput" class="input input-search" placeholder="Пошук людей, постів, #хештегів..." autocomplete="off" inputmode="search"/>
+            <button class="search-clear" id="searchClear" aria-label="Очистити пошук" style="display: none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="search-filters">
+            <button class="search-filter active" data-filter="all">Все</button>
+            <button class="search-filter" data-filter="users">Люди</button>
+            <button class="search-filter" data-filter="posts">Пости</button>
+            <button class="search-filter" data-filter="hashtags">Хештеги</button>
+          </div>
+        </div>
+        <div class="search-results" id="searchResults">
+          <div class="search-empty" id="searchEmpty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <p>Введіть запит для пошуку</p>
+          </div>
+          <div class="results-list" id="searchResultsList"></div>
+        </div>
+      </section>
 
       <!-- ================= Секція ХЕШТЕГИ ================= -->
-      <div id="hashtags" class="section">
-        <h2 style="margin-bottom:16px;">Популярні хештеги</h2>
-        <div class="hashtag-list" id="hashtagList"></div>
-      </div>
+      <section id="hashtags" class="section" aria-label="Хештеги">
+        <div class="hashtags-header">
+          <h2 class="section-title">Популярні теми</h2>
+          <p class="section-subtitle">Знайдіть цікавий контент за категоріями</p>
+        </div>
+        <div class="hashtags-categories" id="hashtagCategories">
+          <button class="category-chip active" data-category="all">Всі</button>
+          <button class="category-chip" data-category="trending">🔥 Тренди</button>
+          <button class="category-chip" data-category="new">✨ Нові</button>
+        </div>
+        <div class="hashtags-grid" id="hashtagList"></div>
+      </section>
 
       <!-- ================= Секція ПРОФІЛЬ ================= -->
-      <div id="profile" class="section">
-        <div class="profile-header" id="profileHeader"></div>
-        <div class="profile-tabs" id="profileTabs"></div>
-        <div class="feed" id="profileFeed"></div>
-      </div>
+      <section id="profile" class="section" aria-label="Профіль">
+        <div class="profile-container" id="profileContainer">
+          <div class="profile-header-modern" id="profileHeader"></div>
+          <div class="profile-content">
+            <div class="profile-tabs-modern" id="profileTabs"></div>
+            <div class="profile-feed" id="profileFeed"></div>
+          </div>
+        </div>
+      </section>
 
-      <!-- ================= Секція ЧАТИ (Telegram-стиль) ================= -->
-      <div id="chats" class="section">
-        <div class="chats-container">
-          <!-- Ліва панель зі списком чатів -->
-          <div class="chat-list-sidebar" id="chatListSidebar">
-            <div class="chat-search">
-              <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
-              <div id="chatSearchResults" class="user-list" style="display: none;"></div>
+      <!-- ================= Секція ЧАТИ ================= -->
+      <section id="chats" class="section" aria-label="Чати">
+        <div class="chats-layout">
+          <!-- Список чатів -->
+          <div class="chats-sidebar" id="chatListSidebar">
+            <div class="chats-sidebar-header">
+              <h2 class="chats-title">Повідомлення</h2>
+              <button class="btn btn-icon" id="newChatBtn" aria-label="Новий чат">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
             </div>
-            <div id="chatList" class="chat-list"></div>
+            <div class="chats-search">
+              <div class="search-input-wrapper">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="search" id="chatSearchInput" class="input input-search-sm" placeholder="Пошук чатів..." autocomplete="off"/>
+              </div>
+            </div>
+            <div class="chats-list" id="chatList" role="list"></div>
           </div>
 
-          <!-- Права панель – вікно чату -->
-          <div class="chat-window-container" id="chatWindowContainer" style="display: none;">
-            <div class="chat-window">
-              <!-- Шапка чату -->
-              <div class="chat-header">
-                <button class="chat-back-btn" id="chatBackBtn" aria-label="Назад">
+          <!-- Вікно чату -->
+          <div class="chat-window-wrapper" id="chatWindowContainer" style="display: none;">
+            <div class="chat-window-modern">
+              <div class="chat-header-modern" id="chatHeader">
+                <button class="btn btn-icon chat-back-btn" id="chatBackBtn" aria-label="Назад до списку">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 12H5M12 19l-7-7 7-7"/>
                   </svg>
                 </button>
-                <div class="chat-header-info" id="chatHeaderInfo">
-                  <div class="avatar" id="chatAvatar" tabindex="0" role="button"></div>
-                  <div class="chat-header-text">
-                    <div id="chatName" class="chat-name"></div>
-                    <div id="chatStatus" class="chat-status"></div>
+                <div class="chat-header-info" id="chatHeaderInfo" role="button" tabindex="0">
+                  <div class="avatar" id="chatAvatar"></div>
+                  <div class="chat-header-meta">
+                    <div class="chat-name" id="chatName"></div>
+                    <div class="chat-status" id="chatStatus"></div>
                   </div>
                 </div>
-                <div class="chat-header-menu">
-                  <button class="chat-menu-btn" id="chatMenuBtn" tabindex="0">⋯</button>
-                  <div class="chat-menu-dropdown" id="chatMenuDropdown">
-                    <div class="chat-menu-item" data-action="viewProfile">Переглянути профіль</div>
-                    <div class="chat-menu-item" data-action="block">Заблокувати</div>
-                    <div class="chat-menu-item" data-action="clearHistory">Очистити історію</div>
-                  </div>
+                <div class="chat-header-actions">
+                  <button class="btn btn-icon" id="chatCallBtn" aria-label="Аудіодзвінок">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                  </button>
+                  <button class="btn btn-icon" id="chatMenuBtn" aria-label="Меню чату">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="5" r="1"></circle>
+                      <circle cx="12" cy="12" r="1"></circle>
+                      <circle cx="12" cy="19" r="1"></circle>
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              <!-- Область повідомлень -->
-              <div class="chat-messages" id="chatMessages"></div>
+              <div class="chat-messages-modern" id="chatMessages" role="log" aria-live="polite" aria-atomic="false"></div>
 
-              <!-- Індикатор друку -->
-              <div class="typing-indicator" id="typingIndicator" style="display: none;">
-                <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
-              </div>
-
-              <!-- Панель введення -->
-              <div class="chat-input-area">
-                <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
-                <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
-                <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
-                <div class="emoji-picker-container">
-                  <button class="emoji-button" id="chatEmojiBtn" tabindex="0">😊</button>
-                  <div class="emoji-picker" id="chatEmojiPicker"></div>
-                </div>
-                <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              <div class="chat-input-modern">
+                <button class="input-action-btn" id="chatAttachBtn" aria-label="Прикріпити файл">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
                   </svg>
                 </button>
+                <input type="file" id="chatAttachFile" accept="image/*,video/*" hidden>
+                
+                <div class="message-input-wrapper">
+                  <button class="emoji-btn" id="chatEmojiBtn" aria-label="Емодзі">😊</button>
+                  <input type="text" id="chatText" class="message-input" placeholder="Повідомлення..." autocomplete="off" enterkeyhint="send"/>
+                  <div class="emoji-picker" id="chatEmojiPicker"></div>
+                </div>
+                
+                <button class="send-btn" id="sendMessage" aria-label="Надіслати">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="typing-indicator-modern" id="typingIndicator" style="display: none;">
+                <div class="typing-bubble">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Контекстне меню для повідомлень -->
-        <div class="context-menu" id="messageContextMenu">
-          <div class="context-menu-item" data-action="reply">Відповісти</div>
-          <div class="context-menu-item" data-action="edit">Редагувати</div>
-          <div class="context-menu-item" data-action="copy">Копіювати текст</div>
-          <div class="context-menu-item" data-action="delete">Видалити</div>
-          <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
-        </div>
-
-        <!-- Меню швидких реакцій -->
-        <div class="reaction-picker" id="reactionPicker">
-          <button class="reaction-btn" data-emoji="👍">👍</button>
-          <button class="reaction-btn" data-emoji="❤️">❤️</button>
-          <button class="reaction-btn" data-emoji="😂">😂</button>
-          <button class="reaction-btn" data-emoji="😮">😮</button>
-          <button class="reaction-btn" data-emoji="😢">😢</button>
-          <button class="reaction-btn" data-emoji="👎">👎</button>
-          <button class="reaction-btn more" data-emoji="more">➕</button>
-        </div>
-      </div>
+      </section>
 
       <!-- ================= Секція НАЛАШТУВАННЯ ================= -->
-      <div id="settings" class="section card">
-        <h2>Налаштування</h2>
-        <button class="btn" id="toggleTheme" style="margin:18px 0;" tabindex="0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/></svg>
-          Тема
-        </button>
-        <button class="btn" id="privacyPolicyBtn" style="margin:18px 0;" tabindex="0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Політика конфіденційності
-        </button>
-        <button class="btn" id="logoutBtn" style="margin-top:20px;" tabindex="0">Вийти</button>
-      </div>
+      <section id="settings" class="section" aria-label="Налаштування">
+        <div class="settings-container">
+          <h2 class="section-title">Налаштування</h2>
+          
+          <div class="settings-group">
+            <h3 class="settings-group-title">Зовнішній вигляд</h3>
+            <div class="setting-item">
+              <div class="setting-info">
+                <span class="setting-label">Темна тема</span>
+                <span class="setting-desc">Змінити колірну схему інтерфейсу</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggleTheme">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3 class="settings-group-title">Сповіщення</h3>
+            <div class="setting-item">
+              <div class="setting-info">
+                <span class="setting-label">Push-сповіщення</span>
+                <span class="setting-desc">Отримувати сповіщення про нові події</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggleNotifications" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <span class="setting-label">Звуки</span>
+                <span class="setting-desc">Звукові ефекти для повідомлень</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggleSounds" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3 class="settings-group-title">Приватність та безпека</h3>
+            <button class="setting-item-btn" id="privacyPolicyBtn">
+              <div class="setting-info">
+                <span class="setting-label">Політика конфіденційності</span>
+                <span class="setting-desc">Як ми обробляємо ваші дані</span>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+            <button class="setting-item-btn" id="blockedUsersBtn">
+              <div class="setting-info">
+                <span class="setting-label">Заблоковані користувачі</span>
+                <span class="setting-desc">Керувати списком блокувань</span>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <div class="settings-group">
+            <h3 class="settings-group-title">Акаунт</h3>
+            <button class="setting-item-btn danger" id="logoutBtn">
+              <div class="setting-info">
+                <span class="setting-label">Вийти з акаунта</span>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </button>
+            <button class="setting-item-btn danger" id="deleteAccountBtn">
+              <div class="setting-info">
+                <span class="setting-label">Видалити акаунт</span>
+                <span class="setting-desc">Назавжди видалити ваші дані</span>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="app-info">
+            <span class="app-version">FANTASYAS v2.0</span>
+            <span class="app-copyright">© 2026</span>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 
-  <!-- ================= НИЖНЄ МЕНЮ (Telegram 2026) ================= -->
-  <nav class="bottom-nav" id="bottomNav">
-    <div class="nav-item active" data-section="home" tabindex="0">
-      <svg class="icon" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span>Головна</span>
-    </div>
-    <div class="nav-item" data-section="search" tabindex="0">
-      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <span>Пошук</span>
-    </div>
-    <div class="nav-item" data-section="hashtags" tabindex="0">
-      <svg class="icon" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg>
-      <span>Хештеги</span>
-    </div>
-    <div class="nav-item" data-section="profile" tabindex="0">
-      <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span>Профіль</span>
-    </div>
-    <div class="nav-item" data-section="chats" tabindex="0">
-      <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span>Чати</span>
-      <span class="badge" id="unreadBadge" style="display:none;">0</span>
-    </div>
-    <div class="nav-item" data-section="settings" tabindex="0">
-      <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.07.07A10 10 0 0 0 12 17.66a10 10 0 0 0 6.26-2.26z"/></svg>
-      <span>Налаштування</span>
-    </div>
+  <!-- ================= НИЖНЄ МЕНЮ ================= -->
+  <nav class="bottom-nav" id="bottomNav" role="navigation" aria-label="Головне меню">
+    <a href="#home" class="nav-item active" data-section="home" role="button" aria-current="page">
+      <div class="nav-icon-wrapper">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <span class="nav-label">Головна</span>
+    </a>
+    <a href="#search" class="nav-item" data-section="search" role="button">
+      <div class="nav-icon-wrapper">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
+      <span class="nav-label">Пошук</span>
+    </a>
+    <a href="#chats" class="nav-item" data-section="chats" role="button">
+      <div class="nav-icon-wrapper">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span class="nav-badge" id="unreadBadge" style="display: none;">0</span>
+      </div>
+      <span class="nav-label">Чати</span>
+    </a>
+    <a href="#profile" class="nav-item" data-section="profile" role="button">
+      <div class="nav-icon-wrapper">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <span class="nav-label">Профіль</span>
+    </a>
+    <a href="#settings" class="nav-item nav-item-more" data-section="settings" role="button">
+      <div class="nav-icon-wrapper">
+        <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+      <span class="nav-label">Ще</span>
+    </a>
   </nav>
 </div>
 
 <!-- ================= МОДАЛЬНІ ВІКНА ================= -->
 <!-- Редагування профілю -->
-<div class="modal" id="editProfileModal">
-  <div class="modal-content">
+<div class="modal" id="editProfileModal" role="dialog" aria-modal="true" aria-labelledby="editProfileTitle">
+  <div class="modal-content modal-content-lg">
     <div class="modal-header">
-      <h3>Редагувати профіль</h3>
-      <span class="modal-close" id="closeModal" tabindex="0">&times;</span>
+      <h3 id="editProfileTitle">Редагувати профіль</h3>
+      <button class="modal-close" id="closeEditProfileModal" aria-label="Закрити">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
-    <input type="text" id="editNickname" class="input" placeholder="Псевдонім" tabindex="0"/>
-    <textarea id="editBio" class="input" placeholder="Про себе" rows="4" style="margin:14px 0;" tabindex="0"></textarea>
-    <div class="file-input-wrapper" style="margin:14px 0;">
-      <input type="file" id="editAvatar" accept="image/*">
-      <div class="file-input-button">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span id="editAvatarLabel">Обрати аватар</span>
+    <div class="modal-body">
+      <div class="avatar-upload">
+        <div class="avatar-preview-large" id="editAvatarPreviewContainer">
+          <img id="editAvatarPreview" class="avatar-img" alt="Аватар"/>
+          <button class="avatar-change-btn" id="changeAvatarBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+          </button>
+        </div>
+        <input type="file" id="editAvatar" accept="image/*" hidden>
+      </div>
+      
+      <div class="form-group">
+        <label for="editNickname" class="form-label">Псевдонім</label>
+        <input type="text" id="editNickname" class="input" placeholder="Ваш псевдонім"/>
+      </div>
+      
+      <div class="form-group">
+        <label for="editBio" class="form-label">Про себе</label>
+        <textarea id="editBio" class="input" placeholder="Розкажіть про себе..." rows="3"></textarea>
+        <span class="char-count" id="bioCharCount">0/150</span>
       </div>
     </div>
-    <img id="editAvatarPreview" class="file-preview" />
-    <button class="btn btn-primary" id="saveProfileEdit" tabindex="0">Зберегти</button>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelEditProfile">Скасувати</button>
+      <button class="btn btn-primary" id="saveProfileEdit">Зберегти зміни</button>
+    </div>
   </div>
 </div>
 
 <!-- Редагування поста -->
-<div class="modal" id="editPostModal">
+<div class="modal" id="editPostModal" role="dialog" aria-modal="true" aria-labelledby="editPostTitle">
   <div class="modal-content">
     <div class="modal-header">
-      <h3>Редагувати пост</h3>
-      <span class="modal-close" id="closeEditPostModal" tabindex="0">&times;</span>
+      <h3 id="editPostTitle">Редагувати пост</h3>
+      <button class="modal-close" id="closeEditPostModal" aria-label="Закрити">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
-    <textarea id="editPostText" class="input" placeholder="Текст посту" rows="4" tabindex="0"></textarea>
-    <div class="file-input-wrapper" style="margin:14px 0;">
-      <input type="file" id="editPostMedia" accept="image/*,video/*">
-      <div class="file-input-button">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        <span id="editPostMediaLabel">Змінити медіа</span>
+    <div class="modal-body">
+      <textarea id="editPostText" class="input input-textarea" placeholder="Текст посту..." rows="4"></textarea>
+      
+      <div class="media-edit-section" id="editMediaSection">
+        <div class="current-media" id="currentMediaContainer" style="display: none;">
+          <img id="currentMedia" class="media-preview" alt="Поточне медіа"/>
+          <button class="media-remove-btn" id="removeCurrentMedia">Видалити медіа</button>
+        </div>
+        
+        <div class="file-upload-area" id="editMediaUpload">
+          <input type="file" id="editPostMedia" accept="image/*,video/*" hidden>
+          <div class="upload-placeholder">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <span>Натисніть або перетягніть фото/відео</span>
+          </div>
+        </div>
       </div>
     </div>
-    <img id="editPostMediaPreview" class="file-preview" />
-    <button class="btn btn-primary" id="savePostEdit" tabindex="0">Зберегти</button>
-    <button class="btn btn-danger" id="deletePostBtn" style="margin-top:10px;" tabindex="0">Видалити пост</button>
+    <div class="modal-footer modal-footer-between">
+      <button class="btn btn-danger btn-text" id="deletePostBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        Видалити
+      </button>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelEditPost">Скасувати</button>
+        <button class="btn btn-primary" id="savePostEdit">Зберегти</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Підписники -->
-<div class="modal" id="followersModal">
+<!-- Списки підписників/підписок -->
+<div class="modal modal-list" id="followersModal" role="dialog" aria-modal="true" aria-labelledby="followersTitle">
   <div class="modal-content">
     <div class="modal-header">
-      <h3>Підписники</h3>
-      <span class="modal-close" id="closeFollowersModal" tabindex="0">&times;</span>
+      <h3 id="followersTitle">Підписники</h3>
+      <button class="modal-close" id="closeFollowersModal" aria-label="Закрити">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
-    <div id="followersList" class="user-list" style="max-height: 400px; overflow-y: auto;"></div>
+    <div class="modal-search">
+      <input type="search" class="input input-search-sm" placeholder="Пошук у списку..." id="followersSearch"/>
+    </div>
+    <div class="user-list-modern" id="followersList"></div>
   </div>
 </div>
 
-<!-- Підписки -->
-<div class="modal" id="followingModal">
+<div class="modal modal-list" id="followingModal" role="dialog" aria-modal="true" aria-labelledby="followingTitle">
   <div class="modal-content">
     <div class="modal-header">
-      <h3>Підписки</h3>
-      <span class="modal-close" id="closeFollowingModal" tabindex="0">&times;</span>
+      <h3 id="followingTitle">Підписки</h3>
+      <button class="modal-close" id="closeFollowingModal" aria-label="Закрити">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
-    <div id="followingList" class="user-list" style="max-height: 400px; overflow-y: auto;"></div>
+    <div class="modal-search">
+      <input type="search" class="input input-search-sm" placeholder="Пошук у списку..." id="followingSearch"/>
+    </div>
+    <div class="user-list-modern" id="followingList"></div>
   </div>
 </div>
 
 <!-- Політика конфіденційності -->
-<div class="modal" id="privacyPolicyModal">
+<div class="modal modal-scrollable" id="privacyPolicyModal" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
   <div class="modal-content">
-    <div class="modal-header">
-      <h3>Політика конфіденційності</h3>
-      <span class="modal-close" id="closePrivacyModal" tabindex="0">&times;</span>
+    <div class="modal-header sticky">
+      <h3 id="privacyTitle">Політика конфіденційності</h3>
+      <button class="modal-close" id="closePrivacyModal" aria-label="Закрити">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
-    <div style="max-height: 60vh; overflow-y: auto; padding-right: 10px; text-align: left;">
-      <p><strong>Останнє оновлення:</strong> 19 лютого 2026</p>
-      
-      <h4>1. Які дані ми збираємо</h4>
-      <p>Ми збираємо мінімально необхідну інформацію для роботи сервісу:</p>
-      <ul>
-        <li>Облікові дані (псевдонім, електронна пошта, пароль у зашифрованому вигляді).</li>
-        <li>Інформація профілю (аватар, біографія), яку ви надаєте добровільно.</li>
-        <li>Ваші публікації, коментарі, вподобання, збережені пости.</li>
-        <li>Дані про взаємодію (підписки, повідомлення в чатах).</li>
-        <li>Технічні дані: IP-адреса, тип пристрою, час активності.</li>
-      </ul>
+    <div class="modal-body modal-body-scrollable">
+      <div class="privacy-content">
+        <p class="privacy-date"><strong>Останнє оновлення:</strong> 27 лютого 2026</p>
+        
+        <section class="privacy-section">
+          <h4>1. Які дані ми збираємо</h4>
+          <p>Ми збираємо мінімально необхідну інформацію:</p>
+          <ul>
+            <li>Облікові дані (псевдонім, email, хеш пароля)</li>
+            <li>Публічний профіль (аватар, біографія)</li>
+            <li>Ваші публікації та взаємодії</li>
+            <li>Технічні дані для безпеки</li>
+          </ul>
+        </section>
 
-      <h4>2. Як ми використовуємо ваші дані</h4>
-      <p>Ваші дані використовуються виключно для:</p>
-      <ul>
-        <li>Надання функціоналу соціальної мережі (публікація постів, чати, підписки).</li>
-        <li>Персоналізації контенту (стрічка новин, рекомендації).</li>
-        <li>Забезпечення безпеки та запобігання шахрайству.</li>
-        <li>Комунікації з вами (сповіщення, відновлення пароля).</li>
-      </ul>
+        <section class="privacy-section">
+          <h4>2. Як ми використовуємо дані</h4>
+          <ul>
+            <li>Надання функціоналу соціальної мережі</li>
+            <li>Персоналізація контенту</li>
+            <li>Забезпечення безпеки</li>
+            <li>Комунікація з користувачами</li>
+          </ul>
+        </section>
 
-      <h4>3. Передача даних третім особам</h4>
-      <p>Ми не продаємо ваші дані. Інформація може бути передана лише у випадках:</p>
-      <ul>
-        <li>За вашого явного дозволу.</li>
-        <li>Для виконання вимог законодавства.</li>
-        <li>Технічним партнерам (Firebase, Google Cloud) для забезпечення роботи сервісу.</li>
-      </ul>
+        <section class="privacy-section">
+          <h4>3. Ваші права</h4>
+          <p>Ви можете в будь-який час переглядати, редагувати або видаляти свої дані через налаштування профілю.</p>
+        </section>
 
-      <h4>4. Ваші права</h4>
-      <p>Ви можете в будь-який час:</p>
-      <ul>
-        <li>Переглянути та редагувати свої дані в налаштуваннях профілю.</li>
-        <li>Видалити свій акаунт (зверніться до підтримки).</li>
-        <li>Заблокувати інших користувачів.</li>
-      </ul>
-
-      <h4>5. Безпека</h4>
-      <p>Ми використовуємо сучасні методи шифрування (HTTPS, хешування паролів) та регулярно оновлюємо системи безпеки. Однак жоден метод передачі даних через Інтернет не є 100% безпечним.</p>
-
-      <h4>6. Зміни в політиці</h4>
-      <p>Про будь-які зміни ми повідомимо на цій сторінці. Рекомендуємо періодично переглядати політику.</p>
-
-      <p><strong>Контакти:</strong> Якщо у вас виникли питання, напишіть нам на privacy@fantasyas.com.</p>
+        <section class="privacy-section">
+          <h4>4. Контакти</h4>
+          <p>З питань приватності: <a href="mailto:privacy@fantasyas.com">privacy@fantasyas.com</a></p>
+        </section>
+      </div>
     </div>
-  </div>
-</div>
-
-<!-- Фільтр за хештегами -->
-<div class="modal" id="filterModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>Оберіть тему</h3>
-      <span class="modal-close" id="closeFilterModal">&times;</span>
-    </div>
-    <div class="modal-body" id="filterList" style="max-height: 400px; overflow-y: auto;"></div>
     <div class="modal-footer">
-      <button class="btn" id="clearFilterBtn">Скинути фільтр</button>
+      <button class="btn btn-primary" id="acceptPrivacy">Зрозуміло</button>
     </div>
   </div>
 </div>
 
-<!-- Toast-повідомлення -->
-<div id="toast"></div>
+<!-- Фільтр хештегів -->
+<div class="modal" id="filterModal" role="dialog" aria-modal="true" aria-labelledby="filterTitle">
+  <div class="modal-content modal-content-sm">
+    <div class="modal-header">
+      <h3 id="filterTitle">Фільтр за темою</h3>
+      <button class="modal-close" id="closeFilterModal" aria-label="Закрити">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="filter-tags" id="filterList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="clearFilterBtn">Скинути все</button>
+    </div>
+  </div>
+</div>
+
+<!-- Меню чату -->
+<div class="dropdown-menu" id="chatMenuDropdown">
+  <button class="dropdown-item" data-action="viewProfile">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+    Профіль
+  </button>
+  <button class="dropdown-item" data-action="searchInChat">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    Пошук у чаті
+  </button>
+  <button class="dropdown-item" data-action="mute">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <line x1="23" y1="9" x2="17" y2="15"></line>
+      <line x1="17" y1="9" x2="23" y2="15"></line>
+    </svg>
+    Вимкнути звук
+  </button>
+  <div class="dropdown-divider"></div>
+  <button class="dropdown-item danger" data-action="clearHistory">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+    Очистити історію
+  </button>
+  <button class="dropdown-item danger" data-action="block">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+    </svg>
+    Заблокувати
+  </button>
+</div>
+
+<!-- Контекстне меню повідомлення -->
+<div class="context-menu" id="messageContextMenu">
+  <button class="context-item" data-action="reply">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="9 17 4 12 9 7"></polyline>
+      <path d="M20 18v-2a4 4 0 0 0-4-4H4"></path>
+    </svg>
+    Відповісти
+  </button>
+  <button class="context-item" data-action="copy">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+    Копіювати
+  </button>
+  <button class="context-item" data-action="forward">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="17 1 21 5 17 9"></polyline>
+      <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+      <polyline points="7 23 3 19 7 15"></polyline>
+      <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+    </svg>
+    Переслати
+  </button>
+  <div class="context-divider"></div>
+  <button class="context-item" data-action="edit">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>
+    Редагувати
+  </button>
+  <button class="context-item danger" data-action="delete">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </svg>
+    Видалити
+  </button>
+</div>
+
+<!-- Пікер реакцій -->
+<div class="reaction-picker-modern" id="reactionPicker">
+  <button class="reaction-btn" data-emoji="👍" aria-label="Подобається">👍</button>
+  <button class="reaction-btn" data-emoji="❤️" aria-label="Люблю">❤️</button>
+  <button class="reaction-btn" data-emoji="😂" aria-label="Смішно">😂</button>
+  <button class="reaction-btn" data-emoji="😮" aria-label="Вау">😮</button>
+  <button class="reaction-btn" data-emoji="😢" aria-label="Сумно">😢</button>
+  <button class="reaction-btn" data-emoji="👏" aria-label="Клас">👏</button>
+  <button class="reaction-btn" data-emoji="🔥" aria-label="Вогонь">🔥</button>
+  <button class="reaction-btn more" data-emoji="more" aria-label="Більше емодзі">➕</button>
+</div>
+
+<!-- Toast сповіщення -->
+<div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+
+<!-- Оверлей для мобільного меню -->
+<div class="mobile-overlay" id="mobileOverlay"></div>
 
 <script type="module" src="js/script.js"></script>
 </body>
