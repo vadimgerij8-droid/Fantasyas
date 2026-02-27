@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
-  <title>FANTASYAS · Підписки</title>
+  <title>FANTASYAS · Соціальна мережа</title>
 
   <!-- ========== ІКОНКИ ТА МАНІФЕСТ ========== -->
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -12,7 +12,7 @@
   <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
-  <!-- Колір теми (чорний, щоб пасувало до логотипу) -->
+  <!-- Колір теми -->
   <meta name="theme-color" content="#000000" />
 
   <!-- ========== ШРИФТИ ТА СТИЛІ ========== -->
@@ -105,7 +105,7 @@
         <div class="feed" id="profileFeed"></div>
       </div>
 
-      <!-- ================= Секція ЧАТИ (Telegram-стиль) ================= -->
+      <!-- ================= Секція ЧАТИ ================= -->
       <div id="chats" class="section">
         <div class="chats-container">
           <!-- Ліва панель зі списком чатів -->
@@ -156,7 +156,6 @@
 
               <!-- Панель введення -->
               <div class="chat-input-area">
-                <!-- Reply preview -->
                 <div class="reply-preview" id="replyPreview" style="display: none;">
                   <span id="replyText"></span>
                   <button id="cancelReply">✕</button>
@@ -200,77 +199,1165 @@
         </div>
       </div>
 
-      <!-- ================= Секція НАЛАШТУВАННЯ (оновлена) ================= -->
-      <div id="settings" class="section card">
+      <!-- ================= Секція НАЛАШТУВАННЯ (Instagram Style) ================= -->
+      <div id="settings" class="section">
         <div class="settings-container">
+          <!-- Ліва навігація -->
           <div class="settings-sidebar">
-            <div class="settings-tab active" data-tab="account">Акаунт</div>
-            <div class="settings-tab" data-tab="privacy">Конфіденційність</div>
-            <div class="settings-tab" data-tab="notifications">Сповіщення</div>
-            <div class="settings-tab" data-tab="appearance">Зовнішній вигляд</div>
-            <div class="settings-tab" data-tab="storage">Дані та сховище</div>
+            <div class="settings-nav">
+              <div class="settings-nav-item active" data-tab="general">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M12 1v6m0 6v6m4.22-10.22l4.24-4.24M6.34 17.66l-4.24 4.24M23 12h-6m-6 0H1m20.24 4.24l-4.24-4.24M6.34="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span id="postMediaLabel">Обрати фото/відео</span>
+            </div>
           </div>
-          <div class="settings-content">
-            <!-- Account -->
-            <div class="settings-pane active" id="settingsAccount">
-              <h3>Акаунт</h3>
-              <input type="text" id="settingsNickname" class="input" placeholder="Псевдонім">
-              <textarea id="settingsBio" class="input" placeholder="Про себе" rows="3"></textarea>
-              <button class="btn btn-primary" id="saveSettingsBtn">Зберегти</button>
+          <img id="postMediaPreview" class="file-preview" />
+          
+          <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
+        </div>
+
+        <!-- Кнопки перемикання стрічки + фільтр -->
+        <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
+          <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
+          <button class="btn" id="feedPopularBtn" tabindex="0">Популярні</button>
+          <button class="btn" id="filterBtn" tabindex="0">Фільтри</button>
+          <div id="activeFilter" class="active-filter"></div>
+        </div>
+
+        <div class="feed" id="feed"></div>
+        <div class="feed-end-sentinel" id="feedSentinel"></div>
+        <div id="skeletonContainer" style="display:none;">
+          <div class="skeleton" style="height:200px; margin-bottom:20px;"></div>
+          <div class="skeleton" style="height:200px;"></div>
+        </div>
+      </div>
+
+      <!-- ================= Секція ПОШУК ================= -->
+      <div id="search" class="section">
+        <input type="text" id="searchInput" class="input" placeholder="Пошук за @id, ім'ям або #хештегом..." tabindex="0"/>
+        <div class="user-list" id="userList" style="margin-top:20px;"></div>
+      </div>
+
+      <!-- ================= Секція ХЕШТЕГИ ================= -->
+      <div id="hashtags" class="section">
+        <h2 style="margin-bottom:16px;">Популярні хештеги</h2>
+        <div class="hashtag-list" id="hashtagList"></div>
+      </div>
+
+      <!-- ================= Секція ПРОФІЛЬ ================= -->
+      <div id="profile" class="section">
+        <div class="profile-header" id="profileHeader"></div>
+        <div class="profile-tabs" id="profileTabs"></div>
+        <div class="feed" id="profileFeed"></div>
+      </div>
+
+      <!-- ================= Секція ЧАТИ ================= -->
+      <div id="chats" class="section">
+        <div class="chats-container">
+          <!-- Ліва панель зі списком чатів -->
+          <div class="chat-list-sidebar" id="chatListSidebar">
+            <div class="chat-search">
+              <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
+              <div id="chatSearchResults" class="user-list" style="display: none;"></div>
             </div>
-            <!-- Privacy -->
-            <div class="settings-pane" id="settingsPrivacy">
-              <h3>Конфіденційність</h3>
-              <label>Хто може писати мені</label>
-              <select id="privacyWhoCanMessage" class="input">
-                <option value="everyone">Всі</option>
-                <option value="followers">Тільки підписники</option>
-                <option value="nobody">Ніхто</option>
-              </select>
-              <label>Хто бачить мій онлайн</label>
-              <select id="privacyWhoCanSeeOnline" class="input">
-                <option value="everyone">Всі</option>
-                <option value="followers">Тільки підписники</option>
-                <option value="nobody">Ніхто</option>
-              </select>
-              <label>Хто бачить моїх підписників</label>
-              <select id="privacyWhoCanSeeFollowers" class="input">
-                <option value="everyone">Всі</option>
-                <option value="followers">Тільки підписники</option>
-                <option value="nobody">Ніхто</option>
-              </select>
-              <h4>Заблоковані користувачі</h4>
-              <div id="blockedUsersList" class="blocked-list"></div>
-            </div>
-            <!-- Notifications -->
-            <div class="settings-pane" id="settingsNotifications">
-              <h3>Сповіщення</h3>
-              <label><input type="checkbox" id="notifyPrivateChats"> Приватні чати</label>
-            </div>
-            <!-- Appearance -->
-            <div class="settings-pane" id="settingsAppearance">
-              <h3>Зовнішній вигляд</h3>
-              <label>Тема</label>
-              <select id="themeSelect" class="input">
-                <option value="light">Світла</option>
-                <option value="dark">Темна</option>
-              </select>
-              <label>Акцентний колір</label>
-              <input type="color" id="accentColor" value="#007bff">
-            </div>
-            <!-- Data & Storage -->
-            <div class="settings-pane" id="settingsStorage">
-              <h3>Дані та сховище</h3>
-              <p>Тут будуть налаштування кешу та завантажень</p>
+            <div id="chatList" class="chat-list"></div>
+          </div>
+
+          <!-- Права панель – вікно чату -->
+          <div class="chat-window-container" id="chatWindowContainer" style="display: none;">
+            <div class="chat-window">
+              <!-- Шапка чату -->
+              <div class="chat-header">
+                <button class="chat-back-btn" id="chatBackBtn" aria-label="Назад">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                  </svg>
+                </button>
+                <div class="chat-header-info" id="chatHeaderInfo">
+                  <div class="avatar" id="chatAvatar" tabindex="0" role="button"></div>
+                  <div class="chat-header-text">
+                    <div id="chatName" class="chat-name"></div>
+                    <div id="chatStatus" class="chat-status"></div>
+                  </div>
+                </div>
+                <div class="chat-header-menu">
+                  <button class="chat-menu-btn" id="chatMenuBtn" tabindex="0">⋯</button>
+                  <div class="chat-menu-dropdown" id="chatMenuDropdown">
+                    <div class="chat-menu-item" data-action="viewProfile">Переглянути профіль</div>
+                    <div class="chat-menu-item" data-action="mute">Замутити</div>
+                    <div class="chat-menu-item" data-action="report">Поскаржитися</div>
+                    <div class="chat-menu-item" data-action="block">Заблокувати</div>
+                    <div class="chat-menu-item" data-action="clearHistory">Очистити історію</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Область повідомлень -->
+              <div class="chat-messages" id="chatMessages"></div>
+
+              <!-- Індикатор друку -->
+              <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+              </div>
+
+              <!-- Панель введення -->
+              <div class="chat-input-area">
+                <div class="reply-preview" id="replyPreview" style="display: none;">
+                  <span id="replyText"></span>
+                  <button id="cancelReply">✕</button>
+                </div>
+                <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
+                <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
+                <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
+                <div class="emoji-picker-container">
+                  <button class="emoji-button" id="chatEmojiBtn" tabindex="0">😊</button>
+                  <div class="emoji-picker" id="chatEmojiPicker"></div>
+                </div>
+                <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-        <button class="btn" id="logoutBtn" style="margin-top:20px;">Вийти</button>
+
+        <!-- Контекстне меню для повідомлень -->
+        <div class="context-menu" id="messageContextMenu">
+          <div class="context-menu-item" data-action="reply">Відповісти</div>
+          <div class="context-menu-item" data-action="edit">Редагувати</div>
+          <div class="context-menu-item" data-action="copy">Копіювати текст</div>
+          <div class="context-menu-item" data-action="deleteSelf">Видалити для себе</div>
+          <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
+        </div>
+
+        <!-- Меню швидких реакцій -->
+        <div class="reaction-picker" id="reactionPicker">
+          <button class="reaction-btn" data-emoji="👍">👍</button>
+          <button class="reaction-btn" data-emoji="❤️">❤️</button>
+          <button class="reaction-btn" data-emoji="😂">😂</button>
+          <button class="reaction-btn" data-emoji="😮">😮</button>
+          <button class="reaction-btn" data-emoji="😢">😢</button>
+          <button class="reaction-btn" data-emoji="👎">👎</button>
+          <button class="reaction-btn more" data-emoji="more">➕</button>
+        </div>
+      </div>
+
+      <!-- ================= Секція НАЛАШТУВАННЯ (Instagram Style) ================= -->
+      <div id="settings" class="section">
+        <div class="settings-container">
+          <!-- Ліва навігація -->
+          <div class="settings-sidebar">
+            <div class="settings-nav">
+              <div class="settings-nav-item active" data-tab="general">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M12 1v6m0 6v6m4.22-10.22l4.24-4.24M6.34 17.66l-4.24 4.24M23 12h-6m-6 0H1m20.24 4.24l-4.24-4.24M6.34 6.34L2.1 2.1"></path>
+                </svg>
+                <span>Загальні</span>
+              </div>
+              <div class="settings-nav-item" data-tab="notifications">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span>Сповіщення</span>
+              </div>
+              <div class="settings-nav-item" data-tab="privacy">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Конфіденційність</span>
+              </div>
+              <div class="settings-nav-item" data-tab="security">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Безпека</span>
+              </div>
+              <div class="settings-nav-item" data-tab="account">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Акаунт</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Контент налаштувань -->
+          <div class="settings-content">
+            <!-- Загальні налаштування -->
+            <div id="settings-general" class="settings-tab-content active">
+              <h2>Загальні налаштування</h2>
+              
+              <div class="settings-section">
+                <h3>Зовнішній вигляд</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Темна тема</span>
+                    <span class="setting-description">Змінити оформлення на темне</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingDarkMode">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Мова</span>
+                    <span class="setting-description">Мова інтерфейсу</span>
+                  </div>
+                  <select id="settingLanguage" class="settings-select">
+                    <option value="uk">Українська</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Медіа</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Автовідтворення відео</span>
+                    <span class="setting-description">Автоматично відтворювати відео у стрічці</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingAutoplayVideos" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Звукові ефекти</span>
+                    <span class="setting-description">Ввімкнути звуки сповіщень</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingSoundEffects" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Сповіщення -->
+            <div id="settings-notifications" class="settings-tab-content">
+              <h2>Сповіщення</h2>
+              
+              <div class="settings-section">
+                <h3>Push-сповіщення</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Увімкнути push-сповіщення</span>
+                    <span class="setting-description">Отримувати сповіщення в браузері</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingPushNotifications" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Email-сповіщення</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Email-сповіщення</span>
+                    <span class="setting-description">Отримувати оновлення на email</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingEmailNotifications" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>SMS="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span id="postMediaLabel">Обрати фото/відео</span>
+            </div>
+          </div>
+          <img id="postMediaPreview" class="file-preview" />
+          
+          <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
+        </div>
+
+        <!-- Кнопки перемикання стрічки + фільтр -->
+        <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
+          <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
+          <button class="btn" id="feedPopularBtn" tabindex="0">Популярні</button>
+          <button class="btn" id="filterBtn" tabindex="0">Фільтри</button>
+          <div id="activeFilter" class="active-filter"></div>
+        </div>
+
+        <div class="feed" id="feed"></div>
+        <div class="feed-end-sentinel" id="feedSentinel"></div>
+        <div id="skeletonContainer" style="display:none;">
+          <div class="skeleton" style="height:200px; margin-bottom:20px;"></div>
+          <div class="skeleton" style="height:200px;"></div>
+        </div>
+      </div>
+
+      <!-- ================= Секція ПОШУК ================= -->
+      <div id="search" class="section">
+        <input type="text" id="searchInput" class="input" placeholder="Пошук за @id, ім'ям або #хештегом..." tabindex="0"/>
+        <div class="user-list" id="userList" style="margin-top:20px;"></div>
+      </div>
+
+      <!-- ================= Секція ХЕШТЕГИ ================= -->
+      <div id="hashtags" class="section">
+        <h2 style="margin-bottom:16px;">Популярні хештеги</h2>
+        <div class="hashtag-list" id="hashtagList"></div>
+      </div>
+
+      <!-- ================= Секція ПРОФІЛЬ ================= -->
+      <div id="profile" class="section">
+        <div class="profile-header" id="profileHeader"></div>
+        <div class="profile-tabs" id="profileTabs"></div>
+        <div class="feed" id="profileFeed"></div>
+      </div>
+
+      <!-- ================= Секція ЧАТИ ================= -->
+      <div id="chats" class="section">
+        <div class="chats-container">
+          <!-- Ліва панель зі списком чатів -->
+          <div class="chat-list-sidebar" id="chatListSidebar">
+            <div class="chat-search">
+              <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
+              <div id="chatSearchResults" class="user-list" style="display: none;"></div>
+            </div>
+            <div id="chatList" class="chat-list"></div>
+          </div>
+
+          <!-- Права панель – вікно чату -->
+          <div class="chat-window-container" id="chatWindowContainer" style="display: none;">
+            <div class="chat-window">
+              <!-- Шапка чату -->
+              <div class="chat-header">
+                <button class="chat-back-btn" id="chatBackBtn" aria-label="Назад">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                  </svg>
+                </button>
+                <div class="chat-header-info" id="chatHeaderInfo">
+                  <div class="avatar" id="chatAvatar" tabindex="0" role="button"></div>
+                  <div class="chat-header-text">
+                    <div id="chatName" class="chat-name"></div>
+                    <div id="chatStatus" class="chat-status"></div>
+                  </div>
+                </div>
+                <div class="chat-header-menu">
+                  <button class="chat-menu-btn" id="chatMenuBtn" tabindex="0">⋯</button>
+                  <div class="chat-menu-dropdown" id="chatMenuDropdown">
+                    <div class="chat-menu-item" data-action="viewProfile">Переглянути профіль</div>
+                    <div class="chat-menu-item" data-action="mute">Замутити</div>
+                    <div class="chat-menu-item" data-action="report">Поскаржитися</div>
+                    <div class="chat-menu-item" data-action="block">Заблокувати</div>
+                    <div class="chat-menu-item" data-action="clearHistory">Очистити історію</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Область повідомлень -->
+              <div class="chat-messages" id="chatMessages"></div>
+
+              <!-- Індикатор друку -->
+              <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+              </div>
+
+              <!-- Панель введення -->
+              <div class="chat-input-area">
+                <div class="reply-preview" id="replyPreview" style="display: none;">
+                  <span id="replyText"></span>
+                  <button id="cancelReply">✕</button>
+                </div>
+                <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
+                <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
+                <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
+                <div class="emoji-picker-container">
+                  <button class="emoji-button" id="chatEmojiBtn" tabindex="0">😊</button>
+                  <div class="emoji-picker" id="chatEmojiPicker"></div>
+                </div>
+                <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Контекстне меню для повідомлень -->
+        <div class="context-menu" id="messageContextMenu">
+          <div class="context-menu-item" data-action="reply">Відповісти</div>
+          <div class="context-menu-item" data-action="edit">Редагувати</div>
+          <div class="context-menu-item" data-action="copy">Копіювати текст</div>
+          <div class="context-menu-item" data-action="deleteSelf">Видалити для себе</div>
+          <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
+        </div>
+
+        <!-- Меню швидких реакцій -->
+        <div class="reaction-picker" id="reactionPicker">
+          <button class="reaction-btn" data-emoji="👍">👍</button>
+          <button class="reaction-btn" data-emoji="❤️">❤️</button>
+          <button class="reaction-btn" data-emoji="😂">😂</button>
+          <button class="reaction-btn" data-emoji="😮">😮</button>
+          <button class="reaction-btn" data-emoji="😢">😢</button>
+          <button class="reaction-btn" data-emoji="👎">👎</button>
+          <button class="reaction-btn more" data-emoji="more">➕</button>
+        </div>
+      </div>
+
+      <!-- ================= Секція НАЛАШТУВАННЯ (Instagram Style) ================= -->
+      <div id="settings" class="section">
+        <div class="settings-container">
+          <!-- Ліва навігація -->
+          <div class="settings-sidebar">
+            <div class="settings-nav">
+              <div class="settings-nav-item active" data-tab="general">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M12 1v6m0 6v6m4.22-10.22l4.24-4.24M6.34 17.66l-4.24 4.24M23 12h-6m-6 0H1m20.24 4.24l-4.24-4.24M6.34 6.34L2.1 2.1"></path>
+                </svg>
+                <span>Загальні</span>
+              </div>
+              <div class="settings-nav-item" data-tab="notifications">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span>Сповіщення</span>
+              </div>
+              <div class="settings-nav-item" data-tab="privacy">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Конфіденційність</span>
+              </div>
+              <div class="settings-nav-item" data-tab="security">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Безпека</span>
+              </div>
+              <div class="settings-nav-item" data-tab="account">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Акаунт</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Контент налаштувань -->
+          <div class="settings-content">
+            <!-- Загальні налаштування -->
+            <div id="settings-general" class="settings-tab-content active">
+              <h2>Загальні налаштування</h2>
+              
+              <div class="settings-section">
+                <h3>Зовнішній вигляд</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Темна тема</span>
+                    <span class="setting-description">Змінити оформлення на темне</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingDarkMode">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Мова</span>
+                    <span class="setting-description">Мова інтерфейсу</span>
+                  </div>
+                  <select id="settingLanguage" class="settings-select">
+                    <option value="uk">Українська</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Медіа</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Автовідтворення відео</span>
+                    <span class="setting-description">Автоматично відтворювати відео у стрічці</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingAutoplayVideos" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Звукові ефекти</span>
+                    <span class="setting-description">Ввімкнути звуки сповіщень</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingSoundEffects" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Сповіщення -->
+            <div id="settings-notifications" class="settings-tab-content">
+              <h2>Сповіщення</h2>
+              
+              <div class="settings-section">
+                <h3>Push-сповіщення</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Увімкнути push-сповіщення</span>
+                    <span class="setting-description">Отримувати сповіщення в браузері</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingPushNotifications" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Email-сповіщення</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Email-сповіщення</span>
+                    <span class="setting-description">Отримувати оновлення на email</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingEmailNotifications" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>SMS-сповіщення</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">SMS-сповіщення</span>
+                    <span class="setting-description">Отримувати SMS про важливі події</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingSmsNotifications">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Конфіденційність -->
+            <div id="settings-privacy" class="settings-tab-content">
+              <h2>Конфіденційність</h2>
+              
+              <div class="settings-section">
+                <h3>Приватність акаунту</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Приватний акаунт</span>
+                    <span class="setting-description">Тільки підписники можуть бачити ваші пости</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingPrivateAccount">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Статус активності</span>
+                    <span class="setting-description">Показувати коли ви онлайн</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingActivityStatus" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Заблоковані акаунти</h3>
+                <div id="blockedUsersList" class="blocked-users-list">
+                  <p style="color:var(--text-secondary); padding:10px;">Немає заблокованих користувачів</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Безпека -->
+            <div id="settings-security" class="settings-tab-content">
+              <h2>Безпека</h2>
+              
+              <div class="settings-section">
+                <h3>Зміна паролю</h3>
+                <div class="password-change-form">
+                  <input type="password" id="currentPassword" placeholder="Поточний пароль" class="settings-input">
+                  <input type="password" id="newPassword" placeholder="Новий пароль" class="settings-input">
+                  <input type="password" id="confirmPassword" placeholder="Підтвердіть новий пароль" class="settings-input">
+                  <button id="changePasswordBtn" class="btn btn-primary">Змінити пароль</button>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Двофакторна автентифікація</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">2FA</span>
+                    <span class="setting-description">Додатковий рівень захисту</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingTwoFactor">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Акаунт -->
+            <div id="settings-account" class="settings-tab-content">
+              <h2>Акаунт</h2>
+              
+              <div class="settings-section">
+                <h3>Статистика</h3>
+                <div id="accountStats" class="account-stats">
+                  <!-- Заповнюється через JS -->
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Інформація</h3>
+                <div id="accountInfo" class="account-info">
+                  <!-- Заповнюється через JS -->
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Зміна email</h3>
+                <div class="email-change-form">
+                  <input type="email" id="newEmail" placeholder="Новий email" class="settings-input">
+                  <input type="password" id="emailChangePassword" placeholder="Ваш пароль" class="settings-input">
+                  <button id="changeEmailBtn" class="btn btn-primary">Змінити email</button>
+                </div>
+              </div>
+
+              <div class="settings-section danger-zone">
+                <h3>Небезпечна зона</h3>
+                <button id="deleteAccountBtn" class="btn btn-danger">Видалити акаунт</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
 
-  <!-- ================= НИЖНЄ МЕНЮ (Telegram 2026) ================= -->
+  <!-- ================= НИЖНЄ МЕНЮ ================= -->
+  <nav class="bottom-nav" id="bottomNav">
+    <div class="nav-item active" data-section="home" tabindex="0">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Головна</span>
+    </div>
+    <div class="nav-item" data-section="search" tabindex="0">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Пошук</span>
+    </div>
+    <div class="nav-item" data-section="hashtags" tabindex="0">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg>
+      <span>Хештеги</span>
+    </div>
+    <div class="nav-item" data-section="profile" tabindex="0">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Профіль</span>
+    </div>
+    <div class="nav-item" data-section="chats" tabindex="0">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Чати</span>
+      <span class="badge" id="unreadBadge" style="display:none;">0</span>
+    </div>
+    <div class="nav-item" data-section="settings" tabindex="0">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.07.07A10 10 0 0 0 12 17.66a10 10 0 0 0 6.26-2.26z"/></svg>
+      <span>Налаштування</span>
+    </div>
+  </nav>
+</div>
+
+<!-- ================= МОДАЛЬНІ ВІКНА ================= -->
+<!-- Редагування профілю -->
+<div class="modal" id="editProfileModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Редагувати профіль</h3>
+      <span class="modal-close" id="closeModal" tabindex="0">&times;</span>
+    </div>
+    <input type="text" id="editNickname" class="input" placeholder="Псевдонім" tabindex="0"/>
+    <textarea id="editBio" class="input" placeholder="Про себе" rows="4" style="margin:14px 0;" tabindex="0"></textarea>
+    <div class="file-input-wrapper" style="margin:14px 0;">
+      <input type="file" id="editAvatar" accept="image/*">
+      <div class="file-input-button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span id="editAvatarLabel">Обрати аватар</span>
+      </div>
+    </div>
+    <img id="editAvatarPreview" class="file-preview" />
+    <button class="btn btn-primary" id="saveProfileEdit" tabindex="0">Зберегти</button>
+  </div>
+</div>
+
+<!-- Редагування поста -->
+<div class="modal" id="editPostModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Редагувати пост</h3>
+      <span class="modal-close" id="closeEditPostModal" tabindex="0">&times;</span>
+    </div>
+    <textarea id="editPostText" class="input" placeholder="Текст посту" rows="4" tabindex="0"></textarea>
+    <div class="file-input-wrapper" style="margin:14px 0;">
+      <input type="file" id="editPostMedia" accept="image/*,video/*">
+      <div class="file-input-button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span id="editPostMediaLabel">Змінити медіа</span>
+      </div>
+    </div>
+    <img id="editPostMediaPreview" class="file-preview" />
+    <button class="btn btn-primary" id="savePostEdit" tabindex="0">Зберегти</button>
+    <button class="btn btn-danger" id="deletePostBtn" style="margin-top:10px;" tabindex="0">Видалити пост</button>
+  </div>
+</div>
+
+<!-- Підписники -->
+<div class="modal" id="followersModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Підписники</h3>
+      <span class="modal-close" id="closeFollowersModal" tabindex="0">&times;</span>
+    </div>
+    <div id="followersList" class="user-list" style="max-height: 400px; overflow-y: auto;"></div>
+  </div>
+</div>
+
+<!-- Підписки -->
+<div class="modal" id="followingModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Підписки</h3>
+      <span class="modal-close" id="closeFollowingModal" tabindex="0">&times;</span>
+    </div>
+    <div id="followingList" class="user-list" style="max-height: 400px; overflow-y: auto;"></div>
+  </div>
+</div>
+
+<!-- Політика конфіденційності -->
+<div class="modal" id="privacyPolicyModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Політика конфіденційності</h3>
+      <span class="modal-close" id="closePrivacyModal" tabindex="0">&times="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span id="postMediaLabel">Обрати фото/відео</span>
+            </div>
+          </div>
+          <img id="postMediaPreview" class="file-preview" />
+          
+          <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
+        </div>
+
+        <!-- Кнопки перемикання стрічки + фільтр -->
+        <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
+          <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
+          <button class="btn" id="feedPopularBtn" tabindex="0">Популярні</button>
+          <button class="btn" id="filterBtn" tabindex="0">Фільтри</button>
+          <div id="activeFilter" class="active-filter"></div>
+        </div>
+
+        <div class="feed" id="feed"></div>
+        <div class="feed-end-sentinel" id="feedSentinel"></div>
+        <div id="skeletonContainer" style="display:none;">
+          <div class="skeleton" style="height:200px; margin-bottom:20px;"></div>
+          <div class="skeleton" style="height:200px;"></div>
+        </div>
+      </div>
+
+      <!-- ================= Секція ПОШУК ================= -->
+      <div id="search" class="section">
+        <input type="text" id="searchInput" class="input" placeholder="Пошук за @id, ім'ям або #хештегом..." tabindex="0"/>
+        <div class="user-list" id="userList" style="margin-top:20px;"></div>
+      </div>
+
+      <!-- ================= Секція ХЕШТЕГИ ================= -->
+      <div id="hashtags" class="section">
+        <h2 style="margin-bottom:16px;">Популярні хештеги</h2>
+        <div class="hashtag-list" id="hashtagList"></div>
+      </div>
+
+      <!-- ================= Секція ПРОФІЛЬ ================= -->
+      <div id="profile" class="section">
+        <div class="profile-header" id="profileHeader"></div>
+        <div class="profile-tabs" id="profileTabs"></div>
+        <div class="feed" id="profileFeed"></div>
+      </div>
+
+      <!-- ================= Секція ЧАТИ ================= -->
+      <div id="chats" class="section">
+        <div class="chats-container">
+          <!-- Ліва панель зі списком чатів -->
+          <div class="chat-list-sidebar" id="chatListSidebar">
+            <div class="chat-search">
+              <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
+              <div id="chatSearchResults" class="user-list" style="display: none;"></div>
+            </div>
+            <div id="chatList" class="chat-list"></div>
+          </div>
+
+          <!-- Права панель – вікно чату -->
+          <div class="chat-window-container" id="chatWindowContainer" style="display: none;">
+            <div class="chat-window">
+              <!-- Шапка чату -->
+              <div class="chat-header">
+                <button class="chat-back-btn" id="chatBackBtn" aria-label="Назад">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                  </svg>
+                </button>
+                <div class="chat-header-info" id="chatHeaderInfo">
+                  <div class="avatar" id="chatAvatar" tabindex="0" role="button"></div>
+                  <div class="chat-header-text">
+                    <div id="chatName" class="chat-name"></div>
+                    <div id="chatStatus" class="chat-status"></div>
+                  </div>
+                </div>
+                <div class="chat-header-menu">
+                  <button class="chat-menu-btn" id="chatMenuBtn" tabindex="0">⋯</button>
+                  <div class="chat-menu-dropdown" id="chatMenuDropdown">
+                    <div class="chat-menu-item" data-action="viewProfile">Переглянути профіль</div>
+                    <div class="chat-menu-item" data-action="mute">Замутити</div>
+                    <div class="chat-menu-item" data-action="report">Поскаржитися</div>
+                    <div class="chat-menu-item" data-action="block">Заблокувати</div>
+                    <div class="chat-menu-item" data-action="clearHistory">Очистити історію</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Область повідомлень -->
+              <div class="chat-messages" id="chatMessages"></div>
+
+              <!-- Індикатор друку -->
+              <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+              </div>
+
+              <!-- Панель введення -->
+              <div class="chat-input-area">
+                <div class="reply-preview" id="replyPreview" style="display: none;">
+                  <span id="replyText"></span>
+                  <button id="cancelReply">✕</button>
+                </div>
+                <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
+                <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
+                <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
+                <div class="emoji-picker-container">
+                  <button class="emoji-button" id="chatEmojiBtn" tabindex="0">😊</button>
+                  <div class="emoji-picker" id="chatEmojiPicker"></div>
+                </div>
+                <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Контекстне меню для повідомлень -->
+        <div class="context-menu" id="messageContextMenu">
+          <div class="context-menu-item" data-action="reply">Відповісти</div>
+          <div class="context-menu-item" data-action="edit">Редагувати</div>
+          <div class="context-menu-item" data-action="copy">Копіювати текст</div>
+          <div class="context-menu-item" data-action="deleteSelf">Видалити для себе</div>
+          <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
+        </div>
+
+        <!-- Меню швидких реакцій -->
+        <div class="reaction-picker" id="reactionPicker">
+          <button class="reaction-btn" data-emoji="👍">👍</button>
+          <button class="reaction-btn" data-emoji="❤️">❤️</button>
+          <button class="reaction-btn" data-emoji="😂">😂</button>
+          <button class="reaction-btn" data-emoji="😮">😮</button>
+          <button class="reaction-btn" data-emoji="😢">😢</button>
+          <button class="reaction-btn" data-emoji="👎">👎</button>
+          <button class="reaction-btn more" data-emoji="more">➕</button>
+        </div>
+      </div>
+
+      <!-- ================= Секція НАЛАШТУВАННЯ (Instagram Style) ================= -->
+      <div id="settings" class="section">
+        <div class="settings-container">
+          <!-- Ліва навігація -->
+          <div class="settings-sidebar">
+            <div class="settings-nav">
+              <div class="settings-nav-item active" data-tab="general">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M12 1v6m0 6v6m4.22-10.22l4.24-4.24M6.34 17.66l-4.24 4.24M23 12h-6m-6 0H1m20.24 4.24l-4.24-4.24M6.34 6.34L2.1 2.1"></path>
+                </svg>
+                <span>Загальні</span>
+              </div>
+              <div class="settings-nav-item" data-tab="notifications">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span>Сповіщення</span>
+              </div>
+              <div class="settings-nav-item" data-tab="privacy">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Конфіденційність</span>
+              </div>
+              <div class="settings-nav-item" data-tab="security">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Безпека</span>
+              </div>
+              <div class="settings-nav-item" data-tab="account">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Акаунт</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Контент налаштувань -->
+          <div class="settings-content">
+            <!-- Загальні налаштування -->
+            <div id="settings-general" class="settings-tab-content active">
+              <h2>Загальні налаштування</h2>
+              
+              <div class="settings-section">
+                <h3>Зовнішній вигляд</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Темна тема</span>
+                    <span class="setting-description">Змінити оформлення на темне</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingDarkMode">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Мова</span>
+                    <span class="setting-description">Мова інтерфейсу</span>
+                  </div>
+                  <select id="settingLanguage" class="settings-select">
+                    <option value="uk">Українська</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Медіа</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Автовідтворення відео</span>
+                    <span class="setting-description">Автоматично відтворювати відео у стрічці</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingAutoplayVideos" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Звукові ефекти</span>
+                    <span class="setting-description">Ввімкнути звуки сповіщень</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingSoundEffects" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Сповіщення -->
+            <div id="settings-notifications" class="settings-tab-content">
+              <h2>Сповіщення</h2>
+              
+              <div class="settings-section">
+                <h3>Push-сповіщення</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Увімкнути push-сповіщення</span>
+                    <span class="setting-description">Отримувати сповіщення в браузері</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingPushNotifications" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Email-сповіщення</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Email-сповіщення</span>
+                    <span class="setting-description">Отримувати оновлення на email</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingEmailNotifications" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>SMS-сповіщення</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">SMS-сповіщення</span>
+                    <span class="setting-description">Отримувати SMS про важливі події</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingSmsNotifications">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Конфіденційність -->
+            <div id="settings-privacy" class="settings-tab-content">
+              <h2>Конфіденційність</h2>
+              
+              <div class="settings-section">
+                <h3>Приватність акаунту</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Приватний акаунт</span>
+                    <span class="setting-description">Тільки підписники можуть бачити ваші пости</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingPrivateAccount">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">Статус активності</span>
+                    <span class="setting-description">Показувати коли ви онлайн</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingActivityStatus" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Заблоковані акаунти</h3>
+                <div id="blockedUsersList" class="blocked-users-list">
+                  <p style="color:var(--text-secondary); padding:10px;">Немає заблокованих користувачів</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Безпека -->
+            <div id="settings-security" class="settings-tab-content">
+              <h2>Безпека</h2>
+              
+              <div class="settings-section">
+                <h3>Зміна паролю</h3>
+                <div class="password-change-form">
+                  <input type="password" id="currentPassword" placeholder="Поточний пароль" class="settings-input">
+                  <input type="password" id="newPassword" placeholder="Новий пароль" class="settings-input">
+                  <input type="password" id="confirmPassword" placeholder="Підтвердіть новий пароль" class="settings-input">
+                  <button id="changePasswordBtn" class="btn btn-primary">Змінити пароль</button>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Двофакторна автентифікація</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <span class="setting-title">2FA</span>
+                    <span class="setting-description">Додатковий рівень захисту</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="settingTwoFactor">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Акаунт -->
+            <div id="settings-account" class="settings-tab-content">
+              <h2>Акаунт</h2>
+              
+              <div class="settings-section">
+                <h3>Статистика</h3>
+                <div id="accountStats" class="account-stats">
+                  <!-- Заповнюється через JS -->
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Інформація</h3>
+                <div id="accountInfo" class="account-info">
+                  <!-- Заповнюється через JS -->
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>Зміна email</h3>
+                <div class="email-change-form">
+                  <input type="email" id="newEmail" placeholder="Новий email" class="settings-input">
+                  <input type="password" id="emailChangePassword" placeholder="Ваш пароль" class="settings-input">
+                  <button id="changeEmailBtn" class="btn btn-primary">Змінити email</button>
+                </div>
+              </div>
+
+              <div class="settings-section danger-zone">
+                <h3>Небезпечна зона</h3>
+                <button id="deleteAccountBtn" class="btn btn-danger">Видалити акаунт</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= НИЖНЄ МЕНЮ ================= -->
   <nav class="bottom-nav" id="bottomNav">
     <div class="nav-item active" data-section="home" tabindex="0">
       <svg class="icon" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
