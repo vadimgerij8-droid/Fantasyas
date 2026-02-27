@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <div class="content" id="content">
   <!-- ================= Секція ГОЛОВНА ================= -->
   <div id="home" class="section active">
@@ -111,6 +111,8 @@
               <button class="chat-menu-btn" id="chatMenuBtn" tabindex="0">⋯</button>
               <div class="chat-menu-dropdown" id="chatMenuDropdown">
                 <div class="chat-menu-item" data-action="viewProfile">Переглянути профіль</div>
+                <div class="chat-menu-item" data-action="mute">Замутити</div>
+                <div class="chat-menu-item" data-action="report">Поскаржитися</div>
                 <div class="chat-menu-item" data-action="block">Заблокувати</div>
                 <div class="chat-menu-item" data-action="clearHistory">Очистити історію</div>
               </div>
@@ -127,6 +129,11 @@
 
           <!-- Панель введення -->
           <div class="chat-input-area">
+            <!-- Reply preview -->
+            <div class="reply-preview" id="replyPreview" style="display: none;">
+              <span id="replyText"></span>
+              <button id="cancelReply">✕</button>
+            </div>
             <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
             <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
             <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
@@ -150,7 +157,7 @@
       <div class="context-menu-item" data-action="reply">Відповісти</div>
       <div class="context-menu-item" data-action="edit">Редагувати</div>
       <div class="context-menu-item" data-action="copy">Копіювати текст</div>
-      <div class="context-menu-item" data-action="delete">Видалити</div>
+      <div class="context-menu-item" data-action="deleteSelf">Видалити для себе</div>
       <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
     </div>
 
@@ -166,18 +173,72 @@
     </div>
   </div>
 
-  <!-- ================= Секція НАЛАШТУВАННЯ ================= -->
+  <!-- ================= Секція НАЛАШТУВАННЯ (оновлена) ================= -->
   <div id="settings" class="section card">
-    <h2>Налаштування</h2>
-    <button class="btn" id="toggleTheme" style="margin:18px 0;" tabindex="0">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/></svg>
-      Тема
-    </button>
-    <button class="btn" id="privacyPolicyBtn" style="margin:18px 0;" tabindex="0">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Політика конфіденційності
-    </button>
-    <button class="btn" id="logoutBtn" style="margin-top:20px;" tabindex="0">Вийти</button>
+    <div class="settings-container">
+      <div class="settings-sidebar">
+        <div class="settings-tab active" data-tab="account">Акаунт</div>
+        <div class="settings-tab" data-tab="privacy">Конфіденційність</div>
+        <div class="settings-tab" data-tab="notifications">Сповіщення</div>
+        <div class="settings-tab" data-tab="appearance">Зовнішній вигляд</div>
+        <div class="settings-tab" data-tab="storage">Дані та сховище</div>
+      </div>
+      <div class="settings-content">
+        <!-- Account -->
+        <div class="settings-pane active" id="settingsAccount">
+          <h3>Акаунт</h3>
+          <input type="text" id="settingsNickname" class="input" placeholder="Псевдонім">
+          <textarea id="settingsBio" class="input" placeholder="Про себе" rows="3"></textarea>
+          <button class="btn btn-primary" id="saveSettingsBtn">Зберегти</button>
+        </div>
+        <!-- Privacy -->
+        <div class="settings-pane" id="settingsPrivacy">
+          <h3>Конфіденційність</h3>
+          <label>Хто може писати мені</label>
+          <select id="privacyWhoCanMessage" class="input">
+            <option value="everyone">Всі</option>
+            <option value="followers">Тільки підписники</option>
+            <option value="nobody">Ніхто</option>
+          </select>
+          <label>Хто бачить мій онлайн</label>
+          <select id="privacyWhoCanSeeOnline" class="input">
+            <option value="everyone">Всі</option>
+            <option value="followers">Тільки підписники</option>
+            <option value="nobody">Ніхто</option>
+          </select>
+          <label>Хто бачить моїх підписників</label>
+          <select id="privacyWhoCanSeeFollowers" class="input">
+            <option value="everyone">Всі</option>
+            <option value="followers">Тільки підписники</option>
+            <option value="nobody">Ніхто</option>
+          </select>
+          <h4>Заблоковані користувачі</h4>
+          <div id="blockedUsersList" class="blocked-list"></div>
+        </div>
+        <!-- Notifications -->
+        <div class="settings-pane" id="settingsNotifications">
+          <h3>Сповіщення</h3>
+          <label><input type="checkbox" id="notifyPrivateChats"> Приватні чати</label>
+        </div>
+        <!-- Appearance -->
+        <div class="settings-pane" id="settingsAppearance">
+          <h3>Зовнішній вигляд</h3>
+          <label>Тема</label>
+          <select id="themeSelect" class="input">
+            <option value="light">Світла</option>
+            <option value="dark">Темна</option>
+          </select>
+          <label>Акцентний колір</label>
+          <input type="color" id="accentColor" value="#007bff">
+        </div>
+        <!-- Data & Storage -->
+        <div class="settings-pane" id="settingsStorage">
+          <h3>Дані та сховище</h3>
+          <p>Тут будуть налаштування кешу та завантажень</p>
+        </div>
+      </div>
+    </div>
+    <button class="btn" id="logoutBtn" style="margin-top:20px;">Вийти</button>
   </div>
 </div>
 
@@ -224,4 +285,3 @@
 
   <p><strong>Контакти:</strong> Якщо у вас виникли питання, напишіть нам на privacy@fantasyas.com.</p>
 </div>
-
