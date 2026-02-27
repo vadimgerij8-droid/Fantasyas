@@ -1,6 +1,6 @@
 // ================= Firebase імпорти =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, OAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, OAuthProvider, signInWithPopup, sendPasswordResetEmail, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider, deleteUser } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, query, where, onSnapshot, orderBy, serverTimestamp, arrayUnion, arrayRemove, deleteDoc, getDocs, increment, limit, startAfter, writeBatch } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ================= Конфігурація =================
@@ -18,6 +18,7 @@ const db = getFirestore(app);
 
 // ================= Глобальні змінні =================
 let currentUser = null;
+let currentUserData = null;
 let currentUserFollowing = [];
 let currentChatPartner = null;
 let currentChatPartnerName = '';
@@ -44,6 +45,42 @@ let hasMore = true;
 const viewedPosts = new Set();
 let currentFilterHashtag = null;
 const postListeners = new Map();
+
+// ================= Налаштування користувача (Settings State) =================
+const userSettings = {
+  notifications: {
+    push: true,
+    email: true,
+    sms: false,
+    likes: true,
+    comments: true,
+    newFollowers: true,
+    mentions: true,
+    directMessages: true,
+    storyReplies: true
+  },
+  privacy: {
+    privateAccount: false,
+    activityStatus: true,
+    storySharing: true,
+    allowTags: 'everyone', // everyone, following, no_one
+    allowMentions: 'everyone',
+    blockedAccounts: []
+  },
+  security: {
+    twoFactor: false,
+    loginAlerts: true,
+    savedLogins: []
+  },
+  preferences: {
+    language: 'uk',
+    darkMode: false,
+    reduceMotion: false,
+    highContrast: false,
+    autoplayVideos: true,
+    soundEffects: true
+  }
+};
 
 // ================= Допоміжні функції =================
 const showToast = (msg) => {
@@ -240,7 +277,7 @@ navItems.forEach((item) => {
       await viewProfile(currentUser.uid);
     }
     if (section === 'settings') {
-      // нічого не завантажуємо
+      loadSettings();
     }
   });
 });
@@ -480,6 +517,7 @@ document.getElementById('registerBtn').onclick = async () => {
       following: [],
       mutedUsers: [],
       blockedUsers: [],
+      settings: { ...userSettings },
       createdAt: serverTimestamp(),
       lastOnline: serverTimestamp(),
       email: email
@@ -544,6 +582,7 @@ document.getElementById('googleLoginBtn').onclick = async () => {
         following: [],
         mutedUsers: [],
         blockedUsers: [],
+        settings: { ...userSettings },
         createdAt: serverTimestamp(),
         lastOnline: serverTimestamp(),
         email: user.email
@@ -589,6 +628,7 @@ document.getElementById('appleLoginBtn').onclick = async () => {
         following: [],
         mutedUsers: [],
         blockedUsers: [],
+        settings: { ...userSettings },
         createdAt: serverTimestamp(),
         lastOnline: serverTimestamp(),
         email: user.email
@@ -640,7 +680,15 @@ onAuthStateChanged(auth, (user) => {
     const userRef = doc(db, "users", currentUser.uid);
     unsubscribeFollowing = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
+        currentUserData = docSnap.data();
         currentUserFollowing = docSnap.data().following || [];
+        
+        // Завантажуємо налаштування користувача
+        if (currentUserData.settings) {
+          Object.assign(userSettings, currentUserData.settings);
+          applySettings();
+        }
+        
         document.querySelectorAll('.follow-btn-post').forEach(btn => {
           const targetUid = btn.dataset.uid;
           if (targetUid) {
@@ -685,6 +733,7 @@ onAuthStateChanged(auth, (user) => {
     setupFileInput('editPostMedia', 'editPostMediaLabel', 'editPostMediaPreview');
   } else {
     currentUser = null;
+    currentUserData = null;
     currentUserFollowing = [];
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'block';
@@ -2184,7 +2233,7 @@ async function searchUsersForChat(query) {
         <button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem;">Написати</button>
       `;
       
-      // Клік на весь елемент (крім кнопки) відкриває профіль
+      // Клік на весь елемент (крім кнопки) відкриваєє профіль
       div.addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON') return;
         viewProfile(uid);
@@ -2262,6 +2311,376 @@ document.getElementById('chatMenuDropdown')?.addEventListener('click', async (e)
       showToast('Історію очищено');
     }
   }
+});
+
+// ================= НАЛАШТУВАННЯ (INSTAGRAM-STYLE) =================
+
+function loadSettings() {
+  if (!currentUser) return;
+  
+  // Оновлюємо UI відповідно до поточних налаштувань
+  updateSettingsUI();
+  
+  // Завантажуємо заблокованих користувачів
+  loadBlockedUsers();
+  
+  // Завантажуємо статистику акаунту
+  loadAccountStats();
+}
+
+function updateSettingsUI() {
+  // Push сповіщення
+  const pushToggle = document.getElementById('settingPushNotifications');
+  if (pushToggle) pushToggle.checked = userSettings.notifications.push;
+  
+  // Email сповіщення
+  const emailToggle = document.getElementById('settingEmailNotifications');
+  if (emailToggle) emailToggle.checked = userSettings.notifications.email;
+  
+  // SMS сповіщення
+  const smsToggle = document.getElementById('settingSmsNotifications');
+  if (smsToggle) smsToggle.checked = userSettings.notifications.sms;
+  
+  // Приватний акаунт
+  const privateToggle = document.getElementById('settingPrivateAccount');
+  if (privateToggle) privateToggle.checked = userSettings.privacy.privateAccount;
+  
+  // Статус активності
+  const activityToggle = document.getElementById('settingActivityStatus');
+  if (activityToggle) activityToggle.checked = userSettings.privacy.activityStatus;
+  
+  // Темна тема
+  const darkModeToggle = document.getElementById('settingDarkMode');
+  if (darkModeToggle) darkModeToggle.checked = userSettings.preferences.darkMode;
+  
+  // Автовідтворення відео
+  const autoplayToggle = document.getElementById('settingAutoplayVideos');
+  if (autoplayToggle) autoplayToggle.checked = userSettings.preferences.autoplayVideos;
+  
+  // Звукові ефекти
+  const soundToggle = document.getElementById('settingSoundEffects');
+  if (soundToggle) soundToggle.checked = userSettings.preferences.soundEffects;
+  
+  // Мова
+  const languageSelect = document.getElementById('settingLanguage');
+  if (languageSelect) languageSelect.value = userSettings.preferences.language;
+  
+  // Двофакторна автентифікація
+  const twoFactorToggle = document.getElementById('settingTwoFactor');
+  if (twoFactorToggle) twoFactorToggle.checked = userSettings.security.twoFactor;
+}
+
+function applySettings() {
+  // Застосовуємо темну тему
+  if (userSettings.preferences.darkMode) {
+    document.body.classList.add('dark');
+  } else {
+    document.body.classList.remove('dark');
+  }
+  
+  // Зберігаємо в localStorage для швидкого доступу
+  localStorage.setItem('theme', userSettings.preferences.darkMode ? 'dark' : 'light');
+}
+
+// Збереження налаштувань в Firestore
+async function saveSettingsToFirestore() {
+  if (!currentUser) return;
+  
+  try {
+    const userRef = doc(db, "users", currentUser.uid);
+    await updateDoc(userRef, {
+      settings: userSettings,
+      updatedAt: serverTimestamp()
+    });
+    showToast('Налаштування збережено');
+  } catch (error) {
+    console.error('Помилка збереження налаштувань:', error);
+    showToast('Помилка збереження налаштувань');
+  }
+}
+
+// Обробники подій для налаштувань
+document.getElementById('settingPushNotifications')?.addEventListener('change', async (e) => {
+  userSettings.notifications.push = e.target.checked;
+  await saveSettingsToFirestore();
+  
+  // Запит дозволу на push-сповіщення
+  if (e.target.checked && 'Notification' in window) {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showToast('Дозвольте сповіщення в браузері');
+      e.target.checked = false;
+      userSettings.notifications.push = false;
+    }
+  }
+});
+
+document.getElementById('settingEmailNotifications')?.addEventListener('change', async (e) => {
+  userSettings.notifications.email = e.target.checked;
+  await saveSettingsToFirestore();
+});
+
+document.getElementById('settingSmsNotifications')?.addEventListener('change', async (e) => {
+  userSettings.notifications.sms = e.target.checked;
+  await saveSettingsToFirestore();
+});
+
+document.getElementById('settingPrivateAccount')?.addEventListener('change', async (e) => {
+  userSettings.privacy.privateAccount = e.target.checked;
+  await saveSettingsToFirestore();
+  showToast(e.target.checked ? 'Акаунт тепер приватний' : 'Акаунт тепер публічний');
+});
+
+document.getElementById('settingActivityStatus')?.addEventListener('change', async (e) => {
+  userSettings.privacy.activityStatus = e.target.checked;
+  await saveSettingsToFirestore();
+});
+
+document.getElementById('settingDarkMode')?.addEventListener('change', async (e) => {
+  userSettings.preferences.darkMode = e.target.checked;
+  applySettings();
+  await saveSettingsToFirestore();
+});
+
+document.getElementById('settingAutoplayVideos')?.addEventListener('change', async (e) => {
+  userSettings.preferences.autoplayVideos = e.target.checked;
+  await saveSettingsToFirestore();
+});
+
+document.getElementById('settingSoundEffects')?.addEventListener('change', async (e) => {
+  userSettings.preferences.soundEffects = e.target.checked;
+  await saveSettingsToFirestore();
+});
+
+document.getElementById('settingLanguage')?.addEventListener('change', async (e) => {
+  userSettings.preferences.language = e.target.value;
+  await saveSettingsToFirestore();
+  showToast('Мову змінено. Перезавантажте сторінку.');
+});
+
+// Завантаження заблокованих користувачів
+async function loadBlockedUsers() {
+  const container = document.getElementById('blockedUsersList');
+  if (!container) return;
+  
+  if (!currentUserData || !currentUserData.blockedUsers || currentUserData.blockedUsers.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-secondary); padding:10px;">Немає заблокованих користувачів</p>';
+    return;
+  }
+  
+  container.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
+  
+  const blockedUsers = [];
+  for (const uid of currentUserData.blockedUsers) {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (snap.exists()) {
+      blockedUsers.push({ id: uid, ...snap.data() });
+    }
+  }
+  
+  container.innerHTML = '';
+  blockedUsers.forEach(user => {
+    const div = document.createElement('div');
+    div.className = 'blocked-user-item';
+    div.innerHTML = `
+      <div class="avatar small" style="background-image:url(${user.avatar || ''})"></div>
+      <div class="blocked-user-info">
+        <div class="blocked-user-name">${user.nickname}</div>
+        <div class="blocked-user-id">${user.userId}</div>
+      </div>
+      <button class="btn btn-secondary unblock-btn" data-uid="${user.id}">Розблокувати</button>
+    `;
+    
+    div.querySelector('.unblock-btn').addEventListener('click', async () => {
+      await unblockUser(user.id);
+      loadBlockedUsers();
+    });
+    
+    container.appendChild(div);
+  });
+}
+
+// Завантаження статистики акаунту
+function loadAccountStats() {
+  if (!currentUserData) return;
+  
+  const statsContainer = document.getElementById('accountStats');
+  if (statsContainer) {
+    statsContainer.innerHTML = `
+      <div class="stat-item">
+        <span class="stat-value">${currentUserData.posts?.length || 0}</span>
+        <span class="stat-label">Постів</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">${currentUserData.followers?.length || 0}</span>
+        <span class="stat-label">Підписників</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">${currentUserData.following?.length || 0}</span>
+        <span class="stat-label">Підписок</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">${currentUserData.likedPosts?.length || 0}</span>
+        <span class="stat-label">Лайків</span>
+      </div>
+    `;
+  }
+  
+  // Інформація про акаунт
+  const accountInfo = document.getElementById('accountInfo');
+  if (accountInfo && currentUser) {
+    accountInfo.innerHTML = `
+      <div class="info-row">
+        <span class="info-label">ID користувача:</span>
+        <span class="info-value">${currentUserData.userId}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Email:</span>
+        <span class="info-value">${currentUserData.email || 'Не вказано'}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Дата реєстрації:</span>
+        <span class="info-value">${currentUserData.createdAt ? new Date(currentUserData.createdAt.seconds * 1000).toLocaleDateString() : 'Невідомо'}</span>
+      </div>
+    `;
+  }
+}
+
+// Зміна паролю
+document.getElementById('changePasswordBtn')?.addEventListener('click', async () => {
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    showToast('Заповніть всі поля');
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    showToast('Паролі не співпадають');
+    return;
+  }
+  
+  if (newPassword.length < 6) {
+    showToast('Мінімум 6 символів');
+    return;
+  }
+  
+  try {
+    // Реаутентифікація
+    const credential = EmailAuthProvider.credential(currentUser.email, currentPassword);
+    await reauthenticateWithCredential(currentUser, credential);
+    
+    // Зміна паролю
+    await updatePassword(currentUser, newPassword);
+    
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('confirmPassword').value = '';
+    
+    showToast('Пароль успішно змінено');
+  } catch (error) {
+    console.error('Помилка зміни паролю:', error);
+    if (error.code === 'auth/wrong-password') {
+      showToast('Невірний поточний пароль');
+    } else {
+      showToast('Помилка: ' + error.message);
+    }
+  }
+});
+
+// Зміна email
+document.getElementById('changeEmailBtn')?.addEventListener('click', async () => {
+  const newEmail = document.getElementById('newEmail').value.trim();
+  const password = document.getElementById('emailChangePassword').value;
+  
+  if (!newEmail || !password) {
+    showToast('Заповніть всі поля');
+    return;
+  }
+  
+  try {
+    // Реаутентифікація
+    const credential = EmailAuthProvider.credential(currentUser.email, password);
+    await reauthenticateWithCredential(currentUser, credential);
+    
+    // Зміна email
+    await updateEmail(currentUser, newEmail);
+    
+    // Оновлення в Firestore
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      email: newEmail
+    });
+    
+    document.getElementById('newEmail').value = '';
+    document.getElementById('emailChangePassword').value = '';
+    
+    showToast('Email успішно змінено');
+    loadAccountStats();
+  } catch (error) {
+    console.error('Помилка зміни email:', error);
+    if (error.code === 'auth/wrong-password') {
+      showToast('Невірний пароль');
+    } else if (error.code === 'auth/email-already-in-use') {
+      showToast('Цей email вже використовується');
+    } else {
+      showToast('Помилка: ' + error.message);
+    }
+  }
+});
+
+// Видалення акаунту
+document.getElementById('deleteAccountBtn')?.addEventListener('click', async () => {
+  if (!confirm('Ви впевнені? Ця дія незворотна! Всі ваші дані будуть видалені.')) return;
+  
+  const password = prompt('Введіть ваш пароль для підтвердження:');
+  if (!password) return;
+  
+  try {
+    // Реаутентифікація
+    const credential = EmailAuthProvider.credential(currentUser.email, password);
+    await reauthenticateWithCredential(currentUser, credential);
+    
+    // Видалення даних з Firestore
+    await deleteDoc(doc(db, "users", currentUser.uid));
+    
+    // Видалення постів користувача
+    const postsQuery = query(collection(db, "posts"), where("author", "==", currentUser.uid));
+    const postsSnap = await getDocs(postsQuery);
+    const batch = writeBatch(db);
+    postsSnap.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    
+    // Видалення акаунту
+    await deleteUser(currentUser);
+    
+    showToast('Акаунт видалено');
+  } catch (error) {
+    console.error('Помилка видалення акаунту:', error);
+    if (error.code === 'auth/wrong-password') {
+      showToast('Невірний пароль');
+    } else {
+      showToast('Помилка: ' + error.message);
+    }
+  }
+});
+
+// Навігація по вкладках налаштувань
+document.querySelectorAll('.settings-nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const tab = item.dataset.tab;
+    
+    // Оновлюємо активну вкладку
+    document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    
+    // Показуємо відповідний контент
+    document.querySelectorAll('.settings-tab-content').forEach(content => {
+      content.classList.remove('active');
+    });
+    document.getElementById(`settings-${tab}`)?.classList.add('active');
+  });
 });
 
 // ================= Інші обробники =================
