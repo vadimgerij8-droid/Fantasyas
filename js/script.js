@@ -658,7 +658,7 @@ document.getElementById('registerBtn').onclick = async () => {
     await setDoc(doc(db, "users", cred.user.uid), {
       nickname,
       userId,
-      nickname_lower: nickname.toLowerCase().trim(), // Виправлено: додано trim та lower
+      nickname_lower: nickname.toLowerCase().trim(),
       bio: '',
       avatar: '',
       posts: [],
@@ -981,10 +981,10 @@ document.getElementById('addPost').onclick = async () => {
       text,
       media,
       createdAt: serverTimestamp(),
-      likes: [],           // Виправлено: додано
-      likesCount: 0,       // Виправлено: додано
+      likes: [],
+      likesCount: 0,
       commentsCount: 0,
-      saves: [],           // Виправлено: додано
+      saves: [],
       views: 0,
       hashtags,
       popularity: 0
@@ -1531,7 +1531,7 @@ function renderProfile(data, uid, isOwn) {
 
   const isFollowing = !isOwn && currentUser ? (data.followers?.includes(currentUser.uid) || false) : false;
 
-  // Виправлено: перевірка приватності для підписників
+  // Перевірка приватності для підписників
   const canSeeFollowers = () => {
     if (isOwn) return true;
     const privacy = data.settings?.privacy?.whoCanSeeFollowers || 'everyone';
@@ -1803,9 +1803,17 @@ async function loadProfileFeed(uid, tab) {
       if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
     }
   } else if (tab === 'media') {
-    const q = query(collection(db, "posts"), where("author", "==", uid), where("mediaUrl", "!=", ""));
-    const snap = await getDocs(q);
-    snap.forEach(d => posts.push({ id: d.id, ...d.data() }));
+    // Виправлено: отримуємо пости автора і фільтруємо ті, що мають медіа
+    const postIds = userData.posts || [];
+    for (const id of postIds.slice(0, 20)) {
+      const postSnap = await getDoc(doc(db, "posts", id));
+      if (postSnap.exists()) {
+        const post = postSnap.data();
+        if ((post.media && post.media.length > 0) || post.mediaUrl) {
+          posts.push({ id, ...post });
+        }
+      }
+    }
   } else if (tab === 'saved') {
     const savedIds = userData.savedPosts || [];
     for (const id of savedIds.slice(0, 20)) {
@@ -1850,7 +1858,7 @@ document.getElementById('saveProfileEdit').onclick = async () => {
     const updateData = { 
       nickname, 
       userId: newUserId, 
-      nickname_lower: nickname.toLowerCase().trim(), // Виправлено
+      nickname_lower: nickname.toLowerCase().trim(), 
       bio 
     };
     if (avatarUrl) updateData.avatar = avatarUrl;
