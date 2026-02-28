@@ -1,595 +1,288 @@
 <!DOCTYPE html>
-<html lang="uk">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
-  <title>FANTASYAS · Демо лайків та збережень</title>
-  <style>
-    /* ========== ГЛОБАЛЬНІ СТИЛІ (скорочено) ========== */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Manrope', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-    :root {
-      --bg: #f5f5f5;
-      --card: #ffffff;
-      --border: #e0e0e0;
-      --text-primary: #212121;
-      --text-secondary: #424242;
-      --accent: #333333;
-      --accent-rgb: 51,51,51;
-      --like: #e91e63;
-      --bookmark: #FFC107;
-      --shadow-sm: 0 3px 14px rgba(0,0,0,0.05);
-      --transition: 0.28s ease;
-      --radius-lg: 30px;
-      --radius-md: 22px;
-      --radius-sm: 14px;
-      --header-height: 64px;
-      --bottom-nav-height: 70px;
-    }
-    body.dark {
-      --bg: #000000;
-      --card: #1a1a1a;
-      --border: #333;
-      --text-primary: #fff;
-      --text-secondary: #e0e0e0;
-      --accent: #ffffff;
-      --accent-rgb: 255,255,255;
-      --like: #f06292;
-      --bookmark: #FFD54F;
-    }
-    body {
-      background: var(--bg);
-      color: var(--text-primary);
-      min-height: 100vh;
-      transition: background 0.3s;
-    }
-    .app {
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .top-bar {
-      height: var(--header-height);
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      flex-shrink: 0;
-    }
-    .top-bar-title {
-      font-size: 1.45rem;
-      font-weight: 700;
-      color: var(--accent);
-    }
-    .content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px 24px calc(var(--bottom-nav-height) + 24px) 24px;
-    }
-    .section {
-      display: none;
-    }
-    .section.active {
-      display: block;
-    }
-    .feed {
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
-    .post {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 16px 16px 12px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s;
-    }
-    .post-header {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .avatar {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background: var(--border);
-      background-size: cover;
-      background-position: center;
-      flex-shrink: 0;
-    }
-    .post-author {
-      font-weight: 700;
-    }
-    .post-meta {
-      color: var(--text-secondary);
-      font-size: 0.85rem;
-    }
-    .post-content {
-      margin-bottom: 14px;
-      white-space: pre-wrap;
-    }
-    .hashtag {
-      color: var(--accent);
-      font-weight: 600;
-      cursor: pointer;
-    }
-    /* Галерея */
-    .post-gallery {
-      position: relative;
-      overflow: hidden;
-      border-radius: var(--radius-md);
-      margin-top: 8px;
-      background: #000;
-    }
-    .gallery-inner {
-      display: flex;
-      transition: transform 0.3s ease;
-    }
-    .gallery-slide {
-      flex: 0 0 100%;
-    }
-    .gallery-slide img,
-    .gallery-slide video {
-      width: 100%;
-      max-height: 400px;
-      object-fit: contain;
-      background: #000;
-      display: block;
-    }
-    .gallery-indicators {
-      position: absolute;
-      bottom: 8px;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-    }
-    .gallery-indicators span {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.5);
-      transition: 0.2s;
-    }
-    .gallery-indicators span.active {
-      background: var(--accent);
-      width: 20px;
-      border-radius: 4px;
-    }
-    .gallery-counter {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(0,0,0,0.6);
-      color: white;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 0.8rem;
-    }
-    .post-footer {
-      display: flex;
-      gap: 24px;
-      padding-top: 10px;
-      border-top: 1px solid var(--border);
-      align-items: center;
-    }
-    .post-footer button {
-      background: none;
-      border: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-secondary);
-      font-weight: 600;
-      cursor: pointer;
-      transition: color 0.2s, transform 0.2s;
-      font-size: 0.92rem;
-    }
-    .post-footer button:hover {
-      color: var(--accent);
-      transform: translateY(-2px);
-    }
-    .like-btn.liked {
-      color: var(--like);
-      animation: heartBeat 0.68s ease;
-    }
-    .like-btn.liked svg {
-      fill: var(--like);
-    }
-    .save-btn.saved {
-      color: var(--bookmark);
-      animation: bookmarkTikTok 0.5s;
-    }
-    .save-btn.saved svg {
-      fill: var(--bookmark);
-    }
-    @keyframes heartBeat {
-      0%,100%{ transform: scale(1); }
-      40%{ transform: scale(1.32); }
-      60%{ transform: scale(0.90); }
-      80%{ transform: scale(1.18); }
-    }
-    @keyframes bookmarkTikTok {
-      0%{ transform: scale(1); }
-      25%{ transform: scale(1.2) rotate(-5deg); }
-      50%{ transform: scale(0.95) rotate(3deg); }
-      75%{ transform: scale(1.05) rotate(-2deg); }
-      100%{ transform: scale(1); }
-    }
-    .bottom-nav {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: calc(100% - 40px);
-      max-width: 400px;
-      height: var(--bottom-nav-height);
-      background: rgba(255,255,255,0.85);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
-      border-radius: 35px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      padding: 0 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-    }
-    body.dark .bottom-nav {
-      background: rgba(26,26,26,0.9);
-    }
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      color: var(--text-secondary);
-      font-size: 0.75rem;
-      cursor: pointer;
-      transition: color 0.2s;
-    }
-    .nav-item.active {
-      color: var(--accent);
-    }
-    .nav-item .icon {
-      width: 24px;
-      height: 24px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 1.8;
-    }
-    #toast {
-      position: fixed;
-      bottom: calc(var(--bottom-nav-height) + 40px);
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--accent);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 40px;
-      font-weight: 500;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-      z-index: 3000;
-      opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-    }
-    #toast.show {
-      opacity: 1;
-    }
-  </style>
-</head>
-<body>
-<div class="app">
-  <main class="main">
-    <div class="top-bar">
-      <div class="top-bar-title" id="pageTitle">Головна</div>
-    </div>
-    <div class="content" id="content">
-      <!-- Тільки головна секція -->
-      <div id="home" class="section active">
-        <div class="feed" id="feed"></div>
-        <div id="skeletonContainer" style="display:none;">...</div>
+<div class="content" id="content">
+  <!-- ================= Секція ГОЛОВНА ================= -->
+  <div id="home" class="section active">
+    <div class="card" id="authBox">
+      <div id="loginForm">
+        <input type="text" id="loginNickname" class="input" placeholder="Псевдонім (без @)" autocomplete="off" tabindex="0"/>
+        <input type="password" id="loginPassword" class="input" placeholder="Пароль" tabindex="0"/>
+        <button class="btn btn-primary" id="loginBtn" style="width:100%; margin-top:12px;" tabindex="0">Увійти</button>
+        <div style="display:flex; gap:10px; margin-top:15px;">
+          <button class="btn" id="googleLoginBtn" style="flex:1;" tabindex="0">Google</button>
+          <button class="btn" id="appleLoginBtn" style="flex:1;" tabindex="0">Apple</button>
+        </div>
+        <p style="margin-top:18px;">Немає акаунта? <span id="toRegister" style="color:var(--accent);cursor:pointer;" tabindex="0">Зареєструватися</span></p>
+        <p><a href="#" id="forgotPassword" style="color:var(--accent);" tabindex="0">Забули пароль?</a></p>
+      </div>
+      <div id="registerForm" style="display:none;">
+        <input type="text" id="registerNickname" class="input" placeholder="Псевдонім (без @)" tabindex="0"/>
+        <input type="password" id="registerPassword" class="input" placeholder="Пароль" tabindex="0"/>
+        <button class="btn btn-primary" id="registerBtn" style="width:100%; margin-top:12px;" tabindex="0">Зареєструватися</button>
+        <p style="margin-top:18px;">Вже є акаунт? <span id="toLogin" style="color:var(--accent);cursor:pointer;" tabindex="0">Увійти</span></p>
       </div>
     </div>
-  </main>
-  <!-- Нижнє меню (декоративне) -->
-  <nav class="bottom-nav" id="bottomNav">
-    <div class="nav-item active"><svg class="icon" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>Головна</span></div>
-    <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Пошук</span></div>
-    <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg><span>Хештеги</span></div>
-    <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Профіль</span></div>
-    <div class="nav-item"><svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Чати</span></div>
-  </nav>
-</div>
-<div id="toast"></div>
 
-<script>
-  (function() {
-    // ========== МОДЕЛЬ ДАНИХ (тестові пости) ==========
-    let posts = [
-      {
-        id: 'post1',
-        authorName: 'alex',
-        authorUserId: '@alex',
-        authorAvatar: 'https://i.pravatar.cc/150?u=1',
-        text: 'Гарний день сьогодні! #сонце #настрій',
-        media: [
-          { url: 'https://picsum.photos/800/600?random=1', type: 'image' },
-          { url: 'https://picsum.photos/800/600?random=2', type: 'image' }
-        ],
-        likesCount: 5,
-        commentsCount: 2,
-        views: 120,
-        likes: [], // не використовуємо в демо
-        saves: []
-      },
-      {
-        id: 'post2',
-        authorName: 'maria',
-        authorUserId: '@maria',
-        authorAvatar: 'https://i.pravatar.cc/150?u=2',
-        text: 'Мій новий кіт #котики',
-        media: [
-          { url: 'https://picsum.photos/800/600?random=3', type: 'image' },
-          { url: 'https://picsum.photos/800/600?random=4', type: 'image' },
-          { url: 'https://picsum.photos/800/600?random=5', type: 'image' }
-        ],
-        likesCount: 12,
-        commentsCount: 5,
-        views: 340,
-        likes: [],
-        saves: []
-      },
-      {
-        id: 'post3',
-        authorName: 'designer',
-        authorUserId: '@design',
-        authorAvatar: 'https://i.pravatar.cc/150?u=3',
-        text: 'Робочий процес #дизайн',
-        media: [
-          { url: 'https://picsum.photos/800/600?random=6', type: 'image' }
-        ],
-        likesCount: 8,
-        commentsCount: 1,
-        views: 89,
-        likes: [],
-        saves: []
-      }
-    ];
+    <div class="card" id="newPostBox" style="display:none;">
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+        <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;" tabindex="0"></textarea>
+        <div class="emoji-picker-container">
+          <button class="emoji-button" id="postEmojiBtn" tabindex="0">😊</button>
+          <div class="emoji-picker" id="postEmojiPicker"></div>
+        </div>
+      </div>
+      
+      <div class="file-input-wrapper">
+        <input type="file" id="postMedia" accept="image/*,video/*">
+        <div class="file-input-button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span id="postMediaLabel">Обрати фото/відео</span>
+        </div>
+      </div>
+      <img id="postMediaPreview" class="file-preview" />
+      
+      <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
+    </div>
 
-    // Стан лайків та збережень (зберігаємо в localStorage для імітації)
-    let likedPosts = new Set(JSON.parse(localStorage.getItem('likedPosts') || '[]'));
-    let savedPosts = new Set(JSON.parse(localStorage.getItem('savedPosts') || '[]'));
+    <!-- Кнопки перемикання стрічки + фільтр -->
+    <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
+      <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
+      <button class="btn" id="feedPopularBtn" tabindex="0">Популярні</button>
+      <button class="btn" id="filterBtn" tabindex="0">Фільтри</button>
+      <div id="activeFilter" class="active-filter"></div>
+    </div>
 
-    // ========== ДОПОМІЖНІ ФУНКЦІЇ ==========
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 2000);
-    }
+    <div class="feed" id="feed"></div>
+    <div class="feed-end-sentinel" id="feedSentinel"></div>
+    <div id="skeletonContainer" style="display:none;">
+      <div class="skeleton" style="height:200px; margin-bottom:20px;"></div>
+      <div class="skeleton" style="height:200px;"></div>
+    </div>
+  </div>
 
-    function saveState() {
-      localStorage.setItem('likedPosts', JSON.stringify([...likedPosts]));
-      localStorage.setItem('savedPosts', JSON.stringify([...savedPosts]));
-    }
+  <!-- ================= Секція ПОШУК ================= -->
+  <div id="search" class="section">
+    <input type="text" id="searchInput" class="input" placeholder="Пошук за @id, ім'ям або #хештегом..." tabindex="0"/>
+    <div class="user-list" id="userList" style="margin-top:20px;"></div>
+  </div>
 
-    // ========== РЕНДЕРИНГ ПОСТІВ ==========
-    function renderPosts() {
-      const feed = document.getElementById('feed');
-      feed.innerHTML = '';
-      posts.forEach(post => {
-        const postEl = document.createElement('div');
-        postEl.className = 'post';
-        postEl.dataset.postId = post.id;
+  <!-- ================= Секція ХЕШТЕГИ ================= -->
+  <div id="hashtags" class="section">
+    <h2 style="margin-bottom:16px;">Популярні хештеги</h2>
+    <div class="hashtag-list" id="hashtagList"></div>
+  </div>
 
-        // Шапка
-        let headerHtml = `
-          <div class="post-header">
-            <div class="avatar" style="background-image:url(${post.authorAvatar})"></div>
-            <div class="post-author-info">
-              <div>
-                <span class="post-author">${post.authorName}</span>
-                <span class="post-meta">${post.authorUserId}</span>
+  <!-- ================= Секція ПРОФІЛЬ ================= -->
+  <div id="profile" class="section">
+    <div class="profile-header" id="profileHeader"></div>
+    <div class="profile-tabs" id="profileTabs"></div>
+    <div class="feed" id="profileFeed"></div>
+  </div>
+
+  <!-- ================= Секція ЧАТИ (Telegram-стиль) ================= -->
+  <div id="chats" class="section">
+    <div class="chats-container">
+      <!-- Ліва панель зі списком чатів -->
+      <div class="chat-list-sidebar" id="chatListSidebar">
+        <div class="chat-search">
+          <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
+          <div id="chatSearchResults" class="user-list" style="display: none;"></div>
+        </div>
+        <div id="chatList" class="chat-list"></div>
+      </div>
+
+      <!-- Права панель – вікно чату -->
+      <div class="chat-window-container" id="chatWindowContainer" style="display: none;">
+        <div class="chat-window">
+          <!-- Шапка чату -->
+          <div class="chat-header">
+            <button class="chat-back-btn" id="chatBackBtn" aria-label="Назад">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <div class="chat-header-info" id="chatHeaderInfo">
+              <div class="avatar" id="chatAvatar" tabindex="0" role="button"></div>
+              <div class="chat-header-text">
+                <div id="chatName" class="chat-name"></div>
+                <div id="chatStatus" class="chat-status"></div>
+              </div>
+            </div>
+            <div class="chat-header-menu">
+              <button class="chat-menu-btn" id="chatMenuBtn" tabindex="0">⋯</button>
+              <div class="chat-menu-dropdown" id="chatMenuDropdown">
+                <div class="chat-menu-item" data-action="viewProfile">Переглянути профіль</div>
+                <div class="chat-menu-item" data-action="mute">Замутити</div>
+                <div class="chat-menu-item" data-action="report">Поскаржитися</div>
+                <div class="chat-menu-item" data-action="block">Заблокувати</div>
+                <div class="chat-menu-item" data-action="clearHistory">Очистити історію</div>
               </div>
             </div>
           </div>
-        `;
-        postEl.innerHTML = headerHtml;
 
-        // Текст
-        if (post.text) {
-          const contentDiv = document.createElement('div');
-          contentDiv.className = 'post-content';
-          // прості хештеги
-          contentDiv.innerHTML = post.text.replace(/#(\w+)/g, '<span class="hashtag">#$1</span>');
-          postEl.appendChild(contentDiv);
-        }
+          <!-- Область повідомлень -->
+          <div class="chat-messages" id="chatMessages"></div>
 
-        // Галерея
-        if (post.media && post.media.length > 0) {
-          const gallery = document.createElement('div');
-          gallery.className = 'post-gallery';
-          gallery.dataset.current = 0;
-          
-          const inner = document.createElement('div');
-          inner.className = 'gallery-inner';
-          post.media.forEach((item, idx) => {
-            const slide = document.createElement('div');
-            slide.className = 'gallery-slide';
-            if (item.type === 'image') {
-              slide.innerHTML = `<img src="${item.url}" loading="lazy">`;
-            } else {
-              slide.innerHTML = `<video src="${item.url}" controls></video>`;
-            }
-            inner.appendChild(slide);
-          });
-          gallery.appendChild(inner);
+          <!-- Індикатор друку -->
+          <div class="typing-indicator" id="typingIndicator" style="display: none;">
+            <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+          </div>
 
-          // Індикатори
-          const indicators = document.createElement('div');
-          indicators.className = 'gallery-indicators';
-          post.media.forEach((_, i) => {
-            const dot = document.createElement('span');
-            dot.className = i === 0 ? 'active' : '';
-            indicators.appendChild(dot);
-          });
-          gallery.appendChild(indicators);
+          <!-- Панель введення -->
+          <div class="chat-input-area">
+            <!-- Reply preview -->
+            <div class="reply-preview" id="replyPreview" style="display: none;">
+              <span id="replyText"></span>
+              <button id="cancelReply">✕</button>
+            </div>
+            <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
+            <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
+            <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
+            <div class="emoji-picker-container">
+              <button class="emoji-button" id="chatEmojiBtn" tabindex="0">😊</button>
+              <div class="emoji-picker" id="chatEmojiPicker"></div>
+            </div>
+            <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-          // Лічильник
-          const counter = document.createElement('div');
-          counter.className = 'gallery-counter';
-          counter.textContent = `1/${post.media.length}`;
-          gallery.appendChild(counter);
+    <!-- Контекстне меню для повідомлень -->
+    <div class="context-menu" id="messageContextMenu">
+      <div class="context-menu-item" data-action="reply">Відповісти</div>
+      <div class="context-menu-item" data-action="edit">Редагувати</div>
+      <div class="context-menu-item" data-action="copy">Копіювати текст</div>
+      <div class="context-menu-item" data-action="deleteSelf">Видалити для себе</div>
+      <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
+    </div>
 
-          // Обробка свайпу (для мобільних)
-          let startX = 0;
-          inner.addEventListener('touchstart', (e) => {
-            startX = e.touches[0].clientX;
-          });
-          inner.addEventListener('touchend', (e) => {
-            if (!startX) return;
-            const endX = e.changedTouches[0].clientX;
-            const diff = endX - startX;
-            const current = parseInt(gallery.dataset.current);
-            if (diff > 50 && current > 0) {
-              gallery.dataset.current = current - 1;
-            } else if (diff < -50 && current < post.media.length - 1) {
-              gallery.dataset.current = current + 1;
-            } else {
-              return;
-            }
-            const newCurrent = parseInt(gallery.dataset.current);
-            inner.style.transform = `translateX(-${newCurrent * 100}%)`;
-            indicators.querySelectorAll('span').forEach((dot, i) => {
-              dot.className = i === newCurrent ? 'active' : '';
-            });
-            counter.textContent = `${newCurrent + 1}/${post.media.length}`;
-          });
+    <!-- Меню швидких реакцій -->
+    <div class="reaction-picker" id="reactionPicker">
+      <button class="reaction-btn" data-emoji="👍">👍</button>
+      <button class="reaction-btn" data-emoji="❤️">❤️</button>
+      <button class="reaction-btn" data-emoji="😂">😂</button>
+      <button class="reaction-btn" data-emoji="😮">😮</button>
+      <button class="reaction-btn" data-emoji="😢">😢</button>
+      <button class="reaction-btn" data-emoji="👎">👎</button>
+      <button class="reaction-btn more" data-emoji="more">➕</button>
+    </div>
+  </div>
 
-          postEl.appendChild(gallery);
-        }
+  <!-- ================= Секція НАЛАШТУВАННЯ (оновлена) ================= -->
+  <div id="settings" class="section card">
+    <div class="settings-container">
+      <div class="settings-sidebar">
+        <div class="settings-tab active" data-tab="account">Акаунт</div>
+        <div class="settings-tab" data-tab="privacy">Конфіденційність</div>
+        <div class="settings-tab" data-tab="notifications">Сповіщення</div>
+        <div class="settings-tab" data-tab="appearance">Зовнішній вигляд</div>
+        <div class="settings-tab" data-tab="storage">Дані та сховище</div>
+      </div>
+      <div class="settings-content">
+        <!-- Account -->
+        <div class="settings-pane active" id="settingsAccount">
+          <h3>Акаунт</h3>
+          <input type="text" id="settingsNickname" class="input" placeholder="Псевдонім">
+          <textarea id="settingsBio" class="input" placeholder="Про себе" rows="3"></textarea>
+          <button class="btn btn-primary" id="saveSettingsBtn">Зберегти</button>
+        </div>
+        <!-- Privacy -->
+        <div class="settings-pane" id="settingsPrivacy">
+          <h3>Конфіденційність</h3>
+          <label>Хто може писати мені</label>
+          <select id="privacyWhoCanMessage" class="input">
+            <option value="everyone">Всі</option>
+            <option value="followers">Тільки підписники</option>
+            <option value="nobody">Ніхто</option>
+          </select>
+          <label>Хто бачить мій онлайн</label>
+          <select id="privacyWhoCanSeeOnline" class="input">
+            <option value="everyone">Всі</option>
+            <option value="followers">Тільки підписники</option>
+            <option value="nobody">Ніхто</option>
+          </select>
+          <label>Хто бачить моїх підписників</label>
+          <select id="privacyWhoCanSeeFollowers" class="input">
+            <option value="everyone">Всі</option>
+            <option value="followers">Тільки підписники</option>
+            <option value="nobody">Ніхто</option>
+          </select>
+          <h4>Заблоковані користувачі</h4>
+          <div id="blockedUsersList" class="blocked-list"></div>
+        </div>
+        <!-- Notifications -->
+        <div class="settings-pane" id="settingsNotifications">
+          <h3>Сповіщення</h3>
+          <label><input type="checkbox" id="notifyPrivateChats"> Приватні чати</label>
+        </div>
+        <!-- Appearance -->
+        <div class="settings-pane" id="settingsAppearance">
+          <h3>Зовнішній вигляд</h3>
+          <label>Тема</label>
+          <select id="themeSelect" class="input">
+            <option value="light">Світла</option>
+            <option value="dark">Темна</option>
+          </select>
+          <label>Акцентний колір</label>
+          <input type="color" id="accentColor" value="#007bff">
+        </div>
+        <!-- Data & Storage -->
+        <div class="settings-pane" id="settingsStorage">
+          <h3>Дані та сховище</h3>
+          <p>Тут будуть налаштування кешу та завантажень</p>
+        </div>
+      </div>
+    </div>
+    <button class="btn" id="logoutBtn" style="margin-top:20px;">Вийти</button>
+  </div>
+</div>
 
-        // Футер (лайк, коментар, збереження, перегляди)
-        const footer = document.createElement('div');
-        footer.className = 'post-footer';
-        const liked = likedPosts.has(post.id);
-        const saved = savedPosts.has(post.id);
-        footer.innerHTML = `
-          <button class="like-btn ${liked ? 'liked' : ''}" data-post-id="${post.id}">
-            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            <span>${post.likesCount}</span>
-          </button>
-          <button class="comment-toggle-btn" data-post-id="${post.id}">
-            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>${post.commentsCount}</span>
-          </button>
-          <button class="save-btn ${saved ? 'saved' : ''}" data-post-id="${post.id}">
-            <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-          </button>
-          <span class="view-count">👁 ${post.views}</span>
-        `;
-        postEl.appendChild(footer);
+  <h4>1. Які дані ми збираємо</h4>
+  <p>Ми збираємо мінімально необхідну інформацію для роботи сервісу:</p>
+  <ul>
+    <li>Облікові дані (псевдонім, електронна пошта, пароль у зашифрованому вигляді).</li>
+    <li>Інформація профілю (аватар, біографія), яку ви надаєте добровільно.</li>
+    <li>Ваші публікації, коментарі, вподобання, збережені пости.</li>
+    <li>Дані про взаємодію (підписки, повідомлення в чатах).</li>
+    <li>Технічні дані: IP-адреса, тип пристрою, час активності.</li>
+  </ul>
 
-        feed.appendChild(postEl);
-      });
+  <h4>2. Як ми використовуємо ваші дані</h4>
+  <p>Ваші дані використовуються виключно для:</p>
+  <ul>
+    <li>Надання функціоналу соціальної мережі (публікація постів, чати, підписки).</li>
+    <li>Персоналізації контенту (стрічка новин, рекомендації).</li>
+    <li>Забезпечення безпеки та запобігання шахрайству.</li>
+    <li>Комунікації з вами (сповіщення, відновлення пароля).</li>
+  </ul>
 
-      // Після рендерингу – навішуємо обробники подій
-      attachEventListeners();
-    }
+  <h4>3. Передача даних третім особам</h4>
+  <p>Ми не продаємо ваші дані. Інформація може бути передана лише у випадках:</p>
+  <ul>
+    <li>За вашого явного дозволу.</li>
+    <li>Для виконання вимог законодавства.</li>
+    <li>Технічним партнерам (Firebase, Google Cloud) для забезпечення роботи сервісу.</li>
+  </ul>
 
-    // ========== ОБРОБНИКИ ПОДІЙ ==========
-    function attachEventListeners() {
-      // Лайки
-      document.querySelectorAll('.like-btn').forEach(btn => {
-        btn.removeEventListener('click', handleLike);
-        btn.addEventListener('click', handleLike);
-      });
-      // Збереження
-      document.querySelectorAll('.save-btn').forEach(btn => {
-        btn.removeEventListener('click', handleSave);
-        btn.addEventListener('click', handleSave);
-      });
-      // Коментарі (заглушка)
-      document.querySelectorAll('.comment-toggle-btn').forEach(btn => {
-        btn.removeEventListener('click', handleComment);
-        btn.addEventListener('click', handleComment);
-      });
-    }
+  <h4>4. Ваші права</h4>
+  <p>Ви можете в будь-який час:</p>
+  <ul>
+    <li>Переглянути та редагувати свої дані в налаштуваннях профілю.</li>
+    <li>Видалити свій акаунт (зверніться до підтримки).</li>
+    <li>Заблокувати інших користувачів.</li>
+  </ul>
 
-    function handleLike(e) {
-      e.stopPropagation();
-      const btn = e.currentTarget;
-      const postId = btn.dataset.postId;
-      const post = posts.find(p => p.id === postId);
-      if (!post) return;
+  <h4>5. Безпека</h4>
+  <p>Ми використовуємо сучасні методи шифрування (HTTPS, хешування паролів) та регулярно оновлюємо системи безпеки. Однак жоден метод передачі даних через Інтернет не є 100% безпечним.</p>
 
-      const wasLiked = likedPosts.has(postId);
-      const countSpan = btn.querySelector('span');
+  <h4>6. Зміни в політиці</h4>
+  <p>Про будь-які зміни ми повідомимо на цій сторінці. Рекомендуємо періодично переглядати політику.</p>
 
-      // Оптимістичне оновлення UI
-      if (wasLiked) {
-        likedPosts.delete(postId);
-        btn.classList.remove('liked');
-        post.likesCount -= 1;
-      } else {
-        likedPosts.add(postId);
-        btn.classList.add('liked');
-        post.likesCount += 1;
-      }
-      if (countSpan) countSpan.textContent = post.likesCount;
+  <p><strong>Контакти:</strong> Якщо у вас виникли питання, напишіть нам на privacy@fantasyas.com.</p>
+</div>
 
-      saveState();
-      showToast(wasLiked ? 'Лайк прибрано' : 'Лайк поставлено');
-    }
-
-    function handleSave(e) {
-      e.stopPropagation();
-      const btn = e.currentTarget;
-      const postId = btn.dataset.postId;
-
-      const wasSaved = savedPosts.has(postId);
-      if (wasSaved) {
-        savedPosts.delete(postId);
-        btn.classList.remove('saved');
-      } else {
-        savedPosts.add(postId);
-        btn.classList.add('saved');
-      }
-
-      saveState();
-      showToast(wasSaved ? 'Прибрано зі збереженого' : 'Збережено');
-    }
-
-    function handleComment(e) {
-      e.stopPropagation();
-      showToast('Коментарі – демо-режим');
-    }
-
-    // ========== ІНІЦІАЛІЗАЦІЯ ==========
-    renderPosts();
-
-    // Додати можливість перемикання теми для демо (клік на іконку сонця/місяця)
-    // Просто для зручності: подвійний клік на top-bar перемикає тему
-    document.querySelector('.top-bar').addEventListener('dblclick', () => {
-      document.body.classList.toggle('dark');
-    });
-  })();
-</script>
-</body>
-</html>
