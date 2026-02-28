@@ -1803,7 +1803,6 @@ async function loadProfileFeed(uid, tab) {
       if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
     }
   } else if (tab === 'media') {
-    // Виправлено: отримуємо пости автора і фільтруємо ті, що мають медіа
     const postIds = userData.posts || [];
     for (const id of postIds.slice(0, 20)) {
       const postSnap = await getDoc(doc(db, "posts", id));
