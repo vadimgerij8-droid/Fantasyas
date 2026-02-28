@@ -59,14 +59,31 @@
             </div>
           </div>
           
-          <div class="file-input-wrapper">
-            <input type="file" id="postMedia" accept="image/*,video/*">
+          <!-- Медіа для поста: до 3 файлів -->
+          <div class="file-input-wrapper" style="margin-bottom:8px;">
+            <input type="file" id="postMedia1" accept="image/*,video/*">
             <div class="file-input-button">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-              <span id="postMediaLabel">Обрати фото/відео</span>
+              <span id="postMediaLabel1">+ Медіа 1</span>
             </div>
+            <img id="postMediaPreview1" class="file-preview" style="max-width:60px; max-height:60px; margin-left:8px; display:none;" />
           </div>
-          <img id="postMediaPreview" class="file-preview" />
+          <div class="file-input-wrapper" style="margin-bottom:8px;">
+            <input type="file" id="postMedia2" accept="image/*,video/*">
+            <div class="file-input-button">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span id="postMediaLabel2">+ Медіа 2</span>
+            </div>
+            <img id="postMediaPreview2" class="file-preview" style="max-width:60px; max-height:60px; margin-left:8px; display:none;" />
+          </div>
+          <div class="file-input-wrapper" style="margin-bottom:8px;">
+            <input type="file" id="postMedia3" accept="image/*,video/*">
+            <div class="file-input-button">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span id="postMediaLabel3">+ Медіа 3</span>
+            </div>
+            <img id="postMediaPreview3" class="file-preview" style="max-width:60px; max-height:60px; margin-left:8px; display:none;" />
+          </div>
           
           <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
         </div>
@@ -203,70 +220,123 @@
 
       <!-- ================= Секція НАЛАШТУВАННЯ (оновлена) ================= -->
       <div id="settings" class="section card">
-        <div class="settings-container">
-          <div class="settings-sidebar">
-            <div class="settings-tab active" data-tab="account">Акаунт</div>
-            <div class="settings-tab" data-tab="privacy">Конфіденційність</div>
-            <div class="settings-tab" data-tab="notifications">Сповіщення</div>
-            <div class="settings-tab" data-tab="appearance">Зовнішній вигляд</div>
-            <div class="settings-tab" data-tab="storage">Дані та сховище</div>
+        <div class="settings-container" style="display: flex; gap: 24px; flex-wrap: wrap;">
+          <!-- Бічна навігація по розділах -->
+          <div class="settings-nav" style="flex: 0 0 200px; border-right: 1px solid var(--border); padding-right: 16px;">
+            <div class="settings-nav-item active" data-tab="language">Мова</div>
+            <div class="settings-nav-item" data-tab="privacy-policy">Політика конфіденційності</div>
+            <div class="settings-nav-item" data-tab="privacy">Конфіденційність</div>
+            <div class="settings-nav-item" data-tab="notifications">Сповіщення</div>
+            <div class="settings-nav-item" data-tab="data-storage">Дані та сховище</div>
+            <div class="settings-nav-item" data-tab="appearance">Зовнішній вигляд</div>
+            <div class="settings-nav-item" data-tab="logout" style="color: var(--danger);">Вийти</div>
           </div>
-          <div class="settings-content">
-            <!-- Account -->
-            <div class="settings-pane active" id="settingsAccount">
-              <h3>Акаунт</h3>
-              <input type="text" id="settingsNickname" class="input" placeholder="Псевдонім">
-              <textarea id="settingsBio" class="input" placeholder="Про себе" rows="3"></textarea>
-              <button class="btn btn-primary" id="saveSettingsBtn">Зберегти</button>
+
+          <!-- Контент налаштувань -->
+          <div class="settings-content" style="flex:1;">
+            <!-- Мова -->
+            <div class="settings-tab-content active" id="settings-language">
+              <h3>Мова</h3>
+              <select id="settingLanguage" class="input">
+                <option value="uk">Українська</option>
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+              </select>
             </div>
-            <!-- Privacy -->
-            <div class="settings-pane" id="settingsPrivacy">
+
+            <!-- Політика конфіденційності -->
+            <div class="settings-tab-content" id="settings-privacy-policy">
+              <h3>Політика конфіденційності</h3>
+              <button class="btn" id="privacyPolicyBtn">Ознайомитися</button>
+            </div>
+
+            <!-- Конфіденційність -->
+            <div class="settings-tab-content" id="settings-privacy">
               <h3>Конфіденційність</h3>
-              <label>Хто може писати мені</label>
-              <select id="privacyWhoCanMessage" class="input">
-                <option value="everyone">Всі</option>
-                <option value="followers">Тільки підписники</option>
-                <option value="nobody">Ніхто</option>
-              </select>
-              <label>Хто бачить мій онлайн</label>
-              <select id="privacyWhoCanSeeOnline" class="input">
-                <option value="everyone">Всі</option>
-                <option value="followers">Тільки підписники</option>
-                <option value="nobody">Ніхто</option>
-              </select>
-              <label>Хто бачить моїх підписників</label>
-              <select id="privacyWhoCanSeeFollowers" class="input">
-                <option value="everyone">Всі</option>
-                <option value="followers">Тільки підписники</option>
-                <option value="nobody">Ніхто</option>
-              </select>
-              <h4>Заблоковані користувачі</h4>
-              <div id="blockedUsersList" class="blocked-list"></div>
+              
+              <div class="settings-group">
+                <h4>Хто може писати мені</h4>
+                <div class="radio-group">
+                  <label><input type="radio" name="whoCanMessage" value="everyone"> Всі</label>
+                  <label><input type="radio" name="whoCanMessage" value="followers"> Тільки підписники</label>
+                  <label><input type="radio" name="whoCanMessage" value="nobody"> Ніхто</label>
+                </div>
+              </div>
+
+              <div class="settings-group">
+                <h4>Хто бачить мій онлайн</h4>
+                <div class="radio-group">
+                  <label><input type="radio" name="whoCanSeeOnline" value="everyone"> Всі</label>
+                  <label><input type="radio" name="whoCanSeeOnline" value="followers"> Тільки підписники</label>
+                  <label><input type="radio" name="whoCanSeeOnline" value="nobody"> Ніхто</label>
+                </div>
+              </div>
+
+              <div class="settings-group">
+                <h4>Хто бачить моїх підписників</h4>
+                <div class="radio-group">
+                  <label><input type="radio" name="whoCanSeeFollowers" value="everyone"> Всі</label>
+                  <label><input type="radio" name="whoCanSeeFollowers" value="followers"> Тільки підписники</label>
+                  <label><input type="radio" name="whoCanSeeFollowers" value="nobody"> Ніхто</label>
+                </div>
+              </div>
+
+              <div class="settings-group">
+                <h4>Заблоковані користувачі</h4>
+                <div id="blockedUsersList"></div>
+              </div>
             </div>
-            <!-- Notifications -->
-            <div class="settings-pane" id="settingsNotifications">
+
+            <!-- Сповіщення -->
+            <div class="settings-tab-content" id="settings-notifications">
               <h3>Сповіщення</h3>
-              <label><input type="checkbox" id="notifyPrivateChats"> Приватні чати</label>
+              <div class="settings-group">
+                <label class="toggle">
+                  <input type="checkbox" id="settingPrivateChats">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Приватні чати</span>
+                </label>
+              </div>
+              <!-- Можна додати інші сповіщення, але за умовою залишаємо тільки це -->
             </div>
-            <!-- Appearance -->
-            <div class="settings-pane" id="settingsAppearance">
-              <h3>Зовнішній вигляд</h3>
-              <label>Тема</label>
-              <select id="themeSelect" class="input">
-                <option value="light">Світла</option>
-                <option value="dark">Темна</option>
-              </select>
-              <label>Акцентний колір</label>
-              <input type="color" id="accentColor" value="#007bff">
-            </div>
-            <!-- Data & Storage -->
-            <div class="settings-pane" id="settingsStorage">
+
+            <!-- Дані та сховище -->
+            <div class="settings-tab-content" id="settings-data-storage">
               <h3>Дані та сховище</h3>
-              <p>Тут будуть налаштування кешу та завантажень</p>
+              <div class="settings-group">
+                <button class="btn" id="clearCacheBtn">Очистити кеш</button>
+                <button class="btn" id="clearSavedMediaBtn" style="margin-left:8px;">Очистити збережені медіа</button>
+              </div>
+              <div class="settings-group">
+                <h4>Використане сховище</h4>
+                <div id="storageInfo">Обчислення...</div>
+              </div>
+              <div class="settings-group">
+                <h4>Налаштування завантажень (незабаром)</h4>
+                <p class="text-secondary">Тут можна буде налаштувати автоматичне завантаження медіа, якість тощо.</p>
+              </div>
+            </div>
+
+            <!-- Зовнішній вигляд -->
+            <div class="settings-tab-content" id="settings-appearance">
+              <h3>Зовнішній вигляд</h3>
+              <div class="settings-group">
+                <h4>Тема</h4>
+                <label class="toggle">
+                  <input type="checkbox" id="settingDarkMode">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Темна тема</span>
+                </label>
+              </div>
+              <!-- Акцентний колір прибрано -->
+            </div>
+
+            <!-- Вийти (окрема кнопка, але можемо залишити тут для зручності) -->
+            <div class="settings-tab-content" id="settings-logout">
+              <button class="btn btn-danger" id="logoutBtn" style="width:100%;">Вийти</button>
             </div>
           </div>
         </div>
-        <button class="btn" id="logoutBtn" style="margin-top:20px;">Вийти</button>
       </div>
     </div>
   </main>
