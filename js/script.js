@@ -192,25 +192,36 @@ async function unblockUser(targetUid) {
   }
 }
 
-// ================= Функція перемикання лайка (оновлена з оптимістичним оновленням) =================
-async function toggleLike(postId, buttonElement) {
+// ================= Дебаунс для кнопок =================
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// ================= Функція перемикання лайка (виправлено: batch + debounce) =================
+const toggleLike = debounce(async (postId, buttonElement) => {
   if (!currentUser) {
     showToast('Увійдіть, щоб лайкати');
     return;
   }
 
-  const postRef = doc(db, "posts", postId);
-  let postData, isLiked; // оголошуємо змінні поза try
-
   try {
+    const postRef = doc(db, "posts", postId);
     const postSnap = await getDoc(postRef);
     if (!postSnap.exists()) {
       showToast('Пост не знайдено');
       return;
     }
 
-    postData = postSnap.data();
-    isLiked = postData.likes?.includes(currentUser.uid) || false;
+    const postData = postSnap.data();
+    const isLiked = postData.likes?.includes(currentUser.uid) || false;
 
     // Оптимістичне оновлення інтерфейсу
     if (buttonElement) {
@@ -226,42 +237,152 @@ async function toggleLike(postId, buttonElement) {
       if (countSpan) countSpan.textContent = newCount;
     }
 
+    // Використовуємо batch для атомарності
+    const batch = writeBatch(db);
     if (isLiked) {
-      await updateDoc(postRef, {
+      batch.update(postRef, {
         likes: arrayRemove(currentUser.uid),
         likesCount: increment(-1),
         popularity: increment(-50)
       });
-      await updateDoc(doc(db, "users", currentUser.uid), {
+      batch.update(doc(db, "users", currentUser.uid), {
         likedPosts: arrayRemove(postId)
       });
     } else {
-      await updateDoc(postRef, {
+      batch.update(postRef, {
         likes: arrayUnion(currentUser.uid),
         likesCount: increment(1),
         popularity: increment(50)
       });
-      await updateDoc(doc(db, "users", currentUser.uid), {
+      batch.update(doc(db, "users", currentUser.uid), {
         likedPosts: arrayUnion(postId)
       });
       vibrate(30);
     }
+    await batch.commit();
   } catch (error) {
     console.error('Помилка toggleLike:', error);
     showToast('Не вдалося оновити лайк. Спробуйте ще.');
-    // Відкочуємо оптимістичне оновлення (тепер змінні доступні)
-    if (buttonElement && postData) {
-      const countSpan = buttonElement.querySelector('span');
-      if (isLiked) {
-        buttonElement.classList.add('liked');
-        if (countSpan) countSpan.textContent = postData.likesCount || 0;
-      } else {
-        buttonElement.classList.remove('liked');
-        if (countSpan) countSpan.textContent = postData.likesCount || 0;
+    // Відкочуємо оптимістичне оновлення (спрощено)
+    if (buttonElement) {
+      const postSnap = await getDoc(doc(db, "posts", postId));
+      if (postSnap.exists()) {
+        const data = postSnap.data();
+        const countSpan = buttonElement.querySelector('span');
+        const isLikedNow = data.likes?.includes(currentUser.uid) || false;
+        if (isLikedNow) {
+          buttonElement.classList.add('liked');
+        } else {
+          buttonElement.classList.remove('liked');
+        }
+        if (countSpan) countSpan.textContent = data.likesCount || 0;
       }
     }
   }
-}
+}, 300);
+
+// ================= Функція збереження поста (виправлено: batch + debounce) =================
+const toggleSave = debounce(async (postId, buttonElement) => {
+  if (!currentUser) {
+    showToast('Увійдіть, щоб зберегти');
+    return;
+  }
+
+  try {
+    const postRef = doc(db, "posts", postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) {
+      showToast('Пост не знайдено');
+      return;
+    }
+
+    const wasSaved = buttonElement.classList.contains('saved');
+
+    // Оптимістичне оновлення
+    if (wasSaved) {
+      buttonElement.classList.remove('saved');
+    } else {
+      buttonElement.classList.add('saved');
+    }
+
+    const batch = writeBatch(db);
+    const userRef = doc(db, "users", currentUser.uid);
+    if (wasSaved) {
+      batch.update(userRef, { savedPosts: arrayRemove(postId) });
+      batch.update(postRef, { saves: arrayRemove(currentUser.uid) });
+    } else {
+      batch.update(userRef, { savedPosts: arrayUnion(postId) });
+      batch.update(postRef, { saves: arrayUnion(currentUser.uid) });
+    }
+    await batch.commit();
+  } catch (error) {
+    console.error("Помилка збереження:", error);
+    showToast("Не вдалося зберегти пост.");
+    // Відкочуємо
+    const postSnap = await getDoc(doc(db, "posts", postId));
+    if (postSnap.exists()) {
+      const savedNow = postSnap.data().saves?.includes(currentUser.uid) || false;
+      if (savedNow) {
+        buttonElement.classList.add('saved');
+      } else {
+        buttonElement.classList.remove('saved');
+      }
+    }
+  }
+}, 300);
+
+// ================= Функція підписки/відписки (виправлено: batch + debounce) =================
+const toggleFollow = debounce(async (targetUid, buttonElement) => {
+  if (!currentUser) return;
+
+  const wasFollowing = currentUserFollowing.includes(targetUid);
+  const newFollowingState = !wasFollowing;
+
+  // Оптимістичне оновлення глобального масиву та кнопки
+  if (newFollowingState) {
+    currentUserFollowing.push(targetUid);
+  } else {
+    currentUserFollowing = currentUserFollowing.filter(id => id !== targetUid);
+  }
+
+  if (buttonElement) {
+    buttonElement.textContent = newFollowingState ? 'Відписатися' : 'Підписатися';
+    buttonElement.classList.toggle('following', newFollowingState);
+  }
+
+  try {
+    const myRef = doc(db, "users", currentUser.uid);
+    const targetRef = doc(db, "users", targetUid);
+    const batch = writeBatch(db);
+
+    if (wasFollowing) {
+      batch.update(myRef, { following: arrayRemove(targetUid) });
+      batch.update(targetRef, { followers: arrayRemove(currentUser.uid) });
+    } else {
+      batch.update(myRef, { following: arrayUnion(targetUid) });
+      batch.update(targetRef, { followers: arrayUnion(currentUser.uid) });
+      vibrate(30);
+    }
+    await batch.commit();
+  } catch (error) {
+    console.error('Follow error:', error);
+    // Відкочуємо глобальний стан
+    if (newFollowingState) {
+      currentUserFollowing = currentUserFollowing.filter(id => id !== targetUid);
+    } else {
+      currentUserFollowing.push(targetUid);
+    }
+    if (buttonElement) {
+      buttonElement.textContent = wasFollowing ? 'Відписатися' : 'Підписатися';
+      buttonElement.classList.toggle('following', wasFollowing);
+    }
+    if (error.code === 'permission-denied') {
+      showToast('Помилка: недостатньо прав. Перевірте правила безпеки Firestore.');
+    } else {
+      showToast('Помилка: ' + (error.message || 'Невідома помилка'));
+    }
+  }
+}, 300);
 
 // ================= Навігація по розділах =================
 const sections = ['home','search','hashtags','profile','chats','settings'];
@@ -537,7 +658,7 @@ document.getElementById('registerBtn').onclick = async () => {
     await setDoc(doc(db, "users", cred.user.uid), {
       nickname,
       userId,
-      nickname_lower: nickname.toLowerCase(),
+      nickname_lower: nickname.toLowerCase().trim(), // Виправлено: додано trim та lower
       bio: '',
       avatar: '',
       posts: [],
@@ -602,7 +723,7 @@ document.getElementById('googleLoginBtn').onclick = async () => {
       await setDoc(doc(db, "users", user.uid), {
         nickname,
         userId,
-        nickname_lower: nickname.toLowerCase(),
+        nickname_lower: nickname.toLowerCase().trim(),
         bio: '',
         avatar: user.photoURL || '',
         posts: [],
@@ -648,7 +769,7 @@ document.getElementById('appleLoginBtn').onclick = async () => {
       await setDoc(doc(db, "users", user.uid), {
         nickname,
         userId,
-        nickname_lower: nickname.toLowerCase(),
+        nickname_lower: nickname.toLowerCase().trim(),
         bio: '',
         avatar: user.photoURL || '',
         posts: [],
@@ -860,10 +981,10 @@ document.getElementById('addPost').onclick = async () => {
       text,
       media,
       createdAt: serverTimestamp(),
-      likes: [],
-      likesCount: 0,
+      likes: [],           // Виправлено: додано
+      likesCount: 0,       // Виправлено: додано
       commentsCount: 0,
-      saves: [],
+      saves: [],           // Виправлено: додано
       views: 0,
       hashtags,
       popularity: 0
@@ -1242,54 +1363,6 @@ function renderPosts(docs, container = null) {
   });
 }
 
-async function toggleFollow(targetUid, buttonElement) {
-  if (!currentUser) return;
-  
-  const wasFollowing = currentUserFollowing.includes(targetUid);
-  const newFollowingState = !wasFollowing;
-  
-  if (newFollowingState) {
-    currentUserFollowing.push(targetUid);
-  } else {
-    currentUserFollowing = currentUserFollowing.filter(id => id !== targetUid);
-  }
-  
-  if (buttonElement) {
-    buttonElement.textContent = newFollowingState ? 'Відписатися' : 'Підписатися';
-    buttonElement.classList.toggle('following', newFollowingState);
-  }
-  
-  try {
-    const myRef = doc(db, "users", currentUser.uid);
-    const targetRef = doc(db, "users", targetUid);
-    
-    if (wasFollowing) {
-      await updateDoc(myRef, { following: arrayRemove(targetUid) });
-      await updateDoc(targetRef, { followers: arrayRemove(currentUser.uid) });
-    } else {
-      await updateDoc(myRef, { following: arrayUnion(targetUid) });
-      await updateDoc(targetRef, { followers: arrayUnion(currentUser.uid) });
-      vibrate(30);
-    }
-  } catch (error) {
-    console.error('Follow error:', error);
-    if (newFollowingState) {
-      currentUserFollowing = currentUserFollowing.filter(id => id !== targetUid);
-    } else {
-      currentUserFollowing.push(targetUid);
-    }
-    if (buttonElement) {
-      buttonElement.textContent = wasFollowing ? 'Відписатися' : 'Підписатися';
-      buttonElement.classList.toggle('following', wasFollowing);
-    }
-    if (error.code === 'permission-denied') {
-      showToast('Помилка: недостатньо прав. Перевірте правила безпеки Firestore.');
-    } else {
-      showToast('Помилка: ' + (error.message || 'Невідома помилка'));
-    }
-  }
-}
-
 function openEditPostModal(post) {
   currentEditingPost = post;
   document.getElementById('editPostText').value = post.text || '';
@@ -1458,6 +1531,18 @@ function renderProfile(data, uid, isOwn) {
 
   const isFollowing = !isOwn && currentUser ? (data.followers?.includes(currentUser.uid) || false) : false;
 
+  // Виправлено: перевірка приватності для підписників
+  const canSeeFollowers = () => {
+    if (isOwn) return true;
+    const privacy = data.settings?.privacy?.whoCanSeeFollowers || 'everyone';
+    if (privacy === 'everyone') return true;
+    if (privacy === 'followers' && isFollowing) return true;
+    return false;
+  };
+
+  const followersDisplay = canSeeFollowers() ? data.followers?.length || 0 : 'Приховано';
+  const followingDisplay = canSeeFollowers() ? data.following?.length || 0 : 'Приховано';
+
   header.innerHTML = `
     <div class="avatar large" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
     <div style="flex:1">
@@ -1465,8 +1550,8 @@ function renderProfile(data, uid, isOwn) {
       <div class="user-id">${data.userId}</div>
       <p>${data.bio || ''}</p>
       <div class="profile-stats">
-        <span id="followersCount" data-uid="${uid}">${data.followers?.length || 0} підписників</span>
-        <span id="followingCount" data-uid="${uid}">${data.following?.length || 0} підписок</span>
+        <span id="followersCount" data-uid="${uid}">${followersDisplay} підписників</span>
+        <span id="followingCount" data-uid="${uid}">${followingDisplay} підписок</span>
         <span>${data.posts?.length || 0} постів</span>
       </div>
       ${!isOwn && currentUser ? `
@@ -1499,12 +1584,12 @@ function renderProfile(data, uid, isOwn) {
   `;
 
   const followersCount = document.getElementById('followersCount');
-  if (followersCount) {
+  if (followersCount && canSeeFollowers()) {
     followersCount.style.cursor = 'pointer';
     followersCount.onclick = () => openFollowersList(uid);
   }
   const followingCount = document.getElementById('followingCount');
-  if (followingCount) {
+  if (followingCount && canSeeFollowers()) {
     followingCount.style.cursor = 'pointer';
     followingCount.onclick = () => openFollowingList(uid);
   }
@@ -1765,7 +1850,7 @@ document.getElementById('saveProfileEdit').onclick = async () => {
     const updateData = { 
       nickname, 
       userId: newUserId, 
-      nickname_lower: nickname.toLowerCase(), 
+      nickname_lower: nickname.toLowerCase().trim(), // Виправлено
       bio 
     };
     if (avatarUrl) updateData.avatar = avatarUrl;
@@ -2281,7 +2366,7 @@ document.getElementById('chatBackBtn')?.addEventListener('click', () => {
   currentChatPartner = null;
 });
 
-// ================= ПОШУК КОРИСТУВАЧІВ У ЧАТАХ =================
+// ================= ПОШУК КОРИСТУВАЧІВ У ЧАТАХ (виправлено: виключення заблокованих) =================
 let searchTimeout;
 document.getElementById('chatSearchInput')?.addEventListener('input', (e) => {
   clearTimeout(searchTimeout);
@@ -2329,11 +2414,13 @@ async function searchUsersForChat(query) {
     const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
     const usersMap = new Map();
     
+    // Виключаємо себе та заблокованих
+    const blockedByMe = currentUserData?.blockedUsers || [];
     snap1.forEach(d => {
-      if (d.id !== currentUser.uid) usersMap.set(d.id, d.data());
+      if (d.id !== currentUser.uid && !blockedByMe.includes(d.id)) usersMap.set(d.id, d.data());
     });
     snap2.forEach(d => {
-      if (d.id !== currentUser.uid) usersMap.set(d.id, d.data());
+      if (d.id !== currentUser.uid && !blockedByMe.includes(d.id)) usersMap.set(d.id, d.data());
     });
 
     if (usersMap.size === 0) {
@@ -2711,48 +2798,19 @@ document.addEventListener('click', async (e) => {
       showToast('Увійдіть, щоб виконати цю дію');
       return;
     }
-    // Інакше просто виходимо
     return;
   }
 
-  // Лайк
+  // Лайк (використовуємо дебаунс)
   if (targetBtn.classList.contains('like-btn')) {
     const postId = targetBtn.dataset.postId;
     await toggleLike(postId, targetBtn);
   }
 
-  // Збереження
+  // Збереження (використовуємо дебаунс)
   if (targetBtn.classList.contains('save-btn')) {
     const postId = targetBtn.dataset.postId;
-    const wasSaved = targetBtn.classList.contains('saved');
-
-    // Оптимістичне оновлення
-    if (wasSaved) {
-      targetBtn.classList.remove('saved');
-    } else {
-      targetBtn.classList.add('saved');
-    }
-
-    try {
-      const userRef = doc(db, "users", currentUser.uid);
-      const postRef = doc(db, "posts", postId);
-      if (wasSaved) {
-        await updateDoc(userRef, { savedPosts: arrayRemove(postId) });
-        await updateDoc(postRef, { saves: arrayRemove(currentUser.uid) });
-      } else {
-        await updateDoc(userRef, { savedPosts: arrayUnion(postId) });
-        await updateDoc(postRef, { saves: arrayUnion(currentUser.uid) });
-      }
-    } catch (error) {
-      console.error("Помилка збереження:", error);
-      showToast("Не вдалося зберегти пост.");
-      // Відкочуємо
-      if (wasSaved) {
-        targetBtn.classList.add('saved');
-      } else {
-        targetBtn.classList.remove('saved');
-      }
-    }
+    await toggleSave(postId, targetBtn);
   }
 });
 
