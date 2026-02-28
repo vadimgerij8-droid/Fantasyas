@@ -200,6 +200,7 @@ async function toggleLike(postId, buttonElement) {
   }
 
   const postRef = doc(db, "posts", postId);
+  let postData, isLiked; // оголошуємо змінні поза try
 
   try {
     const postSnap = await getDoc(postRef);
@@ -208,13 +209,15 @@ async function toggleLike(postId, buttonElement) {
       return;
     }
 
-    const postData = postSnap.data();
-    const isLiked = postData.likes?.includes(currentUser.uid) || false;
+    postData = postSnap.data();
+    isLiked = postData.likes?.includes(currentUser.uid) || false;
 
     // Оптимістичне оновлення інтерфейсу
     if (buttonElement) {
       const countSpan = buttonElement.querySelector('span');
-      const newCount = isLiked ? (postData.likesCount || 1) - 1 : (postData.likesCount || 0) + 1;
+      const newCount = isLiked 
+        ? Math.max((postData.likesCount || 0) - 1, 0) 
+        : (postData.likesCount || 0) + 1;
       if (isLiked) {
         buttonElement.classList.remove('liked');
       } else {
@@ -246,8 +249,8 @@ async function toggleLike(postId, buttonElement) {
   } catch (error) {
     console.error('Помилка toggleLike:', error);
     showToast('Не вдалося оновити лайк. Спробуйте ще.');
-    // Відкочуємо оптимістичне оновлення
-    if (buttonElement) {
+    // Відкочуємо оптимістичне оновлення (тепер змінні доступні)
+    if (buttonElement && postData) {
       const countSpan = buttonElement.querySelector('span');
       if (isLiked) {
         buttonElement.classList.add('liked');
@@ -1435,12 +1438,19 @@ function renderProfile(data, uid, isOwn) {
   const header = document.getElementById('profileHeader');
   if (!header) return;
 
-  if (!isOwn && currentUser && data.blockedUsers?.includes(currentUser.uid)) {
+  // Перевірка, чи заблокував профіль поточного користувача
+  const isBlockedByTarget = data.blockedUsers?.includes(currentUser?.uid) || false;
+  // Перевірка, чи поточний користувач заблокував цей профіль
+  const isBlockedByMe = currentUserData?.blockedUsers?.includes(uid) || false;
+
+  if (isBlockedByTarget || isBlockedByMe) {
     header.innerHTML = `
       <div class="avatar large" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
       <div>
         <h2>${data.nickname}</h2>
-        <p class="text-danger">Цей користувач вас заблокував</p>
+        <p class="text-danger">
+          ${isBlockedByTarget ? 'Цей користувач вас заблокував' : 'Ви заблокували цього користувача'}
+        </p>
       </div>
     `;
     return;
