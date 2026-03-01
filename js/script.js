@@ -124,6 +124,19 @@ const cleanupListeners = () => {
   clearMainFeedListeners();
 };
 
+// ================= Дебаунс (винесено на початок) =================
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 // ================= Функції для скарг, мюту, блокування =================
 async function reportUser(targetUid, reason = '') {
   if (!currentUser) return;
@@ -190,19 +203,6 @@ async function unblockUser(targetUid) {
   } catch (e) {
     showToast('Помилка: ' + e.message);
   }
-}
-
-// ================= Дебаунс для кнопок =================
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
 }
 
 // ================= Функція перемикання лайка (виправлено: batch + debounce) =================
@@ -2545,20 +2545,47 @@ function updateSettingsUI() {
   const smsToggle = document.getElementById('settingSmsNotifications');
   if (smsToggle) smsToggle.checked = userSettings.notifications.sms;
   
-  const privateToggle = document.getElementById('settingPrivateAccount');
-  if (privateToggle) privateToggle.checked = userSettings.privacy.privateAccount;
+  const privateChatsToggle = document.getElementById('settingPrivateChats');
+  if (privateChatsToggle) privateChatsToggle.checked = userSettings.notifications.privateChats;
   
-  const activityToggle = document.getElementById('settingActivityStatus');
-  if (activityToggle) activityToggle.checked = userSettings.privacy.activityStatus;
+  const likesToggle = document.getElementById('settingLikes');
+  if (likesToggle) likesToggle.checked = userSettings.notifications.likes;
+  
+  const commentsToggle = document.getElementById('settingComments');
+  if (commentsToggle) commentsToggle.checked = userSettings.notifications.comments;
+  
+  const newFollowersToggle = document.getElementById('settingNewFollowers');
+  if (newFollowersToggle) newFollowersToggle.checked = userSettings.notifications.newFollowers;
+  
+  const mentionsToggle = document.getElementById('settingMentions');
+  if (mentionsToggle) mentionsToggle.checked = userSettings.notifications.mentions;
+  
+  const directMessagesToggle = document.getElementById('settingDirectMessages');
+  if (directMessagesToggle) directMessagesToggle.checked = userSettings.notifications.directMessages;
+  
+  const storyRepliesToggle = document.getElementById('settingStoryReplies');
+  if (storyRepliesToggle) storyRepliesToggle.checked = userSettings.notifications.storyReplies;
+  
+  const privateAccountToggle = document.getElementById('settingPrivateAccount');
+  if (privateAccountToggle) privateAccountToggle.checked = userSettings.privacy.privateAccount;
+  
+  const activityStatusToggle = document.getElementById('settingActivityStatus');
+  if (activityStatusToggle) activityStatusToggle.checked = userSettings.privacy.activityStatus;
   
   const darkModeToggle = document.getElementById('settingDarkMode');
   if (darkModeToggle) darkModeToggle.checked = userSettings.preferences.darkMode;
   
-  const autoplayToggle = document.getElementById('settingAutoplayVideos');
-  if (autoplayToggle) autoplayToggle.checked = userSettings.preferences.autoplayVideos;
+  const reduceMotionToggle = document.getElementById('settingReduceMotion');
+  if (reduceMotionToggle) reduceMotionToggle.checked = userSettings.preferences.reduceMotion;
   
-  const soundToggle = document.getElementById('settingSoundEffects');
-  if (soundToggle) soundToggle.checked = userSettings.preferences.soundEffects;
+  const highContrastToggle = document.getElementById('settingHighContrast');
+  if (highContrastToggle) highContrastToggle.checked = userSettings.preferences.highContrast;
+  
+  const autoplayVideosToggle = document.getElementById('settingAutoplayVideos');
+  if (autoplayVideosToggle) autoplayVideosToggle.checked = userSettings.preferences.autoplayVideos;
+  
+  const soundEffectsToggle = document.getElementById('settingSoundEffects');
+  if (soundEffectsToggle) soundEffectsToggle.checked = userSettings.preferences.soundEffects;
   
   const languageSelect = document.getElementById('settingLanguage');
   if (languageSelect) languageSelect.value = userSettings.preferences.language;
@@ -2566,13 +2593,59 @@ function updateSettingsUI() {
   const twoFactorToggle = document.getElementById('settingTwoFactor');
   if (twoFactorToggle) twoFactorToggle.checked = userSettings.security.twoFactor;
   
-  const privateChatsToggle = document.getElementById('settingPrivateChats');
-  if (privateChatsToggle) {
-    privateChatsToggle.checked = userSettings.notifications.privateChats;
-    privateChatsToggle.addEventListener('change', async (e) => {
-      userSettings.notifications.privateChats = e.target.checked;
-      await saveSettingsToFirestore();
-      localStorage.setItem('notifyPrivateChats', e.target.checked);
+  const loginAlertsToggle = document.getElementById('settingLoginAlerts');
+  if (loginAlertsToggle) loginAlertsToggle.checked = userSettings.security.loginAlerts;
+}
+
+// Додаємо слухачі для всіх перемикачів
+function setupSettingsListeners() {
+  const toggleIds = [
+    'settingPushNotifications', 'settingEmailNotifications', 'settingSmsNotifications',
+    'settingPrivateChats', 'settingLikes', 'settingComments', 'settingNewFollowers',
+    'settingMentions', 'settingDirectMessages', 'settingStoryReplies',
+    'settingPrivateAccount', 'settingActivityStatus',
+    'settingDarkMode', 'settingReduceMotion', 'settingHighContrast',
+    'settingAutoplayVideos', 'settingSoundEffects',
+    'settingTwoFactor', 'settingLoginAlerts'
+  ];
+  
+  toggleIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', (e) => {
+        const section = id.replace('setting', '').toLowerCase();
+        if (id.includes('Push')) userSettings.notifications.push = e.target.checked;
+        else if (id.includes('Email')) userSettings.notifications.email = e.target.checked;
+        else if (id.includes('Sms')) userSettings.notifications.sms = e.target.checked;
+        else if (id.includes('PrivateChats')) userSettings.notifications.privateChats = e.target.checked;
+        else if (id.includes('Likes')) userSettings.notifications.likes = e.target.checked;
+        else if (id.includes('Comments')) userSettings.notifications.comments = e.target.checked;
+        else if (id.includes('NewFollowers')) userSettings.notifications.newFollowers = e.target.checked;
+        else if (id.includes('Mentions')) userSettings.notifications.mentions = e.target.checked;
+        else if (id.includes('DirectMessages')) userSettings.notifications.directMessages = e.target.checked;
+        else if (id.includes('StoryReplies')) userSettings.notifications.storyReplies = e.target.checked;
+        else if (id.includes('PrivateAccount')) userSettings.privacy.privateAccount = e.target.checked;
+        else if (id.includes('ActivityStatus')) userSettings.privacy.activityStatus = e.target.checked;
+        else if (id.includes('DarkMode')) userSettings.preferences.darkMode = e.target.checked;
+        else if (id.includes('ReduceMotion')) userSettings.preferences.reduceMotion = e.target.checked;
+        else if (id.includes('HighContrast')) userSettings.preferences.highContrast = e.target.checked;
+        else if (id.includes('AutoplayVideos')) userSettings.preferences.autoplayVideos = e.target.checked;
+        else if (id.includes('SoundEffects')) userSettings.preferences.soundEffects = e.target.checked;
+        else if (id.includes('TwoFactor')) userSettings.security.twoFactor = e.target.checked;
+        else if (id.includes('LoginAlerts')) userSettings.security.loginAlerts = e.target.checked;
+        
+        applySettings();
+        saveSettingsToFirestore();
+      });
+    }
+  });
+  
+  // Мова
+  const langSelect = document.getElementById('settingLanguage');
+  if (langSelect) {
+    langSelect.addEventListener('change', (e) => {
+      userSettings.preferences.language = e.target.value;
+      saveSettingsToFirestore();
     });
   }
 }
@@ -2586,6 +2659,12 @@ function updatePrivacyUI() {
 
   const whoCanSeeFollowers = document.querySelector(`input[name="whoCanSeeFollowers"][value="${userSettings.privacy.whoCanSeeFollowers}"]`);
   if (whoCanSeeFollowers) whoCanSeeFollowers.checked = true;
+
+  const allowMentions = document.querySelector(`input[name="allowMentions"][value="${userSettings.privacy.allowMentions}"]`);
+  if (allowMentions) allowMentions.checked = true;
+
+  const allowTags = document.querySelector(`input[name="allowTags"][value="${userSettings.privacy.allowTags}"]`);
+  if (allowTags) allowTags.checked = true;
 }
 
 document.querySelectorAll('input[name="whoCanMessage"]').forEach(radio => {
@@ -2609,6 +2688,20 @@ document.querySelectorAll('input[name="whoCanSeeFollowers"]').forEach(radio => {
   });
 });
 
+document.querySelectorAll('input[name="allowMentions"]').forEach(radio => {
+  radio.addEventListener('change', async (e) => {
+    userSettings.privacy.allowMentions = e.target.value;
+    await saveSettingsToFirestore();
+  });
+});
+
+document.querySelectorAll('input[name="allowTags"]').forEach(radio => {
+  radio.addEventListener('change', async (e) => {
+    userSettings.privacy.allowTags = e.target.value;
+    await saveSettingsToFirestore();
+  });
+});
+
 function applySettings() {
   if (userSettings.preferences.darkMode) {
     document.body.classList.add('dark');
@@ -2616,6 +2709,23 @@ function applySettings() {
     document.body.classList.remove('dark');
   }
   localStorage.setItem('theme', userSettings.preferences.darkMode ? 'dark' : 'light');
+  
+  // Тут можна застосувати інші налаштування (зменшення руху, контраст тощо)
+  if (userSettings.preferences.reduceMotion) {
+    document.documentElement.style.setProperty('--transition', '0s');
+    document.documentElement.style.setProperty('--transition-slow', '0s');
+  } else {
+    document.documentElement.style.setProperty('--transition', '0.28s cubic-bezier(0.22, 0.61, 0.36, 1)');
+    document.documentElement.style.setProperty('--transition-slow', '0.62s cubic-bezier(0.16, 1, 0.3, 1)');
+  }
+  
+  if (userSettings.preferences.highContrast) {
+    document.documentElement.style.setProperty('--text-primary', '#000');
+    document.documentElement.style.setProperty('--text-secondary', '#222');
+    // можна додати інші зміни
+  } else {
+    // повернути стандартні значення (вони залежать від теми)
+  }
 }
 
 async function saveSettingsToFirestore() {
@@ -2681,6 +2791,7 @@ function loadAccountStats() {
   const statsContainer = document.getElementById('accountStats');
   if (statsContainer) {
     statsContainer.innerHTML = `
+      <h4>Статистика</h4>
       <div class="stat-item">
         <span class="stat-value">${currentUserData.posts?.length || 0}</span>
         <span class="stat-label">Постів</span>
@@ -2703,6 +2814,7 @@ function loadAccountStats() {
   const accountInfo = document.getElementById('accountInfo');
   if (accountInfo && currentUser) {
     accountInfo.innerHTML = `
+      <h4>Інформація</h4>
       <div class="info-row">
         <span class="info-label">ID користувача:</span>
         <span class="info-value">${currentUserData.userId}</span>
@@ -2768,10 +2880,6 @@ document.getElementById('clearSavedMediaBtn')?.addEventListener('click', async (
 });
 
 // ================= Інші обробники =================
-document.getElementById('toggleTheme').onclick = () => {
-  document.body.classList.toggle('dark');
-  localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-};
 if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
 
 document.getElementById('privacyPolicyBtn').onclick = () => {
@@ -2852,4 +2960,9 @@ document.querySelectorAll('.settings-nav-item').forEach(item => {
     });
     document.getElementById(`settings-${tab}`)?.classList.add('active');
   });
+});
+
+// Ініціалізація слухачів налаштувань після завантаження DOM
+document.addEventListener('DOMContentLoaded', () => {
+  setupSettingsListeners();
 });
