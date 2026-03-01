@@ -124,7 +124,7 @@ const cleanupListeners = () => {
   clearMainFeedListeners();
 };
 
-// ================= Дебаунс (винесено на початок) =================
+// ================= Дебаунс =================
 function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -205,7 +205,7 @@ async function unblockUser(targetUid) {
   }
 }
 
-// ================= Функція перемикання лайка (виправлено: batch + debounce) =================
+// ================= Функція перемикання лайка =================
 const toggleLike = debounce(async (postId, buttonElement) => {
   if (!currentUser) {
     showToast('Увійдіть, щоб лайкати');
@@ -263,7 +263,7 @@ const toggleLike = debounce(async (postId, buttonElement) => {
   } catch (error) {
     console.error('Помилка toggleLike:', error);
     showToast('Не вдалося оновити лайк. Спробуйте ще.');
-    // Відкочуємо оптимістичне оновлення (спрощено)
+    // Відкочуємо оптимістичне оновлення
     if (buttonElement) {
       const postSnap = await getDoc(doc(db, "posts", postId));
       if (postSnap.exists()) {
@@ -281,7 +281,7 @@ const toggleLike = debounce(async (postId, buttonElement) => {
   }
 }, 300);
 
-// ================= Функція збереження поста (виправлено: batch + debounce) =================
+// ================= Функція збереження поста =================
 const toggleSave = debounce(async (postId, buttonElement) => {
   if (!currentUser) {
     showToast('Увійдіть, щоб зберегти');
@@ -331,7 +331,7 @@ const toggleSave = debounce(async (postId, buttonElement) => {
   }
 }, 300);
 
-// ================= Функція підписки/відписки (виправлено: batch + debounce) =================
+// ================= Функція підписки/відписки =================
 const toggleFollow = debounce(async (targetUid, buttonElement) => {
   if (!currentUser) return;
 
@@ -640,13 +640,22 @@ document.getElementById('toLogin').onclick = () => {
 document.getElementById('registerBtn').onclick = async () => {
   const nickname = document.getElementById('registerNickname').value.trim();
   const password = document.getElementById('registerPassword').value.trim();
-  if (!nickname) return alert('Введіть псевдонім');
-  if (password.length < 6) return alert('Мінімум 6 символів');
+  if (!nickname) {
+    showToast('Введіть псевдонім');
+    return;
+  }
+  if (password.length < 6) {
+    showToast('Мінімум 6 символів');
+    return;
+  }
   
   const userId = `@${nickname.toLowerCase()}`;
   const q = query(collection(db, "users"), where("userId", "==", userId));
   const snap = await getDocs(q);
-  if (!snap.empty) return alert('Цей ID вже зайнятий');
+  if (!snap.empty) {
+    showToast('Цей ID вже зайнятий');
+    return;
+  }
   
   try {
     const safeNick = nickname.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -682,25 +691,32 @@ document.getElementById('registerBtn').onclick = async () => {
 document.getElementById('loginBtn').onclick = async () => {
   const nickname = document.getElementById('loginNickname').value.trim();
   const password = document.getElementById('loginPassword').value.trim();
-  if (!nickname || !password) return alert('Заповніть поля');
+  if (!nickname || !password) {
+    showToast('Заповніть поля');
+    return;
+  }
   try {
     const userId = `@${nickname.toLowerCase()}`;
     const q = query(collection(db, "users"), where("userId", "==", userId));
     const snap = await getDocs(q);
-    if (snap.empty) return alert('Користувача не знайдено');
+    if (snap.empty) {
+      showToast('Користувача не знайдено');
+      return;
+    }
     
     const userDoc = snap.docs[0];
     const userData = userDoc.data();
     const email = userData.email;
     
     if (!email) {
-      return alert('Для цього акаунту не встановлено email. Увійдіть через Google або Apple, або створіть новий акаунт.');
+      showToast('Для цього акаунту не встановлено email. Увійдіть через Google або Apple, або створіть новий акаунт.');
+      return;
     }
     
     await signInWithEmailAndPassword(auth, email, password);
     showToast('Ласкаво просимо!');
   } catch (err) {
-    alert('Невірний псевдонім або пароль');
+    showToast('Невірний псевдонім або пароль');
   }
 };
 
@@ -799,11 +815,17 @@ document.getElementById('forgotPassword').onclick = async (e) => {
   const userId = `@${nickname.toLowerCase()}`;
   const q = query(collection(db, "users"), where("userId", "==", userId));
   const snap = await getDocs(q);
-  if (snap.empty) return alert('Користувача не знайдено');
+  if (snap.empty) {
+    showToast('Користувача не знайдено');
+    return;
+  }
   
   const userData = snap.docs[0].data();
   const email = userData.email;
-  if (!email) return alert('Для цього акаунту не вказано email. Увійдіть через Google/Apple або створіть новий акаунт.');
+  if (!email) {
+    showToast('Для цього акаунту не вказано email. Увійдіть через Google/Apple або створіть новий акаунт.');
+    return;
+  }
   
   try {
     await sendPasswordResetEmail(auth, email);
@@ -946,7 +968,10 @@ async function uploadToCloudinary(file) {
 
 // ================= Додавання поста =================
 document.getElementById('addPost').onclick = async () => {
-  if (!currentUser) return alert('Увійдіть');
+  if (!currentUser) {
+    showToast('Увійдіть, щоб опублікувати пост');
+    return;
+  }
   const text = document.getElementById('postText').value.trim();
   const fileInputs = [
     document.getElementById('postMedia1'),
@@ -955,7 +980,10 @@ document.getElementById('addPost').onclick = async () => {
   ];
   const files = fileInputs.map(input => input.files[0]).filter(f => f);
 
-  if (!text && files.length === 0) return alert('Додайте текст або медіа');
+  if (!text && files.length === 0) {
+    showToast('Додайте текст або медіа');
+    return;
+  }
 
   try {
     const media = [];
@@ -1041,7 +1069,6 @@ async function loadMorePosts() {
     renderPosts(snapshot.docs);
   } catch (e) {
     console.error("Помилка завантаження постів:", e);
-    alert('Помилка завантаження постів:\n' + e.message + '\nКод: ' + e.code);
     showToast("Помилка завантаження. Перевірте індекси Firestore.");
   } finally {
     if (skeleton) skeleton.style.display = 'none';
@@ -1841,12 +1868,18 @@ document.getElementById('saveProfileEdit').onclick = async () => {
   const nickname = document.getElementById('editNickname').value.trim();
   const bio = document.getElementById('editBio').value.trim();
   const avatarFile = document.getElementById('editAvatar').files[0];
-  if (!nickname) return alert('Псевдонім обов’язковий');
+  if (!nickname) {
+    showToast('Псевдонім обов’язковий');
+    return;
+  }
   
   const newUserId = `@${nickname.toLowerCase()}`;
   const q = query(collection(db, "users"), where("userId", "==", newUserId));
   const snap = await getDocs(q);
-  if (!snap.empty && snap.docs[0].id !== currentUser.uid) return alert('Цей ID вже зайнятий');
+  if (!snap.empty && snap.docs[0].id !== currentUser.uid) {
+    showToast('Цей ID вже зайнятий');
+    return;
+  }
   
   try {
     let avatarUrl;
@@ -2373,7 +2406,7 @@ document.getElementById('chatBackBtn')?.addEventListener('click', () => {
   currentChatPartner = null;
 });
 
-// ================= ПОШУК КОРИСТУВАЧІВ У ЧАТАХ (виправлено: виключення заблокованих) =================
+// ================= ПОШУК КОРИСТУВАЧІВ У ЧАТАХ =================
 let searchTimeout;
 document.getElementById('chatSearchInput')?.addEventListener('input', (e) => {
   clearTimeout(searchTimeout);
@@ -2902,7 +2935,7 @@ if (sentinel) {
   observer.observe(sentinel);
 }
 
-// ================= ГЛОБАЛЬНИЙ ОБРОБНИК КЛІКІВ (оновлений) =================
+// ================= ГЛОБАЛЬНИЙ ОБРОБНИК КЛІКІВ =================
 document.addEventListener('click', async (e) => {
   const targetBtn = e.target.closest('button');
   if (!targetBtn) return;
