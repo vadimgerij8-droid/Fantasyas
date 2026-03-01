@@ -205,129 +205,133 @@ async function unblockUser(targetUid) {
   }
 }
 
-// ================= Функція перемикання лайка =================
+// ================= Карти для запобігання паралельним викликам =================
+const likePromiseMap = new Map();
+const savePromiseMap = new Map();
+
+// ================= Функція перемикання лайка (ВИПРАВЛЕНО) =================
 const toggleLike = debounce(async (postId, buttonElement) => {
   if (!currentUser) {
     showToast('Увійдіть, щоб лайкати');
     return;
   }
 
+  // Якщо вже є незавершений запит для цього поста – не запускаємо новий
+  if (likePromiseMap.has(postId)) {
+    return;
+  }
+
+  // Запам'ятовуємо попередній стан для відкочування
+  const wasLiked = buttonElement.classList.contains('liked');
+  const countSpan = buttonElement.querySelector('span');
+  const oldCount = countSpan ? parseInt(countSpan.textContent) : 0;
+
+  // Оптимістичне оновлення
+  const newCount = wasLiked ? Math.max(oldCount - 1, 0) : oldCount + 1;
+  buttonElement.classList.toggle('liked', !wasLiked);
+  if (countSpan) countSpan.textContent = newCount;
+
   try {
+    likePromiseMap.set(postId, true);
+
     const postRef = doc(db, "posts", postId);
     const postSnap = await getDoc(postRef);
     if (!postSnap.exists()) {
       showToast('Пост не знайдено');
+      // відкочуємо
+      buttonElement.classList.toggle('liked', wasLiked);
+      if (countSpan) countSpan.textContent = oldCount;
       return;
     }
 
     const postData = postSnap.data();
     const isLiked = postData.likes?.includes(currentUser.uid) || false;
 
-    // Оптимістичне оновлення інтерфейсу
-    if (buttonElement) {
-      const countSpan = buttonElement.querySelector('span');
-      const newCount = isLiked 
-        ? Math.max((postData.likesCount || 0) - 1, 0) 
-        : (postData.likesCount || 0) + 1;
+    // Якщо стан не збігається – значить щось змінилося паралельно, пропускаємо
+    if (isLiked === wasLiked) {
+      // все добре, виконуємо batch
+      const batch = writeBatch(db);
       if (isLiked) {
-        buttonElement.classList.remove('liked');
+        batch.update(postRef, {
+          likes: arrayRemove(currentUser.uid),
+          likesCount: increment(-1),
+          popularity: increment(-50)
+        });
+        batch.update(doc(db, "users", currentUser.uid), {
+          likedPosts: arrayRemove(postId)
+        });
       } else {
-        buttonElement.classList.add('liked');
+        batch.update(postRef, {
+          likes: arrayUnion(currentUser.uid),
+          likesCount: increment(1),
+          popularity: increment(50)
+        });
+        batch.update(doc(db, "users", currentUser.uid), {
+          likedPosts: arrayUnion(postId)
+        });
+        vibrate(30);
       }
-      if (countSpan) countSpan.textContent = newCount;
-    }
-
-    // Використовуємо batch для атомарності
-    const batch = writeBatch(db);
-    if (isLiked) {
-      batch.update(postRef, {
-        likes: arrayRemove(currentUser.uid),
-        likesCount: increment(-1),
-        popularity: increment(-50)
-      });
-      batch.update(doc(db, "users", currentUser.uid), {
-        likedPosts: arrayRemove(postId)
-      });
+      await batch.commit();
     } else {
-      batch.update(postRef, {
-        likes: arrayUnion(currentUser.uid),
-        likesCount: increment(1),
-        popularity: increment(50)
-      });
-      batch.update(doc(db, "users", currentUser.uid), {
-        likedPosts: arrayUnion(postId)
-      });
-      vibrate(30);
+      // Стан розбігається – відкочуємо оптимістичне оновлення
+      buttonElement.classList.toggle('liked', isLiked);
+      if (countSpan) countSpan.textContent = postData.likesCount || 0;
     }
-    await batch.commit();
   } catch (error) {
     console.error('Помилка toggleLike:', error);
     showToast('Не вдалося оновити лайк. Спробуйте ще.');
-    // Відкочуємо оптимістичне оновлення
-    if (buttonElement) {
-      const postSnap = await getDoc(doc(db, "posts", postId));
-      if (postSnap.exists()) {
-        const data = postSnap.data();
-        const countSpan = buttonElement.querySelector('span');
-        const isLikedNow = data.likes?.includes(currentUser.uid) || false;
-        if (isLikedNow) {
-          buttonElement.classList.add('liked');
-        } else {
-          buttonElement.classList.remove('liked');
-        }
-        if (countSpan) countSpan.textContent = data.likesCount || 0;
-      }
-    }
+    // Повне відкочування до стану до кліку
+    buttonElement.classList.toggle('liked', wasLiked);
+    if (countSpan) countSpan.textContent = oldCount;
+  } finally {
+    likePromiseMap.delete(postId);
   }
 }, 300);
 
-// ================= Функція збереження поста =================
+// ================= Функція збереження поста (ВИПРАВЛЕНО) =================
 const toggleSave = debounce(async (postId, buttonElement) => {
   if (!currentUser) {
     showToast('Увійдіть, щоб зберегти');
     return;
   }
 
+  if (savePromiseMap.has(postId)) return;
+
+  const wasSaved = buttonElement.classList.contains('saved');
+  buttonElement.classList.toggle('saved', !wasSaved);
+
   try {
+    savePromiseMap.set(postId, true);
+
     const postRef = doc(db, "posts", postId);
     const postSnap = await getDoc(postRef);
     if (!postSnap.exists()) {
       showToast('Пост не знайдено');
+      buttonElement.classList.toggle('saved', wasSaved);
       return;
     }
 
-    const wasSaved = buttonElement.classList.contains('saved');
-
-    // Оптимістичне оновлення
-    if (wasSaved) {
-      buttonElement.classList.remove('saved');
+    const isSaved = postSnap.data().saves?.includes(currentUser.uid) || false;
+    if (isSaved === wasSaved) {
+      const batch = writeBatch(db);
+      const userRef = doc(db, "users", currentUser.uid);
+      if (wasSaved) {
+        batch.update(userRef, { savedPosts: arrayRemove(postId) });
+        batch.update(postRef, { saves: arrayRemove(currentUser.uid) });
+      } else {
+        batch.update(userRef, { savedPosts: arrayUnion(postId) });
+        batch.update(postRef, { saves: arrayUnion(currentUser.uid) });
+      }
+      await batch.commit();
     } else {
-      buttonElement.classList.add('saved');
+      buttonElement.classList.toggle('saved', isSaved);
     }
-
-    const batch = writeBatch(db);
-    const userRef = doc(db, "users", currentUser.uid);
-    if (wasSaved) {
-      batch.update(userRef, { savedPosts: arrayRemove(postId) });
-      batch.update(postRef, { saves: arrayRemove(currentUser.uid) });
-    } else {
-      batch.update(userRef, { savedPosts: arrayUnion(postId) });
-      batch.update(postRef, { saves: arrayUnion(currentUser.uid) });
-    }
-    await batch.commit();
   } catch (error) {
     console.error("Помилка збереження:", error);
     showToast("Не вдалося зберегти пост.");
-    // Відкочуємо
-    const postSnap = await getDoc(doc(db, "posts", postId));
-    if (postSnap.exists()) {
-      const savedNow = postSnap.data().saves?.includes(currentUser.uid) || false;
-      if (savedNow) {
-        buttonElement.classList.add('saved');
-      } else {
-        buttonElement.classList.remove('saved');
-      }
-    }
+    buttonElement.classList.toggle('saved', wasSaved);
+  } finally {
+    savePromiseMap.delete(postId);
   }
 }, 300);
 
