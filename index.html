@@ -218,42 +218,57 @@
         </div>
       </div>
 
-      <!-- ================= Секція НАЛАШТУВАННЯ (оновлена) ================= -->
+      <!-- ================= Секція НАЛАШТУВАННЯ (повністю перероблена) ================= -->
       <div id="settings" class="section card">
         <div class="settings-container" style="display: flex; gap: 24px; flex-wrap: wrap;">
           <!-- Бічна навігація по розділах -->
           <div class="settings-nav" style="flex: 0 0 200px; border-right: 1px solid var(--border); padding-right: 16px;">
-            <div class="settings-nav-item active" data-tab="language">Мова</div>
-            <div class="settings-nav-item" data-tab="privacy-policy">Політика конфіденційності</div>
+            <div class="settings-nav-item active" data-tab="account">Обліковий запис</div>
             <div class="settings-nav-item" data-tab="privacy">Конфіденційність</div>
             <div class="settings-nav-item" data-tab="notifications">Сповіщення</div>
-            <div class="settings-nav-item" data-tab="data-storage">Дані та сховище</div>
             <div class="settings-nav-item" data-tab="appearance">Зовнішній вигляд</div>
+            <div class="settings-nav-item" data-tab="data-storage">Дані та сховище</div>
+            <div class="settings-nav-item" data-tab="security">Безпека</div>
+            <div class="settings-nav-item" data-tab="privacy-policy">Політика конфіденційності</div>
             <div class="settings-nav-item" data-tab="logout" style="color: var(--danger);">Вийти</div>
           </div>
 
           <!-- Контент налаштувань -->
           <div class="settings-content" style="flex:1;">
-            <!-- Мова -->
-            <div class="settings-tab-content active" id="settings-language">
-              <h3>Мова</h3>
-              <select id="settingLanguage" class="input">
-                <option value="uk">Українська</option>
-                <option value="en">English</option>
-                <option value="ru">Русский</option>
-              </select>
-            </div>
-
-            <!-- Політика конфіденційності -->
-            <div class="settings-tab-content" id="settings-privacy-policy">
-              <h3>Політика конфіденційності</h3>
-              <button class="btn" id="privacyPolicyBtn">Ознайомитися</button>
+            <!-- Обліковий запис -->
+            <div class="settings-tab-content active" id="settings-account">
+              <h3>Обліковий запис</h3>
+              <div class="settings-group" id="accountStats"></div>
+              <div class="settings-group" id="accountInfo"></div>
+              <div class="settings-group">
+                <h4>Мова</h4>
+                <select id="settingLanguage" class="input">
+                  <option value="uk">Українська</option>
+                  <option value="en">English</option>
+                  <option value="ru">Русский</option>
+                </select>
+              </div>
             </div>
 
             <!-- Конфіденційність -->
             <div class="settings-tab-content" id="settings-privacy">
               <h3>Конфіденційність</h3>
-              
+              <div class="settings-group">
+                <h4>Приватний акаунт</h4>
+                <label class="toggle">
+                  <input type="checkbox" id="settingPrivateAccount">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Приховати профіль від незнайомців</span>
+                </label>
+              </div>
+              <div class="settings-group">
+                <h4>Статус активності</h4>
+                <label class="toggle">
+                  <input type="checkbox" id="settingActivityStatus">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Показувати, коли я онлайн</span>
+                </label>
+              </div>
               <div class="settings-group">
                 <h4>Хто може писати мені</h4>
                 <div class="radio-group">
@@ -262,7 +277,6 @@
                   <label><input type="radio" name="whoCanMessage" value="nobody"> Ніхто</label>
                 </div>
               </div>
-
               <div class="settings-group">
                 <h4>Хто бачить мій онлайн</h4>
                 <div class="radio-group">
@@ -271,7 +285,6 @@
                   <label><input type="radio" name="whoCanSeeOnline" value="nobody"> Ніхто</label>
                 </div>
               </div>
-
               <div class="settings-group">
                 <h4>Хто бачить моїх підписників</h4>
                 <div class="radio-group">
@@ -280,7 +293,22 @@
                   <label><input type="radio" name="whoCanSeeFollowers" value="nobody"> Ніхто</label>
                 </div>
               </div>
-
+              <div class="settings-group">
+                <h4>Дозволити згадування</h4>
+                <div class="radio-group">
+                  <label><input type="radio" name="allowMentions" value="everyone"> Всі</label>
+                  <label><input type="radio" name="allowMentions" value="followers"> Тільки підписники</label>
+                  <label><input type="radio" name="allowMentions" value="nobody"> Ніхто</label>
+                </div>
+              </div>
+              <div class="settings-group">
+                <h4>Дозволити теги</h4>
+                <div class="radio-group">
+                  <label><input type="radio" name="allowTags" value="everyone"> Всі</label>
+                  <label><input type="radio" name="allowTags" value="followers"> Тільки підписники</label>
+                  <label><input type="radio" name="allowTags" value="nobody"> Ніхто</label>
+                </div>
+              </div>
               <div class="settings-group">
                 <h4>Заблоковані користувачі</h4>
                 <div id="blockedUsersList"></div>
@@ -292,12 +320,101 @@
               <h3>Сповіщення</h3>
               <div class="settings-group">
                 <label class="toggle">
+                  <input type="checkbox" id="settingPushNotifications">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Push-сповіщення</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="settingEmailNotifications">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Email-сповіщення</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="settingSmsNotifications">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">SMS-сповіщення</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="settingLikes">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Лайки</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="settingComments">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Коментарі</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="settingNewFollowers">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Нові підписники</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="settingMentions">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Згадування</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="settingDirectMessages">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Особисті повідомлення</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="settingStoryReplies">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Відповіді на історії</span>
+                </label>
+                <label class="toggle">
                   <input type="checkbox" id="settingPrivateChats">
                   <span class="toggle-slider"></span>
                   <span class="toggle-label">Приватні чати</span>
                 </label>
               </div>
-              <!-- Можна додати інші сповіщення, але за умовою залишаємо тільки це -->
+            </div>
+
+            <!-- Зовнішній вигляд -->
+            <div class="settings-tab-content" id="settings-appearance">
+              <h3>Зовнішній вигляд</h3>
+              <div class="settings-group">
+                <h4>Тема</h4>
+                <label class="toggle">
+                  <input type="checkbox" id="settingDarkMode">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Темна тема</span>
+                </label>
+              </div>
+              <div class="settings-group">
+                <h4>Зменшення руху</h4>
+                <label class="toggle">
+                  <input type="checkbox" id="settingReduceMotion">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Вимкнути анімації</span>
+                </label>
+              </div>
+              <div class="settings-group">
+                <h4>Високий контраст</h4>
+                <label class="toggle">
+                  <input type="checkbox" id="settingHighContrast">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Підвищений контраст</span>
+                </label>
+              </div>
+              <div class="settings-group">
+                <h4>Автовідтворення відео</h4>
+                <label class="toggle">
+                  <input type="checkbox" id="settingAutoplayVideos">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Автоматично відтворювати відео</span>
+                </label>
+              </div>
+              <div class="settings-group">
+                <h4>Звукові ефекти</h4>
+                <label class="toggle">
+                  <input type="checkbox" id="settingSoundEffects">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Увімкнути звуки інтерфейсу</span>
+                </label>
+              </div>
             </div>
 
             <!-- Дані та сховище -->
@@ -317,21 +434,34 @@
               </div>
             </div>
 
-            <!-- Зовнішній вигляд -->
-            <div class="settings-tab-content" id="settings-appearance">
-              <h3>Зовнішній вигляд</h3>
+            <!-- Безпека -->
+            <div class="settings-tab-content" id="settings-security">
+              <h3>Безпека</h3>
               <div class="settings-group">
-                <h4>Тема</h4>
+                <h4>Двофакторна аутентифікація</h4>
                 <label class="toggle">
-                  <input type="checkbox" id="settingDarkMode">
+                  <input type="checkbox" id="settingTwoFactor">
                   <span class="toggle-slider"></span>
-                  <span class="toggle-label">Темна тема</span>
+                  <span class="toggle-label">Увімкнути 2FA</span>
                 </label>
               </div>
-              <!-- Акцентний колір прибрано -->
+              <div class="settings-group">
+                <h4>Сповіщення про вхід</h4>
+                <label class="toggle">
+                  <input type="checkbox" id="settingLoginAlerts">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Отримувати сповіщення про новий вхід</span>
+                </label>
+              </div>
             </div>
 
-            <!-- Вийти (окрема кнопка, але можемо залишити тут для зручності) -->
+            <!-- Політика конфіденційності -->
+            <div class="settings-tab-content" id="settings-privacy-policy">
+              <h3>Політика конфіденційності</h3>
+              <button class="btn" id="privacyPolicyBtn">Ознайомитися</button>
+            </div>
+
+            <!-- Вийти -->
             <div class="settings-tab-content" id="settings-logout">
               <button class="btn btn-danger" id="logoutBtn" style="width:100%;">Вийти</button>
             </div>
