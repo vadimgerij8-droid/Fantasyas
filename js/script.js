@@ -216,17 +216,14 @@ const toggleLike = debounce(async (postId, buttonElement) => {
     return;
   }
 
-  // Якщо вже є незавершений запит для цього поста – не запускаємо новий
   if (likePromiseMap.has(postId)) {
     return;
   }
 
-  // Запам'ятовуємо попередній стан для відкочування
   const wasLiked = buttonElement.classList.contains('liked');
   const countSpan = buttonElement.querySelector('span');
   const oldCount = countSpan ? parseInt(countSpan.textContent) : 0;
 
-  // Оптимістичне оновлення
   const newCount = wasLiked ? Math.max(oldCount - 1, 0) : oldCount + 1;
   buttonElement.classList.toggle('liked', !wasLiked);
   if (countSpan) countSpan.textContent = newCount;
@@ -238,7 +235,6 @@ const toggleLike = debounce(async (postId, buttonElement) => {
     const postSnap = await getDoc(postRef);
     if (!postSnap.exists()) {
       showToast('Пост не знайдено');
-      // відкочуємо
       buttonElement.classList.toggle('liked', wasLiked);
       if (countSpan) countSpan.textContent = oldCount;
       return;
@@ -247,9 +243,7 @@ const toggleLike = debounce(async (postId, buttonElement) => {
     const postData = postSnap.data();
     const isLiked = postData.likes?.includes(currentUser.uid) || false;
 
-    // Якщо стан не збігається – значить щось змінилося паралельно, пропускаємо
     if (isLiked === wasLiked) {
-      // все добре, виконуємо batch
       const batch = writeBatch(db);
       if (isLiked) {
         batch.update(postRef, {
@@ -273,14 +267,12 @@ const toggleLike = debounce(async (postId, buttonElement) => {
       }
       await batch.commit();
     } else {
-      // Стан розбігається – відкочуємо оптимістичне оновлення
       buttonElement.classList.toggle('liked', isLiked);
       if (countSpan) countSpan.textContent = postData.likesCount || 0;
     }
   } catch (error) {
     console.error('Помилка toggleLike:', error);
     showToast('Не вдалося оновити лайк. Спробуйте ще.');
-    // Повне відкочування до стану до кліку
     buttonElement.classList.toggle('liked', wasLiked);
     if (countSpan) countSpan.textContent = oldCount;
   } finally {
@@ -342,7 +334,6 @@ const toggleFollow = debounce(async (targetUid, buttonElement) => {
   const wasFollowing = currentUserFollowing.includes(targetUid);
   const newFollowingState = !wasFollowing;
 
-  // Оптимістичне оновлення глобального масиву та кнопки
   if (newFollowingState) {
     currentUserFollowing.push(targetUid);
   } else {
@@ -370,7 +361,6 @@ const toggleFollow = debounce(async (targetUid, buttonElement) => {
     await batch.commit();
   } catch (error) {
     console.error('Follow error:', error);
-    // Відкочуємо глобальний стан
     if (newFollowingState) {
       currentUserFollowing = currentUserFollowing.filter(id => id !== targetUid);
     } else {
@@ -405,7 +395,6 @@ navItems.forEach((item) => {
     
     cleanupListeners();
     
-    // При переході на інший розділ ховаємо вікно чату і показуємо меню
     const chatWindow = document.getElementById('chatWindowContainer');
     if (chatWindow) chatWindow.style.display = 'none';
     const chatSidebar = document.getElementById('chatListSidebar');
@@ -485,7 +474,7 @@ function setupEmojiPicker(buttonId, pickerId, inputId) {
   });
 }
 
-// ================= Кастомний вибір файлу =================
+// ================= Кастомний вибір файлу (залишаємо для аватара та редагування) =================
 function setupFileInput(inputId, labelId, previewId) {
   const input = document.getElementById(inputId);
   const label = document.getElementById(labelId);
@@ -860,7 +849,6 @@ onAuthStateChanged(auth, (user) => {
         currentUserData = docSnap.data();
         currentUserFollowing = docSnap.data().following || [];
         
-        // Завантажуємо налаштування користувача
         if (currentUserData.settings) {
           Object.assign(userSettings, currentUserData.settings);
           applySettings();
@@ -905,11 +893,107 @@ onAuthStateChanged(auth, (user) => {
     setupEmojiPicker('postEmojiBtn', 'postEmojiPicker', 'postText');
     setupEmojiPicker('chatEmojiBtn', 'chatEmojiPicker', 'chatText');
 
-    setupFileInput('postMedia1', 'postMediaLabel1', 'postMediaPreview1');
-    setupFileInput('postMedia2', 'postMediaLabel2', 'postMediaPreview2');
-    setupFileInput('postMedia3', 'postMediaLabel3', 'postMediaPreview3');
+    // Налаштовуємо тільки потрібні file inputs (аватар, редагування поста)
     setupFileInput('editAvatar', 'editAvatarLabel', 'editAvatarPreview');
     setupFileInput('editPostMedia', 'editPostMediaLabel', 'editPostMediaPreview');
+
+    // ========== НОВИЙ ОБРОБНИК ДЛЯ МУЛЬТИМЕДІА ==========
+    const postMediaInput = document.getElementById('postMedia');
+    const postMediaPreviews = document.getElementById('postMediaPreviews');
+    const postMediaLabel = document.getElementById('postMediaLabel');
+
+    if (postMediaInput) {
+      postMediaInput.addEventListener('change', function() {
+        postMediaPreviews.innerHTML = '';
+        
+        const files = Array.from(this.files);
+        const maxFiles = 3;
+        if (files.length > maxFiles) {
+          showToast(`Можна вибрати не більше ${maxFiles} файлів`);
+          this.value = '';
+          return;
+        }
+        
+        postMediaLabel.textContent = files.length ? `Вибрано ${files.length} файлів` : '+ Медіа (до 3 файлів)';
+        
+        files.forEach((file, index) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const previewContainer = document.createElement('div');
+            previewContainer.style.position = 'relative';
+            previewContainer.style.width = '80px';
+            previewContainer.style.height = '80px';
+            
+            if (file.type.startsWith('image/')) {
+              const img = document.createElement('img');
+              img.src = e.target.result;
+              img.style.width = '100%';
+              img.style.height = '100%';
+              img.style.objectFit = 'cover';
+              img.style.borderRadius = '8px';
+              img.style.border = '1px solid var(--border)';
+              previewContainer.appendChild(img);
+            } else if (file.type.startsWith('video/')) {
+              const video = document.createElement('video');
+              video.src = e.target.result;
+              video.style.width = '100%';
+              video.style.height = '100%';
+              video.style.objectFit = 'cover';
+              video.style.borderRadius = '8px';
+              video.style.border = '1px solid var(--border)';
+              video.muted = true;
+              video.preload = 'metadata';
+              video.addEventListener('loadeddata', () => {
+                video.currentTime = 0.1;
+              });
+              previewContainer.appendChild(video);
+              
+              const playIcon = document.createElement('span');
+              playIcon.innerHTML = '▶️';
+              playIcon.style.position = 'absolute';
+              playIcon.style.top = '50%';
+              playIcon.style.left = '50%';
+              playIcon.style.transform = 'translate(-50%, -50%)';
+              playIcon.style.fontSize = '24px';
+              playIcon.style.opacity = '0.7';
+              previewContainer.appendChild(playIcon);
+            }
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '✕';
+            removeBtn.style.position = 'absolute';
+            removeBtn.style.top = '-5px';
+            removeBtn.style.right = '-5px';
+            removeBtn.style.width = '22px';
+            removeBtn.style.height = '22px';
+            removeBtn.style.borderRadius = '50%';
+            removeBtn.style.background = 'var(--danger)';
+            removeBtn.style.color = 'white';
+            removeBtn.style.border = 'none';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.fontSize = '14px';
+            removeBtn.style.display = 'flex';
+            removeBtn.style.alignItems = 'center';
+            removeBtn.style.justifyContent = 'center';
+            removeBtn.style.padding = '0';
+            removeBtn.setAttribute('data-index', index);
+            
+            removeBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const dt = new DataTransfer();
+              const updatedFiles = files.filter((_, i) => i !== index);
+              updatedFiles.forEach(f => dt.items.add(f));
+              postMediaInput.files = dt.files;
+              postMediaInput.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            
+            previewContainer.appendChild(removeBtn);
+            postMediaPreviews.appendChild(previewContainer);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+    }
   } else {
     currentUser = null;
     currentUserData = null;
@@ -970,26 +1054,30 @@ async function uploadToCloudinary(file) {
   return data.secure_url;
 }
 
-// ================= Додавання поста =================
+// ================= Додавання поста (оновлено) =================
 document.getElementById('addPost').onclick = async () => {
   if (!currentUser) {
     showToast('Увійдіть, щоб опублікувати пост');
     return;
   }
   const text = document.getElementById('postText').value.trim();
-  const fileInputs = [
-    document.getElementById('postMedia1'),
-    document.getElementById('postMedia2'),
-    document.getElementById('postMedia3')
-  ];
-  const files = fileInputs.map(input => input.files[0]).filter(f => f);
+  const fileInput = document.getElementById('postMedia');
+  const files = fileInput.files ? Array.from(fileInput.files) : [];
 
   if (!text && files.length === 0) {
     showToast('Додайте текст або медіа');
     return;
   }
 
+  const MAX_FILES = 3;
+  if (files.length > MAX_FILES) {
+    showToast(`Можна вибрати не більше ${MAX_FILES} файлів`);
+    return;
+  }
+
   try {
+    showToast('Завантаження...');
+    
     const media = [];
     for (const file of files) {
       const url = await uploadToCloudinary(file);
@@ -1025,16 +1113,14 @@ document.getElementById('addPost').onclick = async () => {
     await updateDoc(doc(db, "users", currentUser.uid), { posts: arrayUnion(postDoc.id) });
 
     document.getElementById('postText').value = '';
-    fileInputs.forEach((input, index) => {
-      input.value = '';
-      document.getElementById(`postMediaLabel${index+1}`).textContent = `+ Медіа ${index+1}`;
-      const preview = document.getElementById(`postMediaPreview${index+1}`);
-      if (preview) preview.classList.remove('show');
-    });
+    fileInput.value = '';
+    document.getElementById('postMediaPreviews').innerHTML = '';
+    document.getElementById('postMediaLabel').textContent = '+ Медіа (до 3 файлів)';
 
     showToast('Пост опубліковано!');
   } catch (e) {
-    showToast(e.message);
+    console.error('Помилка створення поста:', e);
+    showToast('Помилка: ' + e.message);
   }
 };
 
@@ -1542,9 +1628,7 @@ function renderProfile(data, uid, isOwn) {
   const header = document.getElementById('profileHeader');
   if (!header) return;
 
-  // Перевірка, чи заблокував профіль поточного користувача
   const isBlockedByTarget = data.blockedUsers?.includes(currentUser?.uid) || false;
-  // Перевірка, чи поточний користувач заблокував цей профіль
   const isBlockedByMe = currentUserData?.blockedUsers?.includes(uid) || false;
 
   if (isBlockedByTarget || isBlockedByMe) {
@@ -1562,7 +1646,6 @@ function renderProfile(data, uid, isOwn) {
 
   const isFollowing = !isOwn && currentUser ? (data.followers?.includes(currentUser.uid) || false) : false;
 
-  // Перевірка приватності для підписників
   const canSeeFollowers = () => {
     if (isOwn) return true;
     const privacy = data.settings?.privacy?.whoCanSeeFollowers || 'everyone';
@@ -2208,7 +2291,6 @@ function formatMessageDate(timestamp) {
   return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
 }
 
-// Відправка повідомлення
 document.getElementById('sendMessage')?.addEventListener('click', sendMessage);
 document.getElementById('chatText')?.addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -2353,7 +2435,7 @@ document.getElementById('messageContextMenu')?.addEventListener('click', async (
         navigator.clipboard.writeText(text).then(() => showToast('Скопійовано'));
       }
       break;
-    case 'delete':
+    case 'deleteSelf':
       if (confirm('Видалити це повідомлення для себе?')) {
         showToast('Функція видалення для себе буде реалізована');
       }
@@ -2458,7 +2540,6 @@ async function searchUsersForChat(query) {
     const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
     const usersMap = new Map();
     
-    // Виключаємо себе та заблокованих
     const blockedByMe = currentUserData?.blockedUsers || [];
     snap1.forEach(d => {
       if (d.id !== currentUser.uid && !blockedByMe.includes(d.id)) usersMap.set(d.id, d.data());
@@ -2634,7 +2715,6 @@ function updateSettingsUI() {
   if (loginAlertsToggle) loginAlertsToggle.checked = userSettings.security.loginAlerts;
 }
 
-// Додаємо слухачі для всіх перемикачів
 function setupSettingsListeners() {
   const toggleIds = [
     'settingPushNotifications', 'settingEmailNotifications', 'settingSmsNotifications',
@@ -2677,7 +2757,6 @@ function setupSettingsListeners() {
     }
   });
   
-  // Мова
   const langSelect = document.getElementById('settingLanguage');
   if (langSelect) {
     langSelect.addEventListener('change', (e) => {
@@ -2747,7 +2826,6 @@ function applySettings() {
   }
   localStorage.setItem('theme', userSettings.preferences.darkMode ? 'dark' : 'light');
   
-  // Тут можна застосувати інші налаштування (зменшення руху, контраст тощо)
   if (userSettings.preferences.reduceMotion) {
     document.documentElement.style.setProperty('--transition', '0s');
     document.documentElement.style.setProperty('--transition-slow', '0s');
@@ -2759,9 +2837,7 @@ function applySettings() {
   if (userSettings.preferences.highContrast) {
     document.documentElement.style.setProperty('--text-primary', '#000');
     document.documentElement.style.setProperty('--text-secondary', '#222');
-    // можна додати інші зміни
   } else {
-    // повернути стандартні значення (вони залежать від теми)
   }
 }
 
@@ -2944,7 +3020,6 @@ document.addEventListener('click', async (e) => {
   const targetBtn = e.target.closest('button');
   if (!targetBtn) return;
 
-  // Якщо користувач не авторизований, але клікнув на кнопку, що потребує авторизації – показуємо toast
   if (!currentUser) {
     if (targetBtn.classList.contains('like-btn') || targetBtn.classList.contains('save-btn') || targetBtn.classList.contains('follow-btn-post')) {
       showToast('Увійдіть, щоб виконати цю дію');
@@ -2953,13 +3028,11 @@ document.addEventListener('click', async (e) => {
     return;
   }
 
-  // Лайк (використовуємо дебаунс)
   if (targetBtn.classList.contains('like-btn')) {
     const postId = targetBtn.dataset.postId;
     await toggleLike(postId, targetBtn);
   }
 
-  // Збереження (використовуємо дебаунс)
   if (targetBtn.classList.contains('save-btn')) {
     const postId = targetBtn.dataset.postId;
     await toggleSave(postId, targetBtn);
