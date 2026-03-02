@@ -201,6 +201,27 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 8px;
+  margin-right: 8px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+}
+.back-btn:hover {
+  background: var(--surface);
+}
+.back-btn.visible {
+  display: inline-flex;
+}
 .content {
   flex: 1;
   overflow-y: auto;
@@ -276,6 +297,28 @@ body {
   margin-left: 8px;
   animation: pulse-soft 1.8s infinite;
   flex-shrink: 0;
+}
+/* Нотатка над аватаром */
+.note-badge {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: var(--btn-primary-text);
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 2px solid var(--card);
+  z-index: 2;
+  animation: scaleIn 0.3s ease-out;
+}
+.chat-avatar {
+  position: relative;
 }
 
 /* ========== КНОПКИ ========== */
@@ -1476,6 +1519,65 @@ body.dark .emoji-picker .emoji-item:hover {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15), var(--shadow-glow);
   outline: none;
+}
+/* Прев’ю відповіді в полі вводу */
+.reply-preview {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px;
+  margin: 0 16px 8px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  animation: slideUpFade 0.3s ease-out;
+}
+.reply-preview .reply-sender {
+  font-weight: 600;
+  margin-right: 8px;
+  color: var(--accent);
+}
+.reply-preview .reply-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary);
+}
+.reply-preview .close-reply {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0 4px;
+}
+.reply-preview .close-reply:hover {
+  color: var(--danger);
+}
+/* Прев’ю відповіді всередині бульбашки */
+.message-reply-preview {
+  background: rgba(0,0,0,0.05);
+  border-left: 3px solid var(--accent);
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.message-reply-preview:hover {
+  background: rgba(0,0,0,0.1);
+}
+.message-reply-preview .reply-sender {
+  font-weight: 600;
+  color: var(--accent);
+}
+.message-reply-preview .reply-text {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .context-menu {
   position: fixed;
