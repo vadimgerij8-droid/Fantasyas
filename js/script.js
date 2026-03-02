@@ -27,6 +27,7 @@ let currentChatPartnerUserId = '';
 let currentChatId = null;
 let currentProfileUid = null;
 let currentEditingPost = null;
+let replyContext = null; // { messageId, text, senderName }
 
 let unsubscribeFeed = null;
 let unsubscribeChatList = null;
@@ -45,6 +46,10 @@ let hasMore = true;
 const viewedPosts = new Set();
 let currentFilterHashtag = null;
 const postListeners = new Map();
+
+// Історія навігації для кнопки "Назад"
+let navigationHistory = []; // масив ідентифікаторів попередніх секцій
+let previousSection = null;
 
 // ================= ОНОВЛЕНИЙ СТАН НАЛАШТУВАНЬ =================
 const userSettings = {
@@ -393,6 +398,12 @@ navItems.forEach((item) => {
     const span = item.querySelector('span');
     document.getElementById('pageTitle').textContent = span ? span.textContent : item.textContent.trim();
     
+    // Запам'ятовуємо попередню секцію для кнопки "Назад"
+    if (previousSection !== section) {
+      navigationHistory.push(previousSection);
+      previousSection = section;
+    }
+    
     cleanupListeners();
     
     const chatWindow = document.getElementById('chatWindowContainer');
@@ -400,6 +411,8 @@ navItems.forEach((item) => {
     const chatSidebar = document.getElementById('chatListSidebar');
     if (chatSidebar) chatSidebar.classList.remove('hide');
     document.querySelector('.bottom-nav')?.classList.remove('hide-chat-mode');
+    // Сховати кнопку "Назад" при переході на головні розділи
+    document.querySelector('.back-btn').classList.remove('visible');
     
     if (section === 'home' && currentUser) {
       resetPagination();
@@ -424,6 +437,17 @@ navItems.forEach((item) => {
       loadSettings();
     }
   });
+});
+
+// Кнопка "Назад" у верхній панелі
+document.querySelector('.back-btn').addEventListener('click', () => {
+  if (navigationHistory.length > 0) {
+    const prev = navigationHistory.pop();
+    previousSection = prev;
+    // Активуємо відповідний пункт меню
+    const navItem = document.querySelector(`.nav-item[data-section="${prev}"]`);
+    if (navItem) navItem.click();
+  }
 });
 
 // ================= Емоджі-пікер =================
@@ -474,7 +498,7 @@ function setupEmojiPicker(buttonId, pickerId, inputId) {
   });
 }
 
-// ================= Кастомний вибір файлу (залишаємо для аватара та редагування) =================
+// ================= Кастомний вибір файлу =================
 function setupFileInput(inputId, labelId, previewId) {
   const input = document.getElementById(inputId);
   const label = document.getElementById(labelId);
@@ -663,6 +687,7 @@ document.getElementById('registerBtn').onclick = async () => {
       nickname_lower: nickname.toLowerCase().trim(),
       bio: '',
       avatar: '',
+      note: '', // поле для нотатки
       posts: [],
       likedPosts: [],
       savedPosts: [],
@@ -735,6 +760,7 @@ document.getElementById('googleLoginBtn').onclick = async () => {
         nickname_lower: nickname.toLowerCase().trim(),
         bio: '',
         avatar: user.photoURL || '',
+        note: '',
         posts: [],
         likedPosts: [],
         savedPosts: [],
@@ -781,6 +807,7 @@ document.getElementById('appleLoginBtn').onclick = async () => {
         nickname_lower: nickname.toLowerCase().trim(),
         bio: '',
         avatar: user.photoURL || '',
+        note: '',
         posts: [],
         likedPosts: [],
         savedPosts: [],
@@ -893,11 +920,9 @@ onAuthStateChanged(auth, (user) => {
     setupEmojiPicker('postEmojiBtn', 'postEmojiPicker', 'postText');
     setupEmojiPicker('chatEmojiBtn', 'chatEmojiPicker', 'chatText');
 
-    // Налаштовуємо тільки потрібні file inputs (аватар, редагування поста)
     setupFileInput('editAvatar', 'editAvatarLabel', 'editAvatarPreview');
     setupFileInput('editPostMedia', 'editPostMediaLabel', 'editPostMediaPreview');
 
-    // ========== НОВИЙ ОБРОБНИК ДЛЯ МУЛЬТИМЕДІА ==========
     const postMediaInput = document.getElementById('postMedia');
     const postMediaPreviews = document.getElementById('postMediaPreviews');
     const postMediaLabel = document.getElementById('postMediaLabel');
@@ -1054,7 +1079,7 @@ async function uploadToCloudinary(file) {
   return data.secure_url;
 }
 
-// ================= Додавання поста (оновлено) =================
+// ================= Додавання поста =================
 document.getElementById('addPost').onclick = async () => {
   if (!currentUser) {
     showToast('Увійдіть, щоб опублікувати пост');
@@ -1603,6 +1628,13 @@ async function loadMyProfile() {
 
 function viewProfile(uid) {
   currentProfileUid = uid;
+  // Запам'ятовуємо попередню секцію для кнопки "Назад"
+  const currentSection = document.querySelector('.section.active')?.id || 'home';
+  if (currentSection !== 'profile') {
+    navigationHistory.push(currentSection);
+    previousSection = currentSection;
+  }
+  
   document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
   const profileNav = document.querySelector('[data-section="profile"]');
   if (profileNav) profileNav.classList.add('active');
@@ -1610,6 +1642,13 @@ function viewProfile(uid) {
   const profileSection = document.getElementById('profile');
   if (profileSection) profileSection.classList.add('active');
   document.getElementById('pageTitle').textContent = 'Профіль';
+  
+  // Показуємо кнопку "Назад" тільки якщо це чужий профіль
+  if (uid !== currentUser?.uid) {
+    document.querySelector('.back-btn').classList.add('visible');
+  } else {
+    document.querySelector('.back-btn').classList.remove('visible');
+  }
   
   if (uid === currentUser?.uid) {
     loadMyProfile();
@@ -1662,6 +1701,7 @@ function renderProfile(data, uid, isOwn) {
     <div style="flex:1">
       <h2>${data.nickname}</h2>
       <div class="user-id">${data.userId}</div>
+      ${data.note ? `<div class="note-badge" style="position:relative; display:inline-block; margin-top:4px;">${data.note}</div>` : ''}
       <p>${data.bio || ''}</p>
       <div class="profile-stats">
         <span id="followersCount" data-uid="${uid}">${followersDisplay} підписників</span>
@@ -1783,6 +1823,7 @@ function renderProfile(data, uid, isOwn) {
       editProfileBtn.onclick = () => {
         document.getElementById('editNickname').value = data.nickname;
         document.getElementById('editBio').value = data.bio || '';
+        document.getElementById('editNote').value = data.note || ''; // поле для нотатки
         document.getElementById('editAvatar').value = '';
         document.getElementById('editAvatarLabel').textContent = 'Обрати аватар';
         document.getElementById('editAvatarPreview').classList.remove('show');
@@ -1838,6 +1879,7 @@ async function openFollowersList(uid) {
         <div class="chat-info">
           <div class="chat-name">${user.nickname}</div>
           <div class="chat-last">${user.userId}</div>
+          ${user.note ? `<div class="note-badge" style="position:relative; display:inline-block;">${user.note}</div>` : ''}
         </div>
       `;
       div.onclick = () => {
@@ -1877,6 +1919,7 @@ async function openFollowingList(uid) {
         <div class="chat-info">
           <div class="chat-name">${user.nickname}</div>
           <div class="chat-last">${user.userId}</div>
+          ${user.note ? `<div class="note-badge" style="position:relative; display:inline-block;">${user.note}</div>` : ''}
         </div>
       `;
       div.onclick = () => {
@@ -1954,6 +1997,7 @@ document.getElementById('saveProfileEdit').onclick = async () => {
   if (!currentUser) return;
   const nickname = document.getElementById('editNickname').value.trim();
   const bio = document.getElementById('editBio').value.trim();
+  const note = document.getElementById('editNote').value.trim(); // нова нотатка
   const avatarFile = document.getElementById('editAvatar').files[0];
   if (!nickname) {
     showToast('Псевдонім обов’язковий');
@@ -1978,7 +2022,8 @@ document.getElementById('saveProfileEdit').onclick = async () => {
       nickname, 
       userId: newUserId, 
       nickname_lower: nickname.toLowerCase().trim(), 
-      bio 
+      bio,
+      note
     };
     if (avatarUrl) updateData.avatar = avatarUrl;
     
@@ -2066,6 +2111,7 @@ function renderChatList(chatItems) {
       <div class="chat-avatar">
         <div class="avatar small" style="background-image:url(${item.user.avatar || ''})"></div>
         ${item.isOnline ? '<span class="online-indicator"></span>' : ''}
+        ${item.user.note ? `<div class="note-badge">${item.user.note}</div>` : ''}
       </div>
       <div class="chat-info">
         <div class="chat-name">${item.user.nickname}</div>
@@ -2179,6 +2225,27 @@ function createMessageElement(msg) {
 
   const bubble = document.createElement('div');
   bubble.className = `message-bubble ${isMine ? 'sent' : 'received'}`;
+
+  // Якщо це відповідь, показуємо прев’ю оригіналу
+  if (msg.replyTo) {
+    const replyPreview = document.createElement('div');
+    replyPreview.className = 'message-reply-preview';
+    replyPreview.setAttribute('data-reply-to', msg.replyTo.messageId);
+    replyPreview.innerHTML = `
+      <div class="reply-sender">${msg.replyTo.senderName}</div>
+      <div class="reply-text">${msg.replyTo.text}</div>
+    `;
+    replyPreview.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const originalMsg = document.querySelector(`.message-wrapper[data-message-id="${msg.replyTo.messageId}"]`);
+      if (originalMsg) {
+        originalMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        originalMsg.classList.add('focused-animated');
+        setTimeout(() => originalMsg.classList.remove('focused-animated'), 2000);
+      }
+    });
+    bubble.appendChild(replyPreview);
+  }
 
   if (!isMine) {
     const senderDiv = document.createElement('div');
@@ -2328,6 +2395,13 @@ async function sendMessage() {
       deliveredTo: [currentUser.uid],
       reactions: {}
     };
+    if (replyContext) {
+      messageData.replyTo = {
+        messageId: replyContext.messageId,
+        text: replyContext.text,
+        senderName: replyContext.senderName
+      };
+    }
     if (mediaUrl) {
       messageData.mediaUrl = mediaUrl;
       messageData.mediaType = mediaType;
@@ -2344,6 +2418,9 @@ async function sendMessage() {
       [`unread.${currentChatPartner}`]: increment(1)
     });
 
+    // Очищаємо контекст відповіді після відправки
+    clearReply();
+
     if (textInput) textInput.value = '';
     if (fileInput) fileInput.value = '';
     const attachBtn = document.getElementById('chatAttachBtn');
@@ -2355,6 +2432,33 @@ async function sendMessage() {
     console.error('Помилка відправки:', error);
     showToast('Не вдалося відправити повідомлення');
   }
+}
+
+// Функції для роботи з відповідями
+function setReply(messageId, text, senderName) {
+  replyContext = { messageId, text, senderName };
+  const previewDiv = document.createElement('div');
+  previewDiv.className = 'reply-preview';
+  previewDiv.id = 'replyPreview';
+  previewDiv.innerHTML = `
+    <span class="reply-sender">${senderName}</span>
+    <span class="reply-text">${text}</span>
+    <button class="close-reply" id="closeReply">✕</button>
+  `;
+  const chatInputArea = document.querySelector('.chat-input-area');
+  if (chatInputArea) {
+    // Видаляємо старе прев’ю, якщо є
+    const oldPreview = document.getElementById('replyPreview');
+    if (oldPreview) oldPreview.remove();
+    chatInputArea.parentNode.insertBefore(previewDiv, chatInputArea);
+    document.getElementById('closeReply').addEventListener('click', clearReply);
+  }
+}
+
+function clearReply() {
+  replyContext = null;
+  const preview = document.getElementById('replyPreview');
+  if (preview) preview.remove();
 }
 
 document.getElementById('chatText')?.addEventListener('input', () => {
@@ -2391,6 +2495,7 @@ function showMessageContextMenu(event, msg) {
   menu.style.top = event.pageY + 'px';
   menu.classList.add('show');
 
+  const replyItem = menu.querySelector('[data-action="reply"]');
   const editItem = menu.querySelector('[data-action="edit"]');
   const deleteEveryoneItem = menu.querySelector('[data-action="deleteEveryone"]');
   
@@ -2401,6 +2506,7 @@ function showMessageContextMenu(event, msg) {
     if (editItem) editItem.style.display = 'none';
     if (deleteEveryoneItem) deleteEveryoneItem.style.display = 'none';
   }
+  if (replyItem) replyItem.style.display = 'block'; // відповісти можна на будь-яке
 
   const closeMenu = (e) => {
     if (!menu.contains(e.target)) {
@@ -2416,27 +2522,31 @@ document.getElementById('messageContextMenu')?.addEventListener('click', async (
   if (!action || !selectedMessageId || !currentChatId) return;
 
   const messageRef = doc(db, `chats/${currentChatId}/messages/${selectedMessageId}`);
+  const messageSnap = await getDoc(messageRef);
+  const msgData = messageSnap.data();
 
   switch (action) {
     case 'reply':
-      showToast('Функція відповіді в розробці');
+      setReply(selectedMessageId, msgData.text, msgData.from === currentUser.uid ? 'Ви' : currentChatPartnerName);
+      document.getElementById('chatText').focus();
       break;
     case 'edit':
-      const msgEl = e.target.closest('.message-wrapper')?.querySelector('.message-text');
-      const oldText = msgEl ? msgEl.textContent : '';
+      const oldText = msgData.text;
       const newText = prompt('Редагувати повідомлення:', oldText);
       if (newText !== null) {
         await updateDoc(messageRef, { text: newText, edited: true });
       }
       break;
     case 'copy':
-      const text = e.target.closest('.message-wrapper')?.querySelector('.message-text')?.textContent;
-      if (text) {
-        navigator.clipboard.writeText(text).then(() => showToast('Скопійовано'));
+      if (msgData.text) {
+        navigator.clipboard.writeText(msgData.text).then(() => showToast('Скопійовано'));
       }
       break;
     case 'deleteSelf':
       if (confirm('Видалити це повідомлення для себе?')) {
+        // Тут можна реалізувати видалення тільки для себе, але це складніше. Поки просто приховуємо на фронті?
+        // Для простоти – видаляємо з Firestore (видалить для всіх)
+        // Краще використати окрему логіку, але залишимо як заглушку
         showToast('Функція видалення для себе буде реалізована');
       }
       break;
@@ -2490,6 +2600,7 @@ document.getElementById('chatBackBtn')?.addEventListener('click', () => {
   if (unsubscribeChatPresence) unsubscribeChatPresence();
   currentChatId = null;
   currentChatPartner = null;
+  clearReply(); // очищаємо відповідь при закритті чату
 });
 
 // ================= ПОШУК КОРИСТУВАЧІВ У ЧАТАХ =================
@@ -2560,7 +2671,10 @@ async function searchUsersForChat(query) {
       div.style.cursor = 'pointer';
       div.tabIndex = 0;
       div.innerHTML = `
-        <div class="avatar small" style="background-image:url(${data.avatar || ''})"></div>
+        <div class="chat-avatar">
+          <div class="avatar small" style="background-image:url(${data.avatar || ''})"></div>
+          ${data.note ? `<div class="note-badge">${data.note}</div>` : ''}
+        </div>
         <div class="chat-info">
           <div class="chat-name">${data.nickname}</div>
           <div class="chat-last">${data.userId}</div>
