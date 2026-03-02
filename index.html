@@ -23,6 +23,7 @@
 <div class="app">
   <main class="main">
     <div class="top-bar">
+      <button class="back-btn" id="backBtn" aria-label="Назад" style="display: none;">←</button>
       <div class="top-bar-title" id="pageTitle">Головна</div>
     </div>
 
@@ -148,15 +149,19 @@
 
               <div class="chat-messages" id="chatMessages"></div>
               <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <span>друкує</span>
                 <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
               </div>
 
+              <!-- Прев'ю відповіді (спочатку приховане) -->
+              <div id="replyPreview" class="reply-preview" style="display: none;">
+                <span class="reply-sender" id="replySender"></span>
+                <span class="reply-text" id="replyText"></span>
+                <button class="close-reply" id="closeReply">✕</button>
+              </div>
+
               <div class="chat-input-area">
-                <div class="reply-preview" id="replyPreview" style="display: none;">
-                  <span id="replyText"></span>
-                  <button id="cancelReply">✕</button>
-                </div>
-                <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">💫</button>
+                <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
                 <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
                 <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
                 <div class="emoji-picker-container">
@@ -471,6 +476,8 @@
     </div>
     <input type="text" id="editNickname" class="input" placeholder="Псевдонім" tabindex="0"/>
     <textarea id="editBio" class="input" placeholder="Про себе" rows="4" style="margin:14px 0;" tabindex="0"></textarea>
+    <!-- НОВЕ: поле для нотатки -->
+    <input type="text" id="editNote" class="input" placeholder="Нотатка (короткий статус)" style="margin-bottom:14px;" tabindex="0"/>
     <div class="file-input-wrapper" style="margin:14px 0;">
       <input type="file" id="editAvatar" accept="image/*">
       <div class="file-input-button">
