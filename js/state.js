@@ -1,151 +1,116 @@
-// Глобальний стан додатку
-export let currentUser = null;
-export let currentUserData = null;
-export let currentUserFollowing = [];
-export let currentChatPartner = null;
-export let currentChatPartnerName = '';
-export let currentChatPartnerAvatar = '';
-export let currentChatPartnerUserId = '';
-export let currentChatId = null;
-export let currentProfileUid = null;
-export let currentEditingPost = null;
-export let replyContext = null; // { messageId, text, senderName }
+// ================= Глобальний стан додатку =================
+export const state = {
+  currentUser: null,
+  currentUserData: null,
+  currentUserFollowing: [],
+  currentChatPartner: null,
+  currentChatPartnerName: '',
+  currentChatPartnerAvatar: '',
+  currentChatPartnerUserId: '',
+  currentChatId: null,
+  currentProfileUid: null,
+  currentEditingPost: null,
+  replyContext: null, // { messageId, text, senderName }
 
-export let unsubscribeFeed = null;
-export let unsubscribeChatList = null;
-export let unsubscribeMessages = null;
-export let unsubscribeTyping = null;
-export let unsubscribeChatPresence = null;
-export let unsubscribeFollowing = null;
-export let lastOnlineInterval = null;
+  unsubscribeFeed: null,
+  unsubscribeChatList: null,
+  unsubscribeMessages: null,
+  unsubscribeTyping: null,
+  unsubscribeChatPresence: null,
+  unsubscribeFollowing: null,
+  lastOnlineInterval: null,
 
-export let unreadCount = 0;
-export let currentFeedType = 'new';
-export let lastVisible = null;
-export let loading = false;
-export let hasMore = true;
+  unreadCount: 0,
+  currentFeedType: 'new',
+  lastVisible: null,
+  loading: false,
+  hasMore: true,
 
-export const viewedPosts = new Set();
-export let currentFilterHashtag = null;
-export const postListeners = new Map();
+  viewedPosts: new Set(),
+  currentFilterHashtag: null,
+  postListeners: new Map(),
 
-export const navigationHistory = []; // масив ідентифікаторів попередніх секцій
-export let previousSection = null;
+  navigationHistory: [], // масив ідентифікаторів попередніх секцій
+  previousSection: null,
 
-// Карти для запобігання паралельним викликам
-export const likePromiseMap = new Map();
-export const savePromiseMap = new Map();
+  likePromiseMap: new Map(),
+  savePromiseMap: new Map(),
 
-// Стан налаштувань (за замовчуванням)
-export const userSettings = {
-  notifications: {
-    push: true,
-    email: true,
-    sms: false,
-    privateChats: true,
-    likes: true,
-    comments: true,
-    newFollowers: true,
-    mentions: true,
-    directMessages: true,
-    storyReplies: true
-  },
-  privacy: {
-    privateAccount: false,
-    activityStatus: true,
-    storySharing: true,
-    allowTags: 'everyone',
-    allowMentions: 'everyone',
-    blockedAccounts: [],
-    whoCanMessage: 'everyone',
-    whoCanSeeOnline: 'everyone',
-    whoCanSeeFollowers: 'everyone'
-  },
-  security: {
-    twoFactor: false,
-    loginAlerts: true,
-    savedLogins: []
-  },
-  preferences: {
-    language: 'uk',
-    darkMode: false,
-    reduceMotion: false,
-    highContrast: false,
-    autoplayVideos: true,
-    soundEffects: true
+  userSettings: {
+    notifications: {
+      push: true, email: true, sms: false, privateChats: true,
+      likes: true, comments: true, newFollowers: true, mentions: true,
+      directMessages: true, storyReplies: true
+    },
+    privacy: {
+      privateAccount: false, activityStatus: true, storySharing: true,
+      allowTags: 'everyone', allowMentions: 'everyone', blockedAccounts: [],
+      whoCanMessage: 'everyone', whoCanSeeOnline: 'everyone', whoCanSeeFollowers: 'everyone'
+    },
+    security: { twoFactor: false, loginAlerts: true, savedLogins: [] },
+    preferences: {
+      language: 'uk', darkMode: false, reduceMotion: false, highContrast: false,
+      autoplayVideos: true, soundEffects: true
+    }
   }
 };
 
-// Функції для оновлення стану
-export function setCurrentUser(user) {
-  currentUser = user;
-}
-
+// ================= Сетери для оновлення стану =================
+export function setCurrentUser(user) { state.currentUser = user; }
 export function setCurrentUserData(data) {
-  currentUserData = data;
-  currentUserFollowing = data?.following || [];
+  state.currentUserData = data;
+  state.currentUserFollowing = data?.following || [];
 }
-
 export function setCurrentChat(chatId, partnerUid, name, userId, avatar) {
-  currentChatId = chatId;
-  currentChatPartner = partnerUid;
-  currentChatPartnerName = name;
-  currentChatPartnerUserId = userId;
-  currentChatPartnerAvatar = avatar;
+  state.currentChatId = chatId;
+  state.currentChatPartner = partnerUid;
+  state.currentChatPartnerName = name;
+  state.currentChatPartnerUserId = userId;
+  state.currentChatPartnerAvatar = avatar;
 }
-
 export function clearChatState() {
-  currentChatId = null;
-  currentChatPartner = null;
-  currentChatPartnerName = '';
-  currentChatPartnerUserId = '';
-  currentChatPartnerAvatar = '';
-  replyContext = null;
+  state.currentChatId = null;
+  state.currentChatPartner = null;
+  state.currentChatPartnerName = '';
+  state.currentChatPartnerUserId = '';
+  state.currentChatPartnerAvatar = '';
+  state.replyContext = null;
 }
-
 export function setReplyContext(messageId, text, senderName) {
-  replyContext = { messageId, text, senderName };
+  state.replyContext = { messageId, text, senderName };
 }
-
-export function clearReplyContext() {
-  replyContext = null;
+export function clearReplyContext() { state.replyContext = null; }
+export function setCurrentFeedType(type) { state.currentFeedType = type; }
+export function setFilterHashtag(tag) { state.currentFilterHashtag = tag; }
+export function setLoading(value) { state.loading = value; }
+export function setHasMore(value) { state.hasMore = value; }
+export function setLastVisible(value) { state.lastVisible = value; }
+export function addViewedPost(postId) { state.viewedPosts.add(postId); }
+export function addPostListener(postId, unsubscribe) { state.postListeners.set(postId, unsubscribe); }
+export function removePostListener(postId) {
+  const unsub = state.postListeners.get(postId);
+  if (unsub) { unsub(); state.postListeners.delete(postId); }
 }
+export function updateUnreadCount(delta) { state.unreadCount = Math.max(0, state.unreadCount + delta); }
 
-export function setCurrentFeedType(type) {
-  currentFeedType = type;
-}
+// Сетери для слухачів
+export function setUnsubscribeFeed(fn) { state.unsubscribeFeed = fn; }
+export function setUnsubscribeChatList(fn) { state.unsubscribeChatList = fn; }
+export function setUnsubscribeMessages(fn) { state.unsubscribeMessages = fn; }
+export function setUnsubscribeTyping(fn) { state.unsubscribeTyping = fn; }
+export function setUnsubscribeChatPresence(fn) { state.unsubscribeChatPresence = fn; }
+export function setUnsubscribeFollowing(fn) { state.unsubscribeFollowing = fn; }
+export function setLastOnlineInterval(interval) { state.lastOnlineInterval = interval; }
 
-export function setFilterHashtag(tag) {
-  currentFilterHashtag = tag;
-}
-
-export function resetPaginationState() {
-  lastVisible = null;
-  hasMore = true;
-  loading = false;
-}
-
-export function updateUnreadCount(delta) {
-  unreadCount = Math.max(0, unreadCount + delta);
-}
-
-// Слухачі
-export function setUnsubscribeFeed(fn) { unsubscribeFeed = fn; }
-export function setUnsubscribeChatList(fn) { unsubscribeChatList = fn; }
-export function setUnsubscribeMessages(fn) { unsubscribeMessages = fn; }
-export function setUnsubscribeTyping(fn) { unsubscribeTyping = fn; }
-export function setUnsubscribeChatPresence(fn) { unsubscribeChatPresence = fn; }
-export function setUnsubscribeFollowing(fn) { unsubscribeFollowing = fn; }
-export function setLastOnlineInterval(interval) { lastOnlineInterval = interval; }
-
+// Очищення всіх слухачів
 export function cleanupAllListeners() {
-  if (unsubscribeFeed) { unsubscribeFeed(); unsubscribeFeed = null; }
-  if (unsubscribeChatList) { unsubscribeChatList(); unsubscribeChatList = null; }
-  if (unsubscribeMessages) { unsubscribeMessages(); unsubscribeMessages = null; }
-  if (unsubscribeTyping) { unsubscribeTyping(); unsubscribeTyping = null; }
-  if (unsubscribeChatPresence) { unsubscribeChatPresence(); unsubscribeChatPresence = null; }
-  if (unsubscribeFollowing) { unsubscribeFollowing(); unsubscribeFollowing = null; }
-  if (lastOnlineInterval) { clearInterval(lastOnlineInterval); lastOnlineInterval = null; }
-  postListeners.forEach(unsub => unsub());
-  postListeners.clear();
+  if (state.unsubscribeFeed) { state.unsubscribeFeed(); state.unsubscribeFeed = null; }
+  if (state.unsubscribeChatList) { state.unsubscribeChatList(); state.unsubscribeChatList = null; }
+  if (state.unsubscribeMessages) { state.unsubscribeMessages(); state.unsubscribeMessages = null; }
+  if (state.unsubscribeTyping) { state.unsubscribeTyping(); state.unsubscribeTyping = null; }
+  if (state.unsubscribeChatPresence) { state.unsubscribeChatPresence(); state.unsubscribeChatPresence = null; }
+  if (state.unsubscribeFollowing) { state.unsubscribeFollowing(); state.unsubscribeFollowing = null; }
+  if (state.lastOnlineInterval) { clearInterval(state.lastOnlineInterval); state.lastOnlineInterval = null; }
+  state.postListeners.forEach(unsub => unsub());
+  state.postListeners.clear();
 }
