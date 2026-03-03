@@ -1,9 +1,10 @@
 // ================= Головний файл, точка входу =================
 import { auth, db } from './config.js';
-import { 
-  currentUser, currentUserFollowing, currentUserData, unreadCount, navigationHistory, previousSection,
+import {
+  state,
   setCurrentUser, setCurrentUserData, setLastOnlineInterval, setUnsubscribeFollowing,
-  cleanupAllListeners, userSettings, resetPaginationState
+  cleanupAllListeners, setCurrentFeedType, setFilterHashtag, resetPaginationState,
+  updateUnreadCount, setUnsubscribeChatList
 } from './state.js';
 import { showToast, updateLastOnline, updateUnreadBadge, setupEmojiPicker, setupFileInput, debounce } from './utils.js';
 import { register, login, googleLogin, appleLogin, resetPassword, logout } from './auth.js';
@@ -11,20 +12,16 @@ import { createPost, loadMorePosts, loadHashtags, loadFilterHashtags, clearFilte
 import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFollowingList, blockUser } from './profile.js';
 import { loadChatList, openChat, closeChat, sendMessage, handleTyping, handleMessageContextAction, searchUsersForChat } from './chat.js';
 import { loadSettings, setupSettingsListeners } from './settings.js';
-import { 
-  onAuthStateChanged 
+import {
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { 
-  doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc, getDoc 
+import {
+  doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc, getDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-
-// ================= Глобальні змінні (залишаємо тільки ті, що потрібні для слухачів) =================
-let unsubscribeChatList = null;
 
 // ================= Ініціалізація при завантаженні DOM =================
 document.addEventListener('DOMContentLoaded', () => {
-  // Навігація по розділах
-  const sections = ['home','search','hashtags','profile','chats','settings'];
+  const sections = ['home', 'search', 'hashtags', 'profile', 'chats', 'settings'];
   const navItems = document.querySelectorAll('.bottom-nav .nav-item');
 
   navItems.forEach((item) => {
@@ -38,10 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const span = item.querySelector('span');
       document.getElementById('pageTitle').textContent = span ? span.textContent : item.textContent.trim();
 
-      // Запам'ятовуємо попередню секцію для кнопки "Назад"
-      if (previousSection !== section) {
-        navigationHistory.push(previousSection);
-        previousSection = section;
+      if (state.previousSection !== section) {
+        state.navigationHistory.push(state.previousSection);
+        state.previousSection = section;
       }
 
       cleanupAllListeners();
@@ -53,24 +49,24 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelector('.bottom-nav')?.classList.remove('hide-chat-mode');
       document.querySelector('.back-btn').classList.remove('visible');
 
-      if (section === 'home' && currentUser) {
+      if (section === 'home' && state.currentUser) {
         resetPagination();
       }
-      if (section === 'search' && currentUser) {
+      if (section === 'search' && state.currentUser) {
         await loadSearchUsers();
       }
-      if (section === 'hashtags' && currentUser) {
+      if (section === 'hashtags' && state.currentUser) {
         await loadHashtags();
       }
-      if (section === 'chats' && currentUser) {
+      if (section === 'chats' && state.currentUser) {
         document.getElementById('chatWindowContainer').style.display = 'none';
         document.getElementById('chatListSidebar').classList.remove('hide');
         document.getElementById('chatSearchInput').value = '';
         document.getElementById('chatSearchResults').style.display = 'none';
         await loadChatList();
       }
-      if (section === 'profile' && currentUser) {
-        await viewProfile(currentUser.uid);
+      if (section === 'profile' && state.currentUser) {
+        await viewProfile(state.currentUser.uid);
       }
       if (section === 'settings') {
         loadSettings();
@@ -78,17 +74,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Кнопка "Назад"
   document.querySelector('.back-btn').addEventListener('click', () => {
-    if (navigationHistory.length > 0) {
-      const prev = navigationHistory.pop();
-      previousSection = prev;
+    if (state.navigationHistory.length > 0) {
+      const prev = state.navigationHistory.pop();
+      state.previousSection = prev;
       const navItem = document.querySelector(`.nav-item[data-section="${prev}"]`);
       if (navItem) navItem.click();
     }
   });
 
-  // Обробники авторизації
+  // Авторизація
   document.getElementById('toRegister').onclick = () => {
     document.getElementById('loginForm').style.display = 'none';
     document.getElementById('registerForm').style.display = 'block';
@@ -97,34 +92,29 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('registerForm').style.display = 'none';
     document.getElementById('loginForm').style.display = 'block';
   };
-
   document.getElementById('registerBtn').onclick = async () => {
     const nickname = document.getElementById('registerNickname').value.trim();
     const password = document.getElementById('registerPassword').value.trim();
     await register(nickname, password);
   };
-
   document.getElementById('loginBtn').onclick = async () => {
     const nickname = document.getElementById('loginNickname').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
     await login(nickname, password);
   };
-
   document.getElementById('googleLoginBtn').onclick = googleLogin;
   document.getElementById('appleLoginBtn').onclick = appleLogin;
-
   document.getElementById('forgotPassword').onclick = async (e) => {
     e.preventDefault();
     const nickname = prompt('Введіть ваш псевдонім (без @)');
     if (nickname) await resetPassword(nickname);
   };
-
   document.getElementById('logoutBtn').onclick = () => {
     cleanupAllListeners();
     logout();
   };
 
-  // Створення поста
+  // Пости
   document.getElementById('addPost').onclick = async () => {
     const text = document.getElementById('postText').value.trim();
     const fileInput = document.getElementById('postMedia');
@@ -140,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const avatarFile = document.getElementById('editAvatar').files[0];
     await saveProfileEdit(nickname, bio, note, avatarFile);
   };
-
   document.getElementById('closeModal').onclick = () => {
     document.getElementById('editProfileModal').classList.remove('active');
   };
@@ -155,15 +144,15 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   document.getElementById('clearFilterBtn').onclick = clearFilter;
 
-  // Стрічка (нова/популярна)
+  // Стрічка
   document.getElementById('feedNewBtn').onclick = () => {
-    if (currentFeedType === 'new') return;
-    currentFeedType = 'new';
+    if (state.currentFeedType === 'new') return;
+    setCurrentFeedType('new');
     resetPagination();
   };
   document.getElementById('feedPopularBtn').onclick = () => {
-    if (currentFeedType === 'popular') return;
-    currentFeedType = 'popular';
+    if (state.currentFeedType === 'popular') return;
+    setCurrentFeedType('popular');
     resetPagination();
   };
 
@@ -186,13 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('chatAttachBtn').addEventListener('click', () => {
     document.getElementById('chatAttachFile').click();
   });
-  document.getElementById('chatAttachFile').addEventListener('change', function() {
+  document.getElementById('chatAttachFile').addEventListener('change', function () {
     const btn = document.getElementById('chatAttachBtn');
     if (btn) btn.innerHTML = this.files && this.files[0] ? '📁' : '📎';
   });
   document.getElementById('chatBackBtn').addEventListener('click', closeChat);
   document.getElementById('chatAvatar').addEventListener('click', () => {
-    if (currentChatPartner) viewProfile(currentChatPartner);
+    if (state.currentChatPartner) viewProfile(state.currentChatPartner);
   });
   document.getElementById('chatMenuBtn').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -205,25 +194,23 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('chatMenuDropdown').addEventListener('click', async (e) => {
     const action = e.target.dataset.action;
-    if (action === 'viewProfile' && currentChatPartner) {
-      viewProfile(currentChatPartner);
-    } else if (action === 'block' && currentChatPartner) {
-      await blockUser(currentChatPartner);
-    } else if (action === 'clearHistory' && currentChatId) {
+    if (action === 'viewProfile' && state.currentChatPartner) {
+      viewProfile(state.currentChatPartner);
+    } else if (action === 'block' && state.currentChatPartner) {
+      await blockUser(state.currentChatPartner);
+    } else if (action === 'clearHistory' && state.currentChatId) {
       if (confirm('Очистити історію повідомлень?')) {
-        // логіка очищення (можна винести в chat.js)
+        // реалізуйте очищення
       }
     }
     document.getElementById('chatMenuDropdown').classList.remove('show');
   });
 
-  // Контекстне меню повідомлень
   document.getElementById('messageContextMenu').addEventListener('click', (e) => {
     const action = e.target.dataset.action;
     handleMessageContextAction(action);
   });
 
-  // Пошук у чатах
   let searchTimeout;
   document.getElementById('chatSearchInput').addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
@@ -235,7 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
     searchTimeout = setTimeout(() => searchUsersForChat(val), 300);
   });
 
-  // Налаштування
   setupSettingsListeners();
 
   // Закриття модалок
@@ -252,7 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('privacyPolicyModal').classList.add('active');
   };
 
-  // Очищення кешу
   document.getElementById('clearCacheBtn').addEventListener('click', async () => {
     const keysToKeep = ['theme'];
     Object.keys(localStorage).forEach(key => {
@@ -266,26 +251,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('clearSavedMediaBtn').addEventListener('click', async () => {
-    if (!currentUser) return;
+    if (!state.currentUser) return;
     if (!confirm('Видалити всі збережені медіа?')) return;
-    const userRef = doc(db, "users", currentUser.uid);
+    const userRef = doc(db, "users", state.currentUser.uid);
     await updateDoc(userRef, { savedPosts: [] });
     showToast('Збережені медіа очищено');
   });
 
-  // Ініціалізація емуляції файлів
   setupFileInput('editAvatar', 'editAvatarLabel', 'editAvatarPreview');
   setupFileInput('editPostMedia', 'editPostMediaLabel', 'editPostMediaPreview');
   setupEmojiPicker('postEmojiBtn', 'postEmojiPicker', 'postText');
   setupEmojiPicker('chatEmojiBtn', 'chatEmojiPicker', 'chatText');
 
-  // Обробка медіа для поста
   const postMediaInput = document.getElementById('postMedia');
   const postMediaPreviews = document.getElementById('postMediaPreviews');
   const postMediaLabel = document.getElementById('postMediaLabel');
 
   if (postMediaInput) {
-    postMediaInput.addEventListener('change', function() {
+    postMediaInput.addEventListener('change', function () {
       postMediaPreviews.innerHTML = '';
       const files = Array.from(this.files);
       const maxFiles = 3;
@@ -302,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
           previewContainer.style.position = 'relative';
           previewContainer.style.width = '80px';
           previewContainer.style.height = '80px';
-
           if (file.type.startsWith('image/')) {
             const img = document.createElement('img');
             img.src = e.target.result;
@@ -322,11 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
             video.style.border = '1px solid var(--border)';
             video.muted = true;
             video.preload = 'metadata';
-            video.addEventListener('loadeddata', () => {
-              video.currentTime = 0.1;
-            });
+            video.addEventListener('loadeddata', () => { video.currentTime = 0.1; });
             previewContainer.appendChild(video);
-
             const playIcon = document.createElement('span');
             playIcon.innerHTML = '▶️';
             playIcon.style.position = 'absolute';
@@ -337,7 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
             playIcon.style.opacity = '0.7';
             previewContainer.appendChild(playIcon);
           }
-
           const removeBtn = document.createElement('button');
           removeBtn.innerHTML = '✕';
           removeBtn.style.position = 'absolute';
@@ -356,7 +334,6 @@ document.addEventListener('DOMContentLoaded', () => {
           removeBtn.style.justifyContent = 'center';
           removeBtn.style.padding = '0';
           removeBtn.setAttribute('data-index', index);
-
           removeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             const dt = new DataTransfer();
@@ -365,7 +342,6 @@ document.addEventListener('DOMContentLoaded', () => {
             postMediaInput.files = dt.files;
             postMediaInput.dispatchEvent(new Event('change', { bubbles: true }));
           });
-
           previewContainer.appendChild(removeBtn);
           postMediaPreviews.appendChild(previewContainer);
         };
@@ -374,7 +350,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Intersection Observer для пагінації
   const sentinel = document.getElementById('feedSentinel');
   if (sentinel) {
     const observer = new IntersectionObserver((entries) => {
@@ -383,33 +358,28 @@ document.addEventListener('DOMContentLoaded', () => {
     observer.observe(sentinel);
   }
 
-  // Відновлення теми
   if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
 
-  // Глобальний обробник кліків (лайки, збереження, переходи за data-uid)
   document.addEventListener('click', async (e) => {
     const targetBtn = e.target.closest('button');
     if (targetBtn) {
-      if (!currentUser) {
+      if (!state.currentUser) {
         if (targetBtn.classList.contains('like-btn') || targetBtn.classList.contains('save-btn') || targetBtn.classList.contains('follow-btn-post')) {
           showToast('Увійдіть, щоб виконати цю дію');
           return;
         }
       }
-
       if (targetBtn.classList.contains('like-btn')) {
         const postId = targetBtn.dataset.postId;
         const { toggleLike } = await import('./posts.js');
         toggleLike(postId, targetBtn);
       }
-
       if (targetBtn.classList.contains('save-btn')) {
         const postId = targetBtn.dataset.postId;
         const { toggleSave } = await import('./posts.js');
         toggleSave(postId, targetBtn);
       }
     }
-
     const uidElement = e.target.closest('[data-uid]');
     if (uidElement) {
       const uid = uidElement.dataset.uid;
@@ -429,7 +399,6 @@ onAuthStateChanged(auth, (user) => {
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'block';
 
-    // Оновлення онлайн-статусу кожні 30 секунд
     const interval = setInterval(updateLastOnline, 30000);
     setLastOnlineInterval(interval);
 
@@ -438,20 +407,17 @@ onAuthStateChanged(auth, (user) => {
       if (docSnap.exists()) {
         setCurrentUserData(docSnap.data());
         if (docSnap.data().settings) {
-          Object.assign(userSettings, docSnap.data().settings);
-          // Застосувати налаштування
-          if (userSettings.preferences.darkMode) {
+          Object.assign(state.userSettings, docSnap.data().settings);
+          if (state.userSettings.preferences.darkMode) {
             document.body.classList.add('dark');
           } else {
             document.body.classList.remove('dark');
           }
         }
-
-        // Оновлення кнопок підписки в постах
         document.querySelectorAll('.follow-btn-post').forEach(btn => {
           const targetUid = btn.dataset.uid;
           if (targetUid) {
-            const isFollowing = currentUserFollowing.includes(targetUid);
+            const isFollowing = state.currentUserFollowing.includes(targetUid);
             btn.textContent = isFollowing ? 'Відписатися' : 'Підписатися';
             btn.classList.toggle('following', isFollowing);
           }
@@ -462,9 +428,8 @@ onAuthStateChanged(auth, (user) => {
     });
     setUnsubscribeFollowing(unsubFollowing);
 
-    // Підписка на список чатів для оновлення непрочитаних
     const q = query(collection(db, "chats"), where("participants", "array-contains", user.uid));
-    unsubscribeChatList = onSnapshot(q, (snapshot) => {
+    const unsubChatList = onSnapshot(q, (snapshot) => {
       let totalUnread = 0;
       snapshot.forEach(doc => {
         const data = doc.data();
@@ -472,8 +437,8 @@ onAuthStateChanged(auth, (user) => {
           totalUnread += data.unread[user.uid];
         }
       });
-      updateUnreadCount(totalUnread - unreadCount); // оновлюємо різницею
-      updateUnreadBadge(unreadCount);
+      updateUnreadCount(totalUnread - state.unreadCount);
+      updateUnreadBadge(state.unreadCount);
       if (document.getElementById('chats')?.classList.contains('active')) {
         loadChatList();
       }
@@ -481,11 +446,10 @@ onAuthStateChanged(auth, (user) => {
       console.error('Chat list snapshot error:', error);
       showToast('Помилка оновлення списку чатів.');
     });
+    setUnsubscribeChatList(unsubChatList);
 
     resetPagination();
-    // Завантаження власного профілю
     import('./profile.js').then(module => module.loadMyProfile());
-
   } else {
     setCurrentUser(null);
     setCurrentUserData(null);
@@ -497,9 +461,9 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// ================= Функція пошуку користувачів (для секції search) =================
+// ================= Функція пошуку =================
 async function loadSearchUsers() {
-  if (!currentUser) return;
+  if (!state.currentUser) return;
   const val = document.getElementById('searchInput').value.trim().toLowerCase();
   const userList = document.getElementById('userList');
   if (!val) { userList.innerHTML = ''; return; }
@@ -521,7 +485,7 @@ async function loadSearchUsers() {
     return;
   }
 
-  const mySnap = await getDoc(doc(db, "users", currentUser.uid));
+  const mySnap = await getDoc(doc(db, "users", state.currentUser.uid));
   const myFollowing = mySnap.data().following || [];
 
   const q1 = query(collection(db, "users"), where("userId", ">=", val.startsWith('@') ? val : `@${val}`), where("userId", "<=", (val.startsWith('@') ? val : `@${val}`) + '\uf8ff'));
@@ -534,7 +498,7 @@ async function loadSearchUsers() {
 
   userList.innerHTML = '';
   usersMap.forEach((data, uid) => {
-    if (uid === currentUser.uid) return;
+    if (uid === state.currentUser.uid) return;
     const isFollowing = myFollowing.includes(uid);
     const div = document.createElement('div');
     div.className = 'chat-item';
@@ -557,9 +521,8 @@ async function loadSearchUsers() {
   });
 }
 
-// ================= Скидання пагінації (виправлено) =================
 function resetPagination() {
-  resetPaginationState(); // тепер просто викликаємо імпортовану функцію
+  resetPaginationState();
   const feed = document.getElementById('feed');
   if (feed) {
     feed.innerHTML = '';
