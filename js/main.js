@@ -3,19 +3,19 @@ import { auth, db } from './config.js';
 import { 
   currentUser, currentUserFollowing, currentUserData, unreadCount, navigationHistory, previousSection,
   setCurrentUser, setCurrentUserData, setLastOnlineInterval, setUnsubscribeFollowing,
-  cleanupAllListeners, userSettings, updateUnreadCount
+  cleanupAllListeners, userSettings, resetPaginationState
 } from './state.js';
 import { showToast, updateLastOnline, updateUnreadBadge, setupEmojiPicker, setupFileInput, debounce } from './utils.js';
 import { register, login, googleLogin, appleLogin, resetPassword, logout } from './auth.js';
 import { createPost, loadMorePosts, loadHashtags, loadFilterHashtags, clearFilter, applyFilter } from './posts.js';
-import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFollowingList } from './profile.js';
+import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFollowingList, blockUser } from './profile.js';
 import { loadChatList, openChat, closeChat, sendMessage, handleTyping, handleMessageContextAction, searchUsersForChat } from './chat.js';
 import { loadSettings, setupSettingsListeners } from './settings.js';
 import { 
-  onAuthStateChanged, signOut 
+  onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { 
-  doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc 
+  doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc, getDoc 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ================= Глобальні змінні (залишаємо тільки ті, що потрібні для слухачів) =================
@@ -483,7 +483,7 @@ onAuthStateChanged(auth, (user) => {
     });
 
     resetPagination();
-    // Завантаження власного профілю (функція з profile.js, але вона вже імпортована)
+    // Завантаження власного профілю
     import('./profile.js').then(module => module.loadMyProfile());
 
   } else {
@@ -506,8 +506,6 @@ async function loadSearchUsers() {
 
   if (val.startsWith('#')) {
     const tag = val.substring(1);
-    const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-    const { db } = await import('./config.js');
     const q = query(collection(db, "posts"), where("hashtags", "array-contains", tag));
     const snapshot = await getDocs(q);
     userList.innerHTML = '<h3 style="margin-bottom:12px;">Пости з тегом</h3>';
@@ -559,10 +557,9 @@ async function loadSearchUsers() {
   });
 }
 
-// ================= Скидання пагінації =================
+// ================= Скидання пагінації (виправлено) =================
 function resetPagination() {
-  const { resetPaginationState } = require('./state.js');
-  resetPaginationState();
+  resetPaginationState(); // тепер просто викликаємо імпортовану функцію
   const feed = document.getElementById('feed');
   if (feed) {
     feed.innerHTML = '';
