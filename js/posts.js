@@ -273,7 +273,19 @@ export async function deletePost(postId) {
 
 // ================= Завантаження постів (пагінація) =================
 export async function loadMorePosts(containerId = 'feed') {
-  if (!state.currentUser || state.loading || !state.hasMore) return;
+  if (!state.currentUser) {
+    console.log('loadMorePosts: користувач не авторизований');
+    return;
+  }
+  if (state.loading) {
+    console.log('loadMorePosts: вже завантажується');
+    return;
+  }
+  if (!state.hasMore) {
+    console.log('loadMorePosts: більше немає постів');
+    return;
+  }
+  
   state.loading = true;
   const skeleton = document.getElementById('skeletonContainer');
   if (skeleton) skeleton.style.display = 'block';
@@ -281,6 +293,7 @@ export async function loadMorePosts(containerId = 'feed') {
   try {
     let baseQuery;
     if (state.currentFilterHashtag) {
+      console.log('loadMorePosts: фільтр за хештегом', state.currentFilterHashtag);
       baseQuery = query(collection(db, "posts"), where("hashtags", "array-contains", state.currentFilterHashtag));
     } else {
       baseQuery = collection(db, "posts");
@@ -288,15 +301,21 @@ export async function loadMorePosts(containerId = 'feed') {
 
     let q;
     if (state.currentFeedType === 'new' || state.currentFilterHashtag) {
-      // При фільтрі сортуємо тільки за датою, тому що популярні з фільтром потребують складного індексу
+      console.log('loadMorePosts: сортування за датою (нові)');
       q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
     } else {
+      console.log('loadMorePosts: сортування за популярністю');
       q = query(baseQuery, orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
     }
 
-    if (state.lastVisible) q = query(q, startAfter(state.lastVisible));
+    if (state.lastVisible) {
+      console.log('loadMorePosts: є lastVisible, додаємо startAfter');
+      q = query(q, startAfter(state.lastVisible));
+    }
 
     const snapshot = await getDocs(q);
+    console.log('loadMorePosts: отримано документів', snapshot.size);
+    
     if (snapshot.empty) {
       state.hasMore = false;
       return;
@@ -306,17 +325,19 @@ export async function loadMorePosts(containerId = 'feed') {
     renderPosts(snapshot.docs, containerId);
   } catch (e) {
     console.error("Помилка завантаження постів:", e);
-    // Покращена обробка помилки індексу
+    // Покращена обробка помилки
     if (e.code === 'failed-precondition' || e.message.includes('index')) {
       const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
       if (match) {
         console.log('Посилання для створення індексу:', match[0]);
-        showToast(`⚠️ Потрібен індекс. Перейдіть за посиланням у консолі браузера (F12).`);
+        showToast(`⚠️ Потрібен індекс. Скопіюйте посилання з консолі (F12).`);
       } else {
         showToast('⚠️ Потрібно створити складений індекс у Firestore. Перейдіть у Firebase Console.');
       }
+    } else if (e.code === 'permission-denied') {
+      showToast('❌ Недостатньо прав. Перевірте правила безпеки Firestore.');
     } else {
-      showToast('Помилка завантаження. Спробуйте пізніше.');
+      showToast('Помилка завантаження: ' + e.message);
     }
   } finally {
     if (skeleton) skeleton.style.display = 'none';
@@ -327,7 +348,10 @@ export async function loadMorePosts(containerId = 'feed') {
 // ================= Рендеринг постів =================
 export function renderPosts(docs, containerId = 'feed') {
   const feed = document.getElementById(containerId);
-  if (!feed) return;
+  if (!feed) {
+    console.error('renderPosts: контейнер не знайдено', containerId);
+    return;
+  }
 
   docs.forEach(docSnap => {
     const post = { id: docSnap.id, ...docSnap.data() };
