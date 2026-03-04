@@ -5,11 +5,23 @@ import { showToast } from './utils.js';
 import { unblockUser } from './profile.js';
 
 // ================= Завантаження налаштувань =================
-export function loadSettings() {
+export async function loadSettings() {
   if (!currentUser) return;
+
+  // Чекаємо, поки currentUserData завантажиться, якщо ще ні
+  let data = currentUserData;
+  if (!data) {
+    const snap = await getDoc(doc(db, "users", currentUser.uid));
+    data = snap.data();
+  }
+
+  if (data.settings) {
+    Object.assign(userSettings, data.settings);
+  }
+
   updateSettingsUI();
   loadBlockedUsers();
-  loadAccountStats();
+  loadAccountStats(data);
   updatePrivacyUI();
   updateStorageInfo();
 }
@@ -193,13 +205,6 @@ function applySettings() {
     document.documentElement.style.setProperty('--transition', '0.28s cubic-bezier(0.22, 0.61, 0.36, 1)');
     document.documentElement.style.setProperty('--transition-slow', '0.62s cubic-bezier(0.16, 1, 0.3, 1)');
   }
-
-  if (userSettings.preferences.highContrast) {
-    document.documentElement.style.setProperty('--text-primary', '#000');
-    document.documentElement.style.setProperty('--text-secondary', '#222');
-  } else {
-    // Скидання до змінних CSS (залежить від теми)
-  }
 }
 
 async function saveSettingsToFirestore() {
@@ -221,7 +226,12 @@ async function loadBlockedUsers() {
   const container = document.getElementById('blockedUsersList');
   if (!container) return;
 
-  if (!currentUserData || !currentUserData.blockedUsers || currentUserData.blockedUsers.length === 0) {
+  // Отримуємо актуальні дані
+  const snap = await getDoc(doc(db, "users", currentUser.uid));
+  const data = snap.data();
+  const blockedIds = data.blockedUsers || [];
+
+  if (blockedIds.length === 0) {
     container.innerHTML = '<p style="color:var(--text-secondary); padding:10px;">Немає заблокованих користувачів</p>';
     return;
   }
@@ -229,10 +239,10 @@ async function loadBlockedUsers() {
   container.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
 
   const blockedUsers = [];
-  for (const uid of currentUserData.blockedUsers) {
-    const snap = await getDoc(doc(db, "users", uid));
-    if (snap.exists()) {
-      blockedUsers.push({ id: uid, ...snap.data() });
+  for (const uid of blockedIds) {
+    const userSnap = await getDoc(doc(db, "users", uid));
+    if (userSnap.exists()) {
+      blockedUsers.push({ id: uid, ...userSnap.data() });
     }
   }
 
@@ -251,37 +261,32 @@ async function loadBlockedUsers() {
 
     div.querySelector('.unblock-btn').addEventListener('click', async () => {
       await unblockUser(user.id);
-      if (currentUserData) {
-        currentUserData.blockedUsers = currentUserData.blockedUsers.filter(id => id !== user.id);
-      }
-      loadBlockedUsers();
+      loadBlockedUsers(); // перезавантажуємо список
     });
 
     container.appendChild(div);
   });
 }
 
-function loadAccountStats() {
-  if (!currentUserData) return;
-
+function loadAccountStats(data) {
   const statsContainer = document.getElementById('accountStats');
   if (statsContainer) {
     statsContainer.innerHTML = `
       <h4>Статистика</h4>
       <div class="stat-item">
-        <span class="stat-value">${currentUserData.posts?.length || 0}</span>
+        <span class="stat-value">${data.posts?.length || 0}</span>
         <span class="stat-label">Постів</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">${currentUserData.followers?.length || 0}</span>
+        <span class="stat-value">${data.followers?.length || 0}</span>
         <span class="stat-label">Підписників</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">${currentUserData.following?.length || 0}</span>
+        <span class="stat-value">${data.following?.length || 0}</span>
         <span class="stat-label">Підписок</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">${currentUserData.likedPosts?.length || 0}</span>
+        <span class="stat-value">${data.likedPosts?.length || 0}</span>
         <span class="stat-label">Лайків</span>
       </div>
     `;
@@ -293,15 +298,15 @@ function loadAccountStats() {
       <h4>Інформація</h4>
       <div class="info-row">
         <span class="info-label">ID користувача:</span>
-        <span class="info-value">${currentUserData.userId}</span>
+        <span class="info-value">${data.userId}</span>
       </div>
       <div class="info-row">
         <span class="info-label">Email:</span>
-        <span class="info-value">${currentUserData.email || 'Не вказано'}</span>
+        <span class="info-value">${data.email || 'Не вказано'}</span>
       </div>
       <div class="info-row">
         <span class="info-label">Дата реєстрації:</span>
-        <span class="info-value">${currentUserData.createdAt ? new Date(currentUserData.createdAt.seconds * 1000).toLocaleDateString() : 'Невідомо'}</span>
+        <span class="info-value">${data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleDateString() : 'Невідомо'}</span>
       </div>
     `;
   }
