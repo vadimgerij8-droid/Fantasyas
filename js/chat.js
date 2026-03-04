@@ -135,7 +135,6 @@ export async function openChat(chatId, otherUid, otherName, otherUserId, otherAv
 
   subscribeToMessages(chatId);
 
-  // Підписка на статус онлайн
   if (unsubscribeChatPresence) unsubscribeChatPresence();
   const unsubPresence = onSnapshot(doc(db, "users", otherUid), (snap) => {
     const lastOnline = snap.data()?.lastOnline?.seconds * 1000 || 0;
@@ -145,7 +144,6 @@ export async function openChat(chatId, otherUid, otherName, otherUserId, otherAv
   });
   setUnsubscribeChatPresence(unsubPresence);
 
-  // Підписка на друк
   if (unsubscribeTyping) unsubscribeTyping();
   const typingRef = doc(db, `chats/${chatId}/typing/${otherUid}`);
   const unsubTyping = onSnapshot(typingRef, (docSnap) => {
@@ -206,7 +204,6 @@ function createMessageElement(msg) {
   const bubble = document.createElement('div');
   bubble.className = `message-bubble ${isMine ? 'sent' : 'received'}`;
 
-  // Якщо це відповідь, показуємо прев'ю оригіналу
   if (msg.replyTo) {
     const replyPreview = document.createElement('div');
     replyPreview.className = 'message-reply-preview';
@@ -295,7 +292,6 @@ function createMessageElement(msg) {
   bubble.appendChild(footer);
   wrapper.appendChild(bubble);
 
-  // Контекстне меню
   wrapper.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     showMessageContextMenu(e, msg);
@@ -406,7 +402,6 @@ export async function sendMessage(text, file) {
   }
 }
 
-// Індикатор друку
 export function handleTyping() {
   if (!currentUser || !currentChatId || !currentChatPartner) return;
 
