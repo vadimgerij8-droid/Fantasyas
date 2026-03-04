@@ -1,4 +1,8 @@
-// ================= Допоміжні функції =================
+import { auth, db } from './config.js';
+import { doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { currentUser } from './state.js';
+
+// ================= Toast =================
 export const showToast = (msg) => {
   const toast = document.getElementById('toast');
   if (!toast) return;
@@ -7,18 +11,8 @@ export const showToast = (msg) => {
   setTimeout(() => toast.classList.remove('show'), 3000);
 };
 
+// ================= Вібрація =================
 export const vibrate = (ms) => { if (navigator.vibrate) navigator.vibrate(ms); };
-
-export const updateUnreadBadge = (count) => {
-  const badge = document.getElementById('unreadBadge');
-  if (!badge) return;
-  if (count > 0) {
-    badge.textContent = count > 99 ? '99+' : count;
-    badge.style.display = 'inline-block';
-  } else {
-    badge.style.display = 'none';
-  }
-};
 
 // ================= Дебаунс =================
 export function debounce(func, wait) {
@@ -31,13 +25,6 @@ export function debounce(func, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
-}
-
-// ================= Функції для хештегів =================
-export function extractHashtags(text) {
-  const regex = /#(\w+)/g;
-  const matches = text.match(regex);
-  return matches ? matches.map(tag => tag.toLowerCase()) : [];
 }
 
 // ================= Емоджі-пікер =================
@@ -118,4 +105,50 @@ export function setupFileInput(inputId, labelId, previewId) {
       if (preview) preview.classList.remove('show');
     }
   });
+}
+
+// ================= Завантаження на Cloudinary =================
+export async function uploadToCloudinary(file) {
+  const CLOUD_NAME = 'dv6ehoqiq';
+  const UPLOAD_PRESET = 'post_media';
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', UPLOAD_PRESET);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    body: formData
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Cloudinary upload failed: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.secure_url;
+}
+
+// ================= Оновлення онлайн-статусу =================
+export async function updateLastOnline() {
+  if (!currentUser) return;
+  try {
+    await updateDoc(doc(db, "users", currentUser.uid), { lastOnline: serverTimestamp() });
+  } catch (e) {
+    console.error('Failed to update lastOnline:', e);
+  }
+}
+
+// ================= Оновлення бейджа непрочитаних =================
+export function updateUnreadBadge(unreadCount) {
+  const badge = document.getElementById('unreadBadge');
+  if (!badge) return;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
 }
