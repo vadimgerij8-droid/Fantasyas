@@ -12,16 +12,14 @@ import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFoll
 import { loadChatList, openChat, closeChat, sendMessage, handleTyping, handleMessageContextAction, searchUsersForChat } from './chat.js';
 import { loadSettings, setupSettingsListeners } from './settings.js';
 import { 
-  onAuthStateChanged, signOut 
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { 
   doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc, getDoc 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-// ================= Глобальні змінні =================
 let unsubscribeChatList = null;
 
-// ================= Ініціалізація при завантаженні DOM =================
 document.addEventListener('DOMContentLoaded', () => {
   const sections = ['home','search','hashtags','profile','chats','settings'];
   const navItems = document.querySelectorAll('.bottom-nav .nav-item');
@@ -51,27 +49,24 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelector('.bottom-nav')?.classList.remove('hide-chat-mode');
       document.querySelector('.back-btn').classList.remove('visible');
 
-      if (section === 'home' && currentUser) {
+      if (!currentUser) return;
+
+      if (section === 'home') {
         resetPagination();
-      }
-      if (section === 'search' && currentUser) {
+      } else if (section === 'search') {
         await loadSearchUsers();
-      }
-      if (section === 'hashtags' && currentUser) {
+      } else if (section === 'hashtags') {
         await loadHashtags();
-      }
-      if (section === 'chats' && currentUser) {
+      } else if (section === 'chats') {
         document.getElementById('chatWindowContainer').style.display = 'none';
         document.getElementById('chatListSidebar').classList.remove('hide');
         document.getElementById('chatSearchInput').value = '';
         document.getElementById('chatSearchResults').style.display = 'none';
         await loadChatList();
-      }
-      if (section === 'profile' && currentUser) {
+      } else if (section === 'profile') {
         await viewProfile(currentUser.uid);
-      }
-      if (section === 'settings') {
-        loadSettings();
+      } else if (section === 'settings') {
+        await loadSettings();
       }
     });
   });
@@ -532,7 +527,6 @@ async function loadSearchUsers() {
   });
 }
 
-// ================= Скидання пагінації =================
 function resetPagination() {
   resetPaginationState();
   const feed = document.getElementById('feed');
