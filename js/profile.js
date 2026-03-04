@@ -20,7 +20,6 @@ export const toggleFollow = debounce(async (targetUid, buttonElement) => {
 
   // Оптимістичне оновлення UI
   if (newFollowingState) {
-    // мутуємо масив (не присвоюємо новий)
     currentUserFollowing.push(targetUid);
   } else {
     const index = currentUserFollowing.indexOf(targetUid);
@@ -59,22 +58,21 @@ export const toggleFollow = debounce(async (targetUid, buttonElement) => {
       buttonElement.textContent = wasFollowing ? 'Відписатися' : 'Підписатися';
       buttonElement.classList.toggle('following', wasFollowing);
     }
-    if (error.code === 'permission-denied') {
-      showToast('Помилка: недостатньо прав. Перевірте правила безпеки Firestore.');
-    } else {
-      showToast('Помилка: ' + (error.message || 'Невідома помилка'));
-    }
+    showToast('Помилка: ' + (error.message || 'Невідома помилка'));
   }
 }, 300);
 
 // ================= Завантаження профілю =================
 export async function viewProfile(uid) {
+  if (!currentUser) return;
+
   const currentSection = document.querySelector('.section.active')?.id || 'home';
   if (currentSection !== 'profile') {
     navigationHistory.push(currentSection);
     previousSection = currentSection;
   }
 
+  // Активуємо розділ profile
   document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
   const profileNav = document.querySelector('[data-section="profile"]');
   if (profileNav) profileNav.classList.add('active');
@@ -89,37 +87,41 @@ export async function viewProfile(uid) {
     document.querySelector('.back-btn').classList.remove('visible');
   }
 
-  if (uid === currentUser?.uid) {
-    await loadMyProfile();
-  } else {
-    await loadUserProfile(uid);
+  // Завантажуємо дані користувача, чий профіль переглядаємо
+  const targetSnap = await getDoc(doc(db, "users", uid));
+  if (!targetSnap.exists()) {
+    showToast('Користувача не знайдено');
+    return;
   }
+  const targetData = targetSnap.data();
+
+  // Для власного профілю також оновлюємо глобальні дані, якщо треба
+  if (uid === currentUser.uid) {
+    setCurrentUserData(targetData);
+  }
+
+  // Отримуємо дані поточного користувача (можливо, вони ще не встигли оновитися в глобальному стані)
+  let myData = currentUserData;
+  if (uid !== currentUser.uid && !myData) {
+    const mySnap = await getDoc(doc(db, "users", currentUser.uid));
+    myData = mySnap.data();
+  }
+
+  renderProfile(targetData, uid, uid === currentUser.uid, myData);
 }
 
-async function loadMyProfile() {
-  if (!currentUser) return;
-  const snap = await getDoc(doc(db, "users", currentUser.uid));
-  if (snap.exists()) renderProfile(snap.data(), currentUser.uid, true);
-}
-
-async function loadUserProfile(uid) {
-  if (!currentUser) return;
-  const snap = await getDoc(doc(db, "users", uid));
-  if (snap.exists()) renderProfile(snap.data(), uid, uid === currentUser.uid);
-}
-
-function renderProfile(data, uid, isOwn) {
+function renderProfile(targetData, uid, isOwn, myData = currentUserData) {
   const header = document.getElementById('profileHeader');
   if (!header) return;
 
-  const isBlockedByTarget = data.blockedUsers?.includes(currentUser?.uid) || false;
-  const isBlockedByMe = currentUserData?.blockedUsers?.includes(uid) || false;
+  const isBlockedByTarget = targetData.blockedUsers?.includes(currentUser?.uid) || false;
+  const isBlockedByMe = myData?.blockedUsers?.includes(uid) || false;
 
   if (isBlockedByTarget || isBlockedByMe) {
     header.innerHTML = `
-      <div class="avatar large" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
+      <div class="avatar large" style="background-image:url(${targetData.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
       <div>
-        <h2>${data.nickname}</h2>
+        <h2>${targetData.nickname}</h2>
         <p class="text-danger">
           ${isBlockedByTarget ? 'Цей користувач вас заблокував' : 'Ви заблокували цього користувача'}
         </p>
@@ -128,30 +130,30 @@ function renderProfile(data, uid, isOwn) {
     return;
   }
 
-  const isFollowing = !isOwn && currentUser ? (data.followers?.includes(currentUser.uid) || false) : false;
+  const isFollowing = !isOwn && currentUser ? (targetData.followers?.includes(currentUser.uid) || false) : false;
 
   const canSeeFollowers = () => {
     if (isOwn) return true;
-    const privacy = data.settings?.privacy?.whoCanSeeFollowers || 'everyone';
+    const privacy = targetData.settings?.privacy?.whoCanSeeFollowers || 'everyone';
     if (privacy === 'everyone') return true;
     if (privacy === 'followers' && isFollowing) return true;
     return false;
   };
 
-  const followersDisplay = canSeeFollowers() ? data.followers?.length || 0 : 'Приховано';
-  const followingDisplay = canSeeFollowers() ? data.following?.length || 0 : 'Приховано';
+  const followersDisplay = canSeeFollowers() ? targetData.followers?.length || 0 : 'Приховано';
+  const followingDisplay = canSeeFollowers() ? targetData.following?.length || 0 : 'Приховано';
 
   header.innerHTML = `
-    <div class="avatar large" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
+    <div class="avatar large" style="background-image:url(${targetData.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
     <div style="flex:1">
-      <h2>${data.nickname}</h2>
-      <div class="user-id">${data.userId}</div>
-      ${data.note ? `<div class="note-badge" style="position:relative; display:inline-block; margin-top:4px;">${data.note}</div>` : ''}
-      <p>${data.bio || ''}</p>
+      <h2>${targetData.nickname}</h2>
+      <div class="user-id">${targetData.userId}</div>
+      ${targetData.note ? `<div class="note-badge" style="position:relative; display:inline-block; margin-top:4px;">${targetData.note}</div>` : ''}
+      <p>${targetData.bio || ''}</p>
       <div class="profile-stats">
         <span id="followersCount" data-uid="${uid}">${followersDisplay} підписників</span>
         <span id="followingCount" data-uid="${uid}">${followingDisplay} підписок</span>
-        <span>${data.posts?.length || 0} постів</span>
+        <span>${targetData.posts?.length || 0} постів</span>
       </div>
       ${!isOwn && currentUser ? `
         <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
@@ -198,6 +200,10 @@ function renderProfile(data, uid, isOwn) {
     if (profileFollowBtn) {
       profileFollowBtn.onclick = async () => {
         await toggleFollow(uid, profileFollowBtn);
+        // Оновлюємо кнопку після підписки
+        const newIsFollowing = currentUserFollowing.includes(uid);
+        profileFollowBtn.textContent = newIsFollowing ? 'Відписатися' : 'Підписатися';
+        profileFollowBtn.classList.toggle('following', newIsFollowing);
       };
     }
     const profileMessageBtn = document.getElementById('profileMessageBtn');
@@ -214,7 +220,7 @@ function renderProfile(data, uid, isOwn) {
               unread: { [currentUser.uid]: 0, [uid]: 0 }
             });
           }
-          openChat(chatId, uid, data.nickname, data.userId, data.avatar);
+          openChat(chatId, uid, targetData.nickname, targetData.userId, targetData.avatar);
         });
       };
     }
@@ -258,7 +264,8 @@ function renderProfile(data, uid, isOwn) {
         } else {
           await blockUser(uid);
         }
-        loadUserProfile(uid);
+        // Перезавантажуємо профіль, щоб оновити інтерфейс
+        viewProfile(uid);
       };
     }
   }
@@ -267,9 +274,9 @@ function renderProfile(data, uid, isOwn) {
     const editProfileBtn = document.getElementById('editProfileBtn');
     if (editProfileBtn) {
       editProfileBtn.onclick = () => {
-        document.getElementById('editNickname').value = data.nickname;
-        document.getElementById('editBio').value = data.bio || '';
-        document.getElementById('editNote').value = data.note || '';
+        document.getElementById('editNickname').value = targetData.nickname;
+        document.getElementById('editBio').value = targetData.bio || '';
+        document.getElementById('editNote').value = targetData.note || '';
         document.getElementById('editAvatar').value = '';
         document.getElementById('editAvatarLabel').textContent = 'Обрати аватар';
         document.getElementById('editAvatarPreview').classList.remove('show');
@@ -302,48 +309,52 @@ async function loadProfileFeed(uid, tab) {
   if (!currentUser) return;
   const feed = document.getElementById('profileFeed');
   if (!feed) return;
-  feed.innerHTML = '';
-  let posts = [];
+  feed.innerHTML = '<div class="skeleton" style="height:100px;"></div>'.repeat(3);
+
   const userSnap = await getDoc(doc(db, "users", uid));
   const userData = userSnap.data();
+  let postIds = [];
 
-  if (tab === 'posts') {
-    const postIds = userData.posts || [];
-    for (const id of postIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
-      if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
-    }
-  } else if (tab === 'likes') {
-    const likedIds = userData.likedPosts || [];
-    for (const id of likedIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
-      if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
-    }
-  } else if (tab === 'media') {
-    const postIds = userData.posts || [];
-    for (const id of postIds.slice(0, 20)) {
+  if (tab === 'posts') postIds = userData.posts || [];
+  else if (tab === 'likes') postIds = userData.likedPosts || [];
+  else if (tab === 'media') {
+    // Для медіа потрібно фільтрувати пости з медіа
+    const allPosts = userData.posts || [];
+    const mediaPosts = [];
+    for (const id of allPosts.slice(0, 20)) {
       const postSnap = await getDoc(doc(db, "posts", id));
       if (postSnap.exists()) {
         const post = postSnap.data();
         if ((post.media && post.media.length > 0) || post.mediaUrl) {
-          posts.push({ id, ...post });
+          mediaPosts.push({ id, ...post });
         }
       }
     }
-  } else if (tab === 'saved') {
-    const savedIds = userData.savedPosts || [];
-    for (const id of savedIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
-      if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
+    mediaPosts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    feed.innerHTML = '';
+    if (mediaPosts.length === 0) {
+      feed.innerHTML = '<p style="text-align:center; padding:20px;">Немає медіа</p>';
+    } else {
+      const fakeDocs = mediaPosts.map(p => ({ id: p.id, data: () => p }));
+      renderPosts(fakeDocs, 'profileFeed');
     }
+    return;
   }
+  else if (tab === 'saved') postIds = userData.savedPosts || [];
 
+  // Для звичайних списків постів
+  const posts = [];
+  for (const id of postIds.slice(0, 20)) {
+    const postSnap = await getDoc(doc(db, "posts", id));
+    if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
+  }
   posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-  if (posts.length > 0) {
+  feed.innerHTML = '';
+  if (posts.length === 0) {
+    feed.innerHTML = '<p style="text-align:center; padding:20px;">Немає постів</p>';
+  } else {
     const fakeDocs = posts.map(p => ({ id: p.id, data: () => p }));
     renderPosts(fakeDocs, 'profileFeed');
-  } else {
-    feed.innerHTML = '<p style="text-align:center; padding:20px;">Немає постів</p>';
   }
 }
 
@@ -379,7 +390,10 @@ export async function saveProfileEdit(nickname, bio, note, avatarFile) {
     if (avatarUrl) updateData.avatar = avatarUrl;
 
     await updateDoc(doc(db, "users", currentUser.uid), updateData);
-    await loadMyProfile();
+    // Оновлюємо глобальні дані
+    const updatedSnap = await getDoc(doc(db, "users", currentUser.uid));
+    setCurrentUserData(updatedSnap.data());
+    
     document.getElementById('editProfileModal').classList.remove('active');
     showToast('Профіль оновлено');
     return true;
