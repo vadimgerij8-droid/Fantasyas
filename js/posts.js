@@ -230,10 +230,61 @@ export async function loadMorePosts(containerId = 'feed') {
     renderPosts(snapshot.docs, containerId);
   } catch (e) {
     console.error("Помилка завантаження постів:", e);
-    showToast("Помилка завантаження. Перевірте індекси Firestore.");
+    // Покращена обробка помилки індексу
+    if (e.code === 'failed-precondition' || e.message.includes('index')) {
+      const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+      if (match) {
+        console.log('Посилання для створення індексу:', match[0]);
+        showToast(`⚠️ Потрібен індекс. Перейдіть за посиланням у консолі (F12).`);
+      } else {
+        showToast('⚠️ Потрібно створити складений індекс у Firestore. Перейдіть у Firebase Console.');
+      }
+    } else {
+      showToast('Помилка завантаження. Спробуйте пізніше.');
+    }
   } finally {
     if (skeleton) skeleton.style.display = 'none';
     state.loading = false;
+  }
+}
+
+// ================= Видалення поста =================
+export async function deletePost(postId) {
+  if (!state.currentUser) return;
+  if (!confirm('Видалити цей пост назавжди?')) return;
+
+  try {
+    const postRef = doc(db, "posts", postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) {
+      showToast('Пост не знайдено');
+      return;
+    }
+
+    // Видаляємо коментарі (підколекцію) за допомогою batch
+    const commentsSnapshot = await getDocs(collection(db, `posts/${postId}/comments`));
+    const batch = writeBatch(db);
+    commentsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+    // Видаляємо сам пост
+    batch.delete(postRef);
+
+    // Видаляємо ID поста з масиву постів автора
+    const userRef = doc(db, "users", state.currentUser.uid);
+    batch.update(userRef, {
+      posts: arrayRemove(postId)
+    });
+
+    await batch.commit();
+
+    // Видаляємо елемент з DOM
+    const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
+    if (postElement) postElement.remove();
+
+    showToast('Пост видалено');
+  } catch (error) {
+    console.error('Помилка видалення поста:', error);
+    showToast('Не вдалося видалити пост');
   }
 }
 
@@ -257,7 +308,10 @@ export function renderPosts(docs, containerId = 'feed') {
 
     let actionsHtml = '';
     if (isAuthor) {
-      actionsHtml = `<div class="post-actions"><button class="edit-post-btn" title="Редагувати пост" tabindex="0">⋯</button></div>`;
+      actionsHtml = `<div class="post-actions">
+        <button class="edit-post-btn" title="Редагувати пост" data-post-id="${post.id}" tabindex="0">✎</button>
+        <button class="delete-post-btn" title="Видалити пост" data-post-id="${post.id}" tabindex="0">🗑</button>
+      </div>`;
     }
 
     let contentHtml = post.text || '';
@@ -346,6 +400,15 @@ export function renderPosts(docs, containerId = 'feed') {
         searchHashtag(tag);
       };
     });
+
+    // Обробник для кнопки видалення
+    const deleteBtn = postEl.querySelector('.delete-post-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deletePost(post.id);
+      });
+    }
 
     const commentInput = document.getElementById(`comment-input-${post.id}`);
     if (commentInput) {
