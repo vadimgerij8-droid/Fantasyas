@@ -3,7 +3,7 @@ import { auth, db } from './config.js';
 import { 
   currentUser, currentUserFollowing, currentUserData, unreadCount, navigationHistory, previousSection,
   setCurrentUser, setCurrentUserData, setLastOnlineInterval, setUnsubscribeFollowing,
-  cleanupAllListeners, userSettings, updateUnreadCount
+  cleanupAllListeners, userSettings, updateUnreadCount, resetPaginationState
 } from './state.js';
 import { showToast, updateLastOnline, updateUnreadBadge, setupEmojiPicker, setupFileInput, debounce } from './utils.js';
 import { register, login, googleLogin, appleLogin, resetPassword, logout } from './auth.js';
@@ -15,15 +15,14 @@ import {
   onAuthStateChanged, signOut 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { 
-  doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc 
+  doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc, getDoc 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-// ================= Глобальні змінні (залишаємо тільки ті, що потрібні для слухачів) =================
+// ================= Глобальні змінні =================
 let unsubscribeChatList = null;
 
 // ================= Ініціалізація при завантаженні DOM =================
 document.addEventListener('DOMContentLoaded', () => {
-  // Навігація по розділах
   const sections = ['home','search','hashtags','profile','chats','settings'];
   const navItems = document.querySelectorAll('.bottom-nav .nav-item');
 
@@ -38,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const span = item.querySelector('span');
       document.getElementById('pageTitle').textContent = span ? span.textContent : item.textContent.trim();
 
-      // Запам'ятовуємо попередню секцію для кнопки "Назад"
       if (previousSection !== section) {
         navigationHistory.push(previousSection);
         previousSection = section;
@@ -78,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Кнопка "Назад"
   document.querySelector('.back-btn').addEventListener('click', () => {
     if (navigationHistory.length > 0) {
       const prev = navigationHistory.pop();
@@ -88,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Обробники авторизації
   document.getElementById('toRegister').onclick = () => {
     document.getElementById('loginForm').style.display = 'none';
     document.getElementById('registerForm').style.display = 'block';
@@ -124,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
     logout();
   };
 
-  // Створення поста
   document.getElementById('addPost').onclick = async () => {
     const text = document.getElementById('postText').value.trim();
     const fileInput = document.getElementById('postMedia');
@@ -132,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
     await createPost(text, files);
   };
 
-  // Редагування профілю
   document.getElementById('saveProfileEdit').onclick = async () => {
     const nickname = document.getElementById('editNickname').value.trim();
     const bio = document.getElementById('editBio').value.trim();
@@ -145,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('editProfileModal').classList.remove('active');
   };
 
-  // Фільтри
   document.getElementById('filterBtn').onclick = async () => {
     await loadFilterHashtags();
     document.getElementById('filterModal').classList.add('active');
@@ -155,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   document.getElementById('clearFilterBtn').onclick = clearFilter;
 
-  // Стрічка (нова/популярна)
   document.getElementById('feedNewBtn').onclick = () => {
     if (currentFeedType === 'new') return;
     currentFeedType = 'new';
@@ -167,10 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
     resetPagination();
   };
 
-  // Пошук
   document.getElementById('searchInput').addEventListener('input', debounce(loadSearchUsers, 300));
 
-  // Чат
   document.getElementById('sendMessage').addEventListener('click', () => {
     const text = document.getElementById('chatText').value.trim();
     const file = document.getElementById('chatAttachFile').files[0];
@@ -211,19 +201,17 @@ document.addEventListener('DOMContentLoaded', () => {
       await blockUser(currentChatPartner);
     } else if (action === 'clearHistory' && currentChatId) {
       if (confirm('Очистити історію повідомлень?')) {
-        // логіка очищення (можна винести в chat.js)
+        // логіка очищення
       }
     }
     document.getElementById('chatMenuDropdown').classList.remove('show');
   });
 
-  // Контекстне меню повідомлень
   document.getElementById('messageContextMenu').addEventListener('click', (e) => {
     const action = e.target.dataset.action;
     handleMessageContextAction(action);
   });
 
-  // Пошук у чатах
   let searchTimeout;
   document.getElementById('chatSearchInput').addEventListener('input', (e) => {
     clearTimeout(searchTimeout);
@@ -235,10 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
     searchTimeout = setTimeout(() => searchUsersForChat(val), 300);
   });
 
-  // Налаштування
   setupSettingsListeners();
 
-  // Закриття модалок
   document.getElementById('closeFollowersModal').onclick = () => {
     document.getElementById('followersModal').classList.remove('active');
   };
@@ -252,7 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('privacyPolicyModal').classList.add('active');
   };
 
-  // Очищення кешу
   document.getElementById('clearCacheBtn').addEventListener('click', async () => {
     const keysToKeep = ['theme'];
     Object.keys(localStorage).forEach(key => {
@@ -273,13 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Збережені медіа очищено');
   });
 
-  // Ініціалізація емуляції файлів
   setupFileInput('editAvatar', 'editAvatarLabel', 'editAvatarPreview');
   setupFileInput('editPostMedia', 'editPostMediaLabel', 'editPostMediaPreview');
   setupEmojiPicker('postEmojiBtn', 'postEmojiPicker', 'postText');
   setupEmojiPicker('chatEmojiBtn', 'chatEmojiPicker', 'chatText');
 
-  // Обробка медіа для поста
   const postMediaInput = document.getElementById('postMedia');
   const postMediaPreviews = document.getElementById('postMediaPreviews');
   const postMediaLabel = document.getElementById('postMediaLabel');
@@ -374,7 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Intersection Observer для пагінації
   const sentinel = document.getElementById('feedSentinel');
   if (sentinel) {
     const observer = new IntersectionObserver((entries) => {
@@ -383,10 +365,8 @@ document.addEventListener('DOMContentLoaded', () => {
     observer.observe(sentinel);
   }
 
-  // Відновлення теми
   if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
 
-  // Глобальний обробник кліків (лайки, збереження, переходи за data-uid)
   document.addEventListener('click', async (e) => {
     const targetBtn = e.target.closest('button');
     if (targetBtn) {
@@ -429,7 +409,6 @@ onAuthStateChanged(auth, (user) => {
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'block';
 
-    // Оновлення онлайн-статусу кожні 30 секунд
     const interval = setInterval(updateLastOnline, 30000);
     setLastOnlineInterval(interval);
 
@@ -439,7 +418,6 @@ onAuthStateChanged(auth, (user) => {
         setCurrentUserData(docSnap.data());
         if (docSnap.data().settings) {
           Object.assign(userSettings, docSnap.data().settings);
-          // Застосувати налаштування
           if (userSettings.preferences.darkMode) {
             document.body.classList.add('dark');
           } else {
@@ -447,7 +425,6 @@ onAuthStateChanged(auth, (user) => {
           }
         }
 
-        // Оновлення кнопок підписки в постах
         document.querySelectorAll('.follow-btn-post').forEach(btn => {
           const targetUid = btn.dataset.uid;
           if (targetUid) {
@@ -462,7 +439,6 @@ onAuthStateChanged(auth, (user) => {
     });
     setUnsubscribeFollowing(unsubFollowing);
 
-    // Підписка на список чатів для оновлення непрочитаних
     const q = query(collection(db, "chats"), where("participants", "array-contains", user.uid));
     unsubscribeChatList = onSnapshot(q, (snapshot) => {
       let totalUnread = 0;
@@ -472,7 +448,7 @@ onAuthStateChanged(auth, (user) => {
           totalUnread += data.unread[user.uid];
         }
       });
-      updateUnreadCount(totalUnread - unreadCount); // оновлюємо різницею
+      updateUnreadCount(totalUnread - unreadCount);
       updateUnreadBadge(unreadCount);
       if (document.getElementById('chats')?.classList.contains('active')) {
         loadChatList();
@@ -483,7 +459,6 @@ onAuthStateChanged(auth, (user) => {
     });
 
     resetPagination();
-    // Завантаження власного профілю (функція з profile.js, але вона вже імпортована)
     import('./profile.js').then(module => module.loadMyProfile());
 
   } else {
@@ -497,7 +472,7 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// ================= Функція пошуку користувачів (для секції search) =================
+// ================= Функція пошуку користувачів =================
 async function loadSearchUsers() {
   if (!currentUser) return;
   const val = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -506,8 +481,6 @@ async function loadSearchUsers() {
 
   if (val.startsWith('#')) {
     const tag = val.substring(1);
-    const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-    const { db } = await import('./config.js');
     const q = query(collection(db, "posts"), where("hashtags", "array-contains", tag));
     const snapshot = await getDocs(q);
     userList.innerHTML = '<h3 style="margin-bottom:12px;">Пости з тегом</h3>';
@@ -561,7 +534,6 @@ async function loadSearchUsers() {
 
 // ================= Скидання пагінації =================
 function resetPagination() {
-  const { resetPaginationState } = require('./state.js');
   resetPaginationState();
   const feed = document.getElementById('feed');
   if (feed) {
