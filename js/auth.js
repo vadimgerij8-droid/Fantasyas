@@ -1,80 +1,35 @@
 import { auth, db } from './config.js';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  OAuthProvider,
-  signInWithPopup,
-  sendPasswordResetEmail
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  GoogleAuthProvider, 
+  OAuthProvider, 
+  signInWithPopup, 
+  sendPasswordResetEmail,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  collection,
-  query,
-  where,
-  serverTimestamp,
-  updateDoc
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import {
-  setCurrentUser,
-  setCurrentUserData,
-  setCurrentUserFollowing,
-  getCurrentUser
-} from './state.js';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { showToast } from './utils.js';
+import { userSettings } from './state.js';
 
-let onUserChangeCallback = null;
-let lastOnlineInterval = null;
-
-export function setOnUserChangeCallback(callback) {
-  onUserChangeCallback = callback;
-}
-
-export function initAuth() {
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      setCurrentUser(user);
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        setCurrentUserData(userSnap.data());
-        setCurrentUserFollowing(userSnap.data().following || []);
-      }
-      startLastOnlineInterval();
-      if (onUserChangeCallback) onUserChangeCallback(user);
-    } else {
-      setCurrentUser(null);
-      setCurrentUserData(null);
-      setCurrentUserFollowing([]);
-      if (lastOnlineInterval) clearInterval(lastOnlineInterval);
-      if (onUserChangeCallback) onUserChangeCallback(null);
-    }
-  });
-}
-
-function startLastOnlineInterval() {
-  if (lastOnlineInterval) clearInterval(lastOnlineInterval);
-  lastOnlineInterval = setInterval(() => {
-    const user = getCurrentUser();
-    if (user) {
-      updateDoc(doc(db, "users", user.uid), { lastOnline: serverTimestamp() }).catch(console.error);
-    }
-  }, 30000);
-}
-
-// ================= Реєстрація =================
+// Реєстрація
 export async function register(nickname, password) {
-  if (!nickname) { showToast('Введіть псевдонім'); return false; }
-  if (password.length < 6) { showToast('Мінімум 6 символів'); return false; }
+  if (!nickname) {
+    showToast('Введіть псевдонім');
+    return false;
+  }
+  if (password.length < 6) {
+    showToast('Мінімум 6 символів');
+    return false;
+  }
 
   const userId = `@${nickname.toLowerCase()}`;
   const q = query(collection(db, "users"), where("userId", "==", userId));
   const snap = await getDocs(q);
-  if (!snap.empty) { showToast('Цей ID вже зайнятий'); return false; }
+  if (!snap.empty) {
+    showToast('Цей ID вже зайнятий');
+    return false;
+  }
 
   try {
     const safeNick = nickname.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -97,12 +52,7 @@ export async function register(nickname, password) {
       following: [],
       mutedUsers: [],
       blockedUsers: [],
-      settings: {
-        notifications: { push: true, email: true, sms: false, privateChats: true, likes: true, comments: true, newFollowers: true, mentions: true, directMessages: true, storyReplies: true },
-        privacy: { privateAccount: false, activityStatus: true, storySharing: true, allowTags: 'everyone', allowMentions: 'everyone', blockedAccounts: [], whoCanMessage: 'everyone', whoCanSeeOnline: 'everyone', whoCanSeeFollowers: 'everyone' },
-        security: { twoFactor: false, loginAlerts: true, savedLogins: [] },
-        preferences: { language: 'uk', darkMode: false, reduceMotion: false, highContrast: false, autoplayVideos: true, soundEffects: true }
-      },
+      settings: { ...userSettings },
       createdAt: serverTimestamp(),
       lastOnline: serverTimestamp(),
       email: email
@@ -116,30 +66,40 @@ export async function register(nickname, password) {
   }
 }
 
-// ================= Вхід =================
+// Вхід за псевдонімом/паролем
 export async function login(nickname, password) {
-  if (!nickname || !password) { showToast('Заповніть поля'); return; }
+  if (!nickname || !password) {
+    showToast('Заповніть поля');
+    return false;
+  }
   try {
     const userId = `@${nickname.toLowerCase()}`;
     const q = query(collection(db, "users"), where("userId", "==", userId));
     const snap = await getDocs(q);
-    if (snap.empty) { showToast('Користувача не знайдено'); return; }
+    if (snap.empty) {
+      showToast('Користувача не знайдено');
+      return false;
+    }
 
-    const userData = snap.docs[0].data();
+    const userDoc = snap.docs[0];
+    const userData = userDoc.data();
     const email = userData.email;
+
     if (!email) {
-      showToast('Для цього акаунту не вказано email. Увійдіть через Google/Apple або створіть новий акаунт.');
-      return;
+      showToast('Для цього акаунту не встановлено email. Увійдіть через Google або Apple, або створіть новий акаунт.');
+      return false;
     }
 
     await signInWithEmailAndPassword(auth, email, password);
     showToast('Ласкаво просимо!');
+    return true;
   } catch (err) {
     showToast('Невірний псевдонім або пароль');
+    return false;
   }
 }
 
-// ================= Google Login =================
+// Вхід через Google
 export async function googleLogin() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
@@ -167,12 +127,7 @@ export async function googleLogin() {
         following: [],
         mutedUsers: [],
         blockedUsers: [],
-        settings: {
-          notifications: { push: true, email: true, sms: false, privateChats: true, likes: true, comments: true, newFollowers: true, mentions: true, directMessages: true, storyReplies: true },
-          privacy: { privateAccount: false, activityStatus: true, storySharing: true, allowTags: 'everyone', allowMentions: 'everyone', blockedAccounts: [], whoCanMessage: 'everyone', whoCanSeeOnline: 'everyone', whoCanSeeFollowers: 'everyone' },
-          security: { twoFactor: false, loginAlerts: true, savedLogins: [] },
-          preferences: { language: 'uk', darkMode: false, reduceMotion: false, highContrast: false, autoplayVideos: true, soundEffects: true }
-        },
+        settings: { ...userSettings },
         createdAt: serverTimestamp(),
         lastOnline: serverTimestamp(),
         email: user.email
@@ -182,16 +137,16 @@ export async function googleLogin() {
   } catch (error) {
     console.error('Google login error:', error);
     if (error.code === 'auth/popup-blocked') {
-      showToast('Будь ласка, дозвольте спливаючі вікна для цього сайту, щоб увійти через Google.');
+      showToast('Будь ласка, дозвольте спливаючі вікна для цього сайту.');
     } else if (error.code === 'auth/operation-not-allowed') {
-      showToast('Вхід через Google не налаштовано в Firebase. Перевірте консоль Firebase.');
+      showToast('Вхід через Google не налаштовано в Firebase.');
     } else {
       showToast('Помилка входу: ' + error.message);
     }
   }
 }
 
-// ================= Apple Login =================
+// Вхід через Apple
 export async function appleLogin() {
   const provider = new OAuthProvider('apple.com');
   provider.addScope('email');
@@ -220,12 +175,7 @@ export async function appleLogin() {
         following: [],
         mutedUsers: [],
         blockedUsers: [],
-        settings: {
-          notifications: { push: true, email: true, sms: false, privateChats: true, likes: true, comments: true, newFollowers: true, mentions: true, directMessages: true, storyReplies: true },
-          privacy: { privateAccount: false, activityStatus: true, storySharing: true, allowTags: 'everyone', allowMentions: 'everyone', blockedAccounts: [], whoCanMessage: 'everyone', whoCanSeeOnline: 'everyone', whoCanSeeFollowers: 'everyone' },
-          security: { twoFactor: false, loginAlerts: true, savedLogins: [] },
-          preferences: { language: 'uk', darkMode: false, reduceMotion: false, highContrast: false, autoplayVideos: true, soundEffects: true }
-        },
+        settings: { ...userSettings },
         createdAt: serverTimestamp(),
         lastOnline: serverTimestamp(),
         email: user.email
@@ -237,25 +187,37 @@ export async function appleLogin() {
   }
 }
 
-// ================= Забули пароль =================
-export async function forgotPassword(nickname) {
-  if (!nickname) return;
+// Скидання пароля
+export async function resetPassword(nickname) {
+  if (!nickname) return false;
   const userId = `@${nickname.toLowerCase()}`;
   const q = query(collection(db, "users"), where("userId", "==", userId));
   const snap = await getDocs(q);
-  if (snap.empty) { showToast('Користувача не знайдено'); return; }
-
+  if (snap.empty) {
+    showToast('Користувача не знайдено');
+    return false;
+  }
   const userData = snap.docs[0].data();
   const email = userData.email;
   if (!email) {
     showToast('Для цього акаунту не вказано email. Увійдіть через Google/Apple або створіть новий акаунт.');
-    return;
+    return false;
   }
-
   try {
     await sendPasswordResetEmail(auth, email);
     showToast('Лист для скидання пароля відправлено');
+    return true;
   } catch (err) {
     showToast('Помилка: ' + err.message);
+    return false;
+  }
+}
+
+// Вихід
+export async function logout() {
+  try {
+    await signOut(auth);
+  } catch (err) {
+    showToast('Помилка виходу: ' + err.message);
   }
 }
