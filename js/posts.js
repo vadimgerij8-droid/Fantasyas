@@ -5,7 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { 
   state,
-  setFilterHashtag, resetPaginationState
+  setFilterHashtag, resetPaginationState, setCurrentFeedType
 } from './state.js';
 import { showToast, vibrate, uploadToCloudinary, debounce, setupEmojiPicker } from './utils.js';
 import { toggleFollow } from './profile.js';
@@ -196,55 +196,38 @@ export async function createPost(text, files) {
   }
 }
 
-// ================= Завантаження постів (пагінація) =================
-export async function loadMorePosts(containerId = 'feed') {
-  if (!state.currentUser || state.loading || !state.hasMore) return;
-  state.loading = true;
-  const skeleton = document.getElementById('skeletonContainer');
-  if (skeleton) skeleton.style.display = 'block';
-
+// ================= Редагування поста =================
+export async function editPost(postId) {
+  if (!state.currentUser) return;
+  
+  const postRef = doc(db, "posts", postId);
+  const postSnap = await getDoc(postRef);
+  if (!postSnap.exists()) {
+    showToast('Пост не знайдено');
+    return;
+  }
+  
+  const post = postSnap.data();
+  if (post.author !== state.currentUser.uid) {
+    showToast('Ви не автор цього поста');
+    return;
+  }
+  
+  const newText = prompt('Редагувати текст поста:', post.text || '');
+  if (newText === null) return;
+  
   try {
-    let baseQuery;
-    if (state.currentFilterHashtag) {
-      baseQuery = query(collection(db, "posts"), where("hashtags", "array-contains", state.currentFilterHashtag));
-    } else {
-      baseQuery = collection(db, "posts");
-    }
-
-    let q;
-    if (state.currentFeedType === 'new' || state.currentFilterHashtag) {
-      q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
-    } else {
-      q = query(baseQuery, orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
-    }
-
-    if (state.lastVisible) q = query(q, startAfter(state.lastVisible));
-
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-      state.hasMore = false;
-      return;
-    }
-
-    state.lastVisible = snapshot.docs[snapshot.docs.length - 1];
-    renderPosts(snapshot.docs, containerId);
-  } catch (e) {
-    console.error("Помилка завантаження постів:", e);
-    // Покращена обробка помилки індексу
-    if (e.code === 'failed-precondition' || e.message.includes('index')) {
-      const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-      if (match) {
-        console.log('Посилання для створення індексу:', match[0]);
-        showToast(`⚠️ Потрібен індекс. Перейдіть за посиланням у консолі (F12).`);
-      } else {
-        showToast('⚠️ Потрібно створити складений індекс у Firestore. Перейдіть у Firebase Console.');
-      }
-    } else {
-      showToast('Помилка завантаження. Спробуйте пізніше.');
-    }
-  } finally {
-    if (skeleton) skeleton.style.display = 'none';
-    state.loading = false;
+    const hashtags = extractHashtags(newText);
+    await updateDoc(postRef, {
+      text: newText,
+      hashtags,
+      edited: true,
+      updatedAt: serverTimestamp()
+    });
+    showToast('Пост оновлено');
+  } catch (error) {
+    console.error('Помилка редагування поста:', error);
+    showToast('Не вдалося оновити пост');
   }
 }
 
@@ -285,6 +268,59 @@ export async function deletePost(postId) {
   } catch (error) {
     console.error('Помилка видалення поста:', error);
     showToast('Не вдалося видалити пост');
+  }
+}
+
+// ================= Завантаження постів (пагінація) =================
+export async function loadMorePosts(containerId = 'feed') {
+  if (!state.currentUser || state.loading || !state.hasMore) return;
+  state.loading = true;
+  const skeleton = document.getElementById('skeletonContainer');
+  if (skeleton) skeleton.style.display = 'block';
+
+  try {
+    let baseQuery;
+    if (state.currentFilterHashtag) {
+      baseQuery = query(collection(db, "posts"), where("hashtags", "array-contains", state.currentFilterHashtag));
+    } else {
+      baseQuery = collection(db, "posts");
+    }
+
+    let q;
+    if (state.currentFeedType === 'new' || state.currentFilterHashtag) {
+      // При фільтрі сортуємо тільки за датою, тому що популярні з фільтром потребують складного індексу
+      q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
+    } else {
+      q = query(baseQuery, orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
+    }
+
+    if (state.lastVisible) q = query(q, startAfter(state.lastVisible));
+
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      state.hasMore = false;
+      return;
+    }
+
+    state.lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    renderPosts(snapshot.docs, containerId);
+  } catch (e) {
+    console.error("Помилка завантаження постів:", e);
+    // Покращена обробка помилки індексу
+    if (e.code === 'failed-precondition' || e.message.includes('index')) {
+      const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+      if (match) {
+        console.log('Посилання для створення індексу:', match[0]);
+        showToast(`⚠️ Потрібен індекс. Перейдіть за посиланням у консолі браузера (F12).`);
+      } else {
+        showToast('⚠️ Потрібно створити складений індекс у Firestore. Перейдіть у Firebase Console.');
+      }
+    } else {
+      showToast('Помилка завантаження. Спробуйте пізніше.');
+    }
+  } finally {
+    if (skeleton) skeleton.style.display = 'none';
+    state.loading = false;
   }
 }
 
@@ -400,6 +436,15 @@ export function renderPosts(docs, containerId = 'feed') {
         searchHashtag(tag);
       };
     });
+
+    // Обробник для кнопки редагування
+    const editBtn = postEl.querySelector('.edit-post-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editPost(post.id);
+      });
+    }
 
     // Обробник для кнопки видалення
     const deleteBtn = postEl.querySelector('.delete-post-btn');
@@ -696,6 +741,13 @@ export async function loadFilterHashtags(listId = 'filterList') {
 export function applyFilter(tag) {
   setFilterHashtag(tag);
   document.getElementById('filterModal').classList.remove('active');
+
+  // При застосуванні фільтра автоматично перемикаємо на "Нові", щоб уникнути помилки індексу
+  if (state.currentFeedType === 'popular') {
+    setCurrentFeedType('new');
+    document.getElementById('feedNewBtn').classList.add('active');
+    document.getElementById('feedPopularBtn').classList.remove('active');
+  }
 
   const activeDiv = document.getElementById('activeFilter');
   activeDiv.innerHTML = `#${tag} <button id="clearFilterChip">✕</button>`;
