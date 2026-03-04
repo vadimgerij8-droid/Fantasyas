@@ -1,11 +1,11 @@
 import { db } from './config.js';
 import { 
-  doc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion, arrayRemove, 
+  doc, getDoc, updateDoc, setDoc, addDoc, collection, query, where, getDocs, arrayUnion, arrayRemove, 
   serverTimestamp, writeBatch 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { 
-  currentUser, currentUserData, currentUserFollowing, setCurrentUserData, userSettings,
-  navigationHistory, previousSection
+  currentUser, currentUserData, currentUserFollowing, setCurrentUserData, setCurrentUserFollowing,
+  userSettings, navigationHistory, previousSection
 } from './state.js';
 import { showToast, uploadToCloudinary, vibrate, debounce } from './utils.js';
 import { renderPosts } from './posts.js';
@@ -20,9 +20,11 @@ export const toggleFollow = debounce(async (targetUid, buttonElement) => {
 
   // Оптимістичне оновлення UI
   if (newFollowingState) {
+    // мутуємо масив (не присвоюємо новий)
     currentUserFollowing.push(targetUid);
   } else {
-    currentUserFollowing = currentUserFollowing.filter(id => id !== targetUid);
+    const index = currentUserFollowing.indexOf(targetUid);
+    if (index !== -1) currentUserFollowing.splice(index, 1);
   }
 
   if (buttonElement) {
@@ -48,7 +50,8 @@ export const toggleFollow = debounce(async (targetUid, buttonElement) => {
     console.error('Follow error:', error);
     // Відкочуємо оптимістичне оновлення
     if (newFollowingState) {
-      currentUserFollowing = currentUserFollowing.filter(id => id !== targetUid);
+      const index = currentUserFollowing.indexOf(targetUid);
+      if (index !== -1) currentUserFollowing.splice(index, 1);
     } else {
       currentUserFollowing.push(targetUid);
     }
@@ -66,14 +69,12 @@ export const toggleFollow = debounce(async (targetUid, buttonElement) => {
 
 // ================= Завантаження профілю =================
 export async function viewProfile(uid) {
-  // Зберігаємо в історію для кнопки "Назад"
   const currentSection = document.querySelector('.section.active')?.id || 'home';
   if (currentSection !== 'profile') {
     navigationHistory.push(currentSection);
     previousSection = currentSection;
   }
 
-  // Активуємо розділ profile
   document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
   const profileNav = document.querySelector('[data-section="profile"]');
   if (profileNav) profileNav.classList.add('active');
@@ -82,7 +83,6 @@ export async function viewProfile(uid) {
   if (profileSection) profileSection.classList.add('active');
   document.getElementById('pageTitle').textContent = 'Профіль';
 
-  // Показуємо кнопку "Назад" тільки для чужих профілів
   if (uid !== currentUser?.uid) {
     document.querySelector('.back-btn').classList.add('visible');
   } else {
@@ -182,7 +182,6 @@ function renderProfile(data, uid, isOwn) {
     ` : ''}
   `;
 
-  // Обробники для клікабельних статистик
   const followersCount = document.getElementById('followersCount');
   if (followersCount && canSeeFollowers()) {
     followersCount.style.cursor = 'pointer';
@@ -194,7 +193,6 @@ function renderProfile(data, uid, isOwn) {
     followingCount.onclick = () => openFollowingList(uid);
   }
 
-  // Кнопки дій
   if (!isOwn && currentUser) {
     const profileFollowBtn = document.getElementById('profileFollowBtn');
     if (profileFollowBtn) {
@@ -221,7 +219,6 @@ function renderProfile(data, uid, isOwn) {
       };
     }
 
-    // Меню профілю
     const menuBtn = document.getElementById('profileMenuBtn');
     const dropdown = document.getElementById('profileMenuDropdown');
     if (menuBtn && dropdown) {
@@ -266,7 +263,6 @@ function renderProfile(data, uid, isOwn) {
     }
   }
 
-  // Редагування власного профілю
   if (isOwn) {
     const editProfileBtn = document.getElementById('editProfileBtn');
     if (editProfileBtn) {
@@ -282,7 +278,6 @@ function renderProfile(data, uid, isOwn) {
     }
   }
 
-  // Вкладки профілю
   const tabs = document.getElementById('profileTabs');
   if (tabs) {
     tabs.innerHTML = `
@@ -344,9 +339,7 @@ async function loadProfileFeed(uid, tab) {
   }
 
   posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-  // Використовуємо renderPosts для відображення
   if (posts.length > 0) {
-    // Створюємо тимчасовий масив "документів" для сумісності
     const fakeDocs = posts.map(p => ({ id: p.id, data: () => p }));
     renderPosts(fakeDocs, 'profileFeed');
   } else {
