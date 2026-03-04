@@ -6,10 +6,10 @@ import {
 import { 
   currentUser, currentUserFollowing, viewedPosts, postListeners, likePromiseMap, savePromiseMap,
   currentFeedType, currentFilterHashtag, lastVisible, loading, hasMore,
-  setFilterHashtag, resetPaginationState, userSettings
+  setFilterHashtag, resetPaginationState, setLastVisible, setLoading, setHasMore, userSettings
 } from './state.js';
 import { showToast, vibrate, uploadToCloudinary, debounce, setupEmojiPicker } from './utils.js';
-import { toggleFollow } from './profile.js'; // з profile.js
+import { toggleFollow } from './profile.js'; // circular import, але працює
 
 // ================= Допоміжні функції =================
 export function extractHashtags(text) {
@@ -200,7 +200,7 @@ export async function createPost(text, files) {
 // ================= Завантаження постів (пагінація) =================
 export async function loadMorePosts(containerId = 'feed') {
   if (!currentUser || loading || !hasMore) return;
-  loading = true;
+  setLoading(true);
   const skeleton = document.getElementById('skeletonContainer');
   if (skeleton) skeleton.style.display = 'block';
 
@@ -223,18 +223,18 @@ export async function loadMorePosts(containerId = 'feed') {
 
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
-      hasMore = false;
+      setHasMore(false);
       return;
     }
 
-    lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
     renderPosts(snapshot.docs, containerId);
   } catch (e) {
     console.error("Помилка завантаження постів:", e);
     showToast("Помилка завантаження. Перевірте індекси Firestore.");
   } finally {
     if (skeleton) skeleton.style.display = 'none';
-    loading = false;
+    setLoading(false);
   }
 }
 
@@ -587,8 +587,6 @@ export function searchHashtag(tag) {
   if (searchInput) {
     searchInput.value = '#' + tag;
     document.querySelector('[data-section="search"]').click();
-    // У search.js є функція loadSearchUsers, але тут ми просто перемикаємо секцію
-    // Далі спрацює обробник навігації, який викличе loadSearchUsers
   }
 }
 
@@ -642,7 +640,6 @@ export function applyFilter(tag) {
   document.getElementById('clearFilterChip').onclick = clearFilter;
 
   resetPaginationState();
-  // Перезавантажити стрічку
   const feed = document.getElementById('feed');
   if (feed) {
     feed.innerHTML = '';
