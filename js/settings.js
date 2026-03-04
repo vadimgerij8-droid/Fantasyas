@@ -125,7 +125,6 @@ export function setupSettingsListeners() {
     });
   }
 
-  // Радіо-кнопки приватності
   document.querySelectorAll('input[name="whoCanMessage"]').forEach(radio => {
     radio.addEventListener('change', async (e) => {
       userSettings.privacy.whoCanMessage = e.target.value;
