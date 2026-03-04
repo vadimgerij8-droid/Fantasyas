@@ -387,14 +387,112 @@
   </nav>
 </div>
 
-<!-- Модальні вікна (скорочено для компактності, але вони є) -->
-<div class="modal" id="editProfileModal">...</div>
-<div class="modal" id="editPostModal">...</div>
-<div class="modal" id="followersModal">...</div>
-<div class="modal" id="followingModal">...</div>
-<div class="modal" id="privacyPolicyModal">...</div>
-<div class="modal" id="filterModal">...</div>
-<div class="modal" id="muteModal">...</div>
+<!-- Модальні вікна -->
+<div class="modal" id="editProfileModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Редагувати профіль</h3>
+      <button class="modal-close" id="closeModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="file-input-wrapper">
+        <input type="file" id="editAvatar" accept="image/*">
+        <div class="file-input-button" id="editAvatarLabel">Обрати аватар</div>
+      </div>
+      <img id="editAvatarPreview" class="avatar-preview" style="display:none;">
+      <input type="text" id="editNickname" class="input" placeholder="Псевдонім">
+      <textarea id="editBio" class="input" placeholder="Біографія" rows="3"></textarea>
+      <input type="text" id="editNote" class="input" placeholder="Нотатка (відображається поруч)">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="saveProfileEdit">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="editPostModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Редагувати пост</h3>
+      <button class="modal-close" id="closeEditPostModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <textarea id="editPostText" class="input" placeholder="Текст поста" rows="4"></textarea>
+      <div id="editPostMediaPreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="savePostEdit">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="followersModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Підписники</h3>
+      <button class="modal-close" id="closeFollowersModal">✕</button>
+    </div>
+    <div class="modal-body" id="followersList"></div>
+  </div>
+</div>
+
+<div class="modal" id="followingModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Підписки</h3>
+      <button class="modal-close" id="closeFollowingModal">✕</button>
+    </div>
+    <div class="modal-body" id="followingList"></div>
+  </div>
+</div>
+
+<div class="modal" id="privacyPolicyModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Політика конфіденційності</h3>
+      <button class="modal-close" id="closePrivacyModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Текст політики конфіденційності... (тут можна вставити згенерований текст)</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="filterModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Фільтр за хештегом</h3>
+      <button class="modal-close" id="closeFilterModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="filter-list" id="filterList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="clearFilterBtn">Скинути</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="muteModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Замутити користувача</h3>
+      <button class="modal-close" id="closeMuteModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Виберіть, на який час замутити:</p>
+      <div class="radio-group">
+        <label><input type="radio" name="muteDuration" value="1"> 1 година</label>
+        <label><input type="radio" name="muteDuration" value="24"> 24 години</label>
+        <label><input type="radio" name="muteDuration" value="168"> Тиждень</label>
+        <label><input type="radio" name="muteDuration" value="forever"> Назавжди</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="saveMuteBtn">Застосувати</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast"></div>
 
