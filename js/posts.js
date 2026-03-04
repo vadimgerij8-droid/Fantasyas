@@ -1,6 +1,6 @@
 import { db } from './config.js';
 import { 
-  collection, addDoc, doc, getDoc, updateDoc, deleteDoc, query, orderBy, limit, startAfter, 
+  collection, addDoc, doc, getDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter, 
   getDocs, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, onSnapshot 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { 
