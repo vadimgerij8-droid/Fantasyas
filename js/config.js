@@ -1,7 +1,9 @@
+// ================= Firebase імпорти =================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
+// ================= Конфігурація =================
 const firebaseConfig = {
   apiKey: "AIzaSyDRzC-QDE0-UXd-XL0i3iqayFiKcc6wmvc",
   authDomain: "fantasyasapp.firebaseapp.com",
