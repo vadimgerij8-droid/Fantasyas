@@ -12,7 +12,6 @@ import {
 import { showToast, uploadToCloudinary, debounce } from './utils.js';
 import { viewProfile, blockUser } from './profile.js';
 
-// ================= Допоміжні функції =================
 export const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
 
 // ================= Завантаження списку чатів =================
@@ -31,7 +30,10 @@ export async function loadChatList() {
       if (!otherUid) continue;
 
       const userSnap = await getDoc(doc(db, "users", otherUid));
-      if (!userSnap.exists()) continue;
+      if (!userSnap.exists()) {
+        console.warn(`User ${otherUid} not found, skipping chat`);
+        continue;
+      }
       const user = userSnap.data();
 
       const unread = chat.unread?.[currentUser.uid] || 0;
