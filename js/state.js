@@ -76,14 +76,19 @@ export const userSettings = {
   }
 };
 
-// Функції для оновлення стану
+// ========== СЕТТЕРИ ==========
 export function setCurrentUser(user) {
   currentUser = user;
 }
 
 export function setCurrentUserData(data) {
   currentUserData = data;
-  currentUserFollowing = data?.following || [];
+  // Оновлюємо following через сеттер, щоб зберегти реактивність
+  setCurrentUserFollowing(data?.following || []);
+}
+
+export function setCurrentUserFollowing(following) {
+  currentUserFollowing = following;
 }
 
 export function setCurrentChat(chatId, partnerUid, name, userId, avatar) {
@@ -123,6 +128,18 @@ export function resetPaginationState() {
   lastVisible = null;
   hasMore = true;
   loading = false;
+}
+
+export function setLastVisible(doc) {
+  lastVisible = doc;
+}
+
+export function setLoading(state) {
+  loading = state;
+}
+
+export function setHasMore(state) {
+  hasMore = state;
 }
 
 export function updateUnreadCount(delta) {
