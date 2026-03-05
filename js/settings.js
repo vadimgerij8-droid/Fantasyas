@@ -179,7 +179,7 @@ function updatePrivacyUI() {
   if (allowTags) allowTags.checked = true;
 }
 
-function applySettings() {
+export function applySettings() {
   if (state.userSettings.preferences.darkMode) {
     document.body.classList.add('dark');
   } else {
@@ -199,7 +199,9 @@ function applySettings() {
     document.documentElement.style.setProperty('--text-primary', '#000');
     document.documentElement.style.setProperty('--text-secondary', '#222');
   } else {
-    // Скидання до змінних CSS (залежить від теми)
+    // Скидання до змінних CSS (можна додати логіку, якщо потрібно)
+    document.documentElement.style.removeProperty('--text-primary');
+    document.documentElement.style.removeProperty('--text-secondary');
   }
 }
 
