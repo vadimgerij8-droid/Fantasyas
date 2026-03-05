@@ -16,6 +16,18 @@
   <!-- Fonts & Styles -->
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- Додаткові стилі для керування видимістю меню публікації -->
+  <style>
+    /* Спочатку приховуємо блок створення посту з максимальним пріоритетом */
+    #newPostBox {
+      display: none !important;
+    }
+    /* Відображаємо тільки коли профіль має спеціальний клас */
+    #profile.show-post-creation #newPostBox {
+      display: block !important;
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -52,26 +64,6 @@
             </div>
           </div>
 
-          <!-- Створення нового поста -->
-          <div class="card" id="newPostBox" style="display:none;">
-            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
-              <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;" tabindex="0"></textarea>
-              <div class="emoji-picker-container">
-                <button class="emoji-button" id="postEmojiBtn" tabindex="0">😊</button>
-                <div class="emoji-picker" id="postEmojiPicker"></div>
-              </div>
-            </div>
-            <div class="file-input-wrapper" style="margin-bottom:8px;">
-              <input type="file" id="postMedia" accept="image/*,video/*" multiple>
-              <div class="file-input-button">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <span id="postMediaLabel">+ Медіа (до 3 файлів)</span>
-              </div>
-            </div>
-            <div id="postMediaPreviews" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;"></div>
-            <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
-          </div>
-
           <!-- Фільтри стрічки -->
           <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
             <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
@@ -105,6 +97,28 @@
         <section id="profile" class="section">
           <div class="profile-header" id="profileHeader"></div>
           <div class="profile-tabs" id="profileTabs"></div>
+
+          <!-- ★ ПЕРЕНЕСЕНЕ МЕНЮ ПУБЛІКАЦІЇ (було в головній) ★ -->
+          <div class="card" id="newPostBox">
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+              <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;" tabindex="0"></textarea>
+              <div class="emoji-picker-container">
+                <button class="emoji-button" id="postEmojiBtn" tabindex="0">😊</button>
+                <div class="emoji-picker" id="postEmojiPicker"></div>
+              </div>
+            </div>
+            <div class="file-input-wrapper" style="margin-bottom:8px;">
+              <input type="file" id="postMedia" accept="image/*,video/*" multiple>
+              <div class="file-input-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span id="postMediaLabel">+ Медіа (до 3 файлів)</span>
+              </div>
+            </div>
+            <div id="postMediaPreviews" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;"></div>
+            <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
+          </div>
+
+          <!-- Стрічка постів профілю -->
           <div class="feed" id="profileFeed"></div>
         </section>
 
@@ -527,5 +541,100 @@
 
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
+
+  <!-- Додатковий скрипт для керування видимістю меню публікації в профілі -->
+  <script>
+    (function() {
+      // Функція для отримання поточного користувача (припускаємо, що він зберігається в localStorage)
+      function getCurrentUser() {
+        try {
+          const userStr = localStorage.getItem('currentUser');
+          return userStr ? JSON.parse(userStr) : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // Функція для отримання нікнейму з профілю (шукаємо елемент, який містить @)
+      function getProfileNickname() {
+        const header = document.getElementById('profileHeader');
+        if (!header) return null;
+        // Шукаємо будь-який елемент з класом .nickname або текст, що починається з @
+        const nicknameEl = header.querySelector('.nickname') || 
+                           Array.from(header.querySelectorAll('*')).find(el => el.textContent.trim().startsWith('@'));
+        return nicknameEl ? nicknameEl.textContent.trim().replace('@', '') : null;
+      }
+
+      // Функція для перевірки, чи активна вкладка "Пости"
+      function isPostsTabActive() {
+        const tabs = document.getElementById('profileTabs');
+        if (!tabs) return false;
+        const activeTab = tabs.querySelector('.active');
+        if (!activeTab) return false;
+        // Перевіряємо, чи текст вкладки містить "пости" (регістронезалежно)
+        return activeTab.textContent.toLowerCase().includes('пост');
+      }
+
+      // Головна функція оновлення видимості
+      function updateNewPostVisibility() {
+        const profileSection = document.getElementById('profile');
+        const newPostBox = document.getElementById('newPostBox');
+        if (!profileSection || !newPostBox) return;
+
+        // Перевіряємо, чи активна секція профілю
+        const isProfileActive = profileSection.classList.contains('active');
+
+        if (!isProfileActive) {
+          profileSection.classList.remove('show-post-creation');
+          return;
+        }
+
+        // Перевіряємо, чи активна вкладка постів
+        const postsActive = isPostsTabActive();
+
+        // Перевіряємо, чи профіль належить поточному користувачеві
+        const currentUser = getCurrentUser();
+        const profileNick = getProfileNickname();
+        const isOwner = currentUser && profileNick && currentUser.nickname === profileNick;
+
+        if (postsActive && isOwner) {
+          profileSection.classList.add('show-post-creation');
+        } else {
+          profileSection.classList.remove('show-post-creation');
+        }
+      }
+
+      // Спостерігаємо за змінами в DOM (поява вкладок, зміна заголовка профілю тощо)
+      const observer = new MutationObserver(() => {
+        updateNewPostVisibility();
+      });
+
+      // Спостерігаємо за всім body, але обмежимося необхідними піддеревами
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class']
+      });
+
+      // Також оновлюємо при кожному кліку (користувач може перемикати вкладки)
+      document.addEventListener('click', function(e) {
+        // Якщо клік по вкладках профілю або навігації
+        if (e.target.closest('#profileTabs') || e.target.closest('.bottom-nav')) {
+          setTimeout(updateNewPostVisibility, 50); // невелика затримка, щоб класи оновилися
+        }
+      });
+
+      // Оновлюємо при завантаженні сторінки
+      window.addEventListener('load', updateNewPostVisibility);
+
+      // Додатково оновлюємо при зміні localStorage (наприклад, після логіну)
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'currentUser') {
+          updateNewPostVisibility();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
