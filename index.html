@@ -52,26 +52,6 @@
             </div>
           </div>
 
-          <!-- Створення нового поста -->
-          <div class="card" id="newPostBox" style="display:none;">
-            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
-              <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;" tabindex="0"></textarea>
-              <div class="emoji-picker-container">
-                <button class="emoji-button" id="postEmojiBtn" tabindex="0">😊</button>
-                <div class="emoji-picker" id="postEmojiPicker"></div>
-              </div>
-            </div>
-            <div class="file-input-wrapper" style="margin-bottom:8px;">
-              <input type="file" id="postMedia" accept="image/*,video/*" multiple>
-              <div class="file-input-button">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <span id="postMediaLabel">+ Медіа (до 3 файлів)</span>
-              </div>
-            </div>
-            <div id="postMediaPreviews" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;"></div>
-            <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
-          </div>
-
           <!-- Фільтри стрічки -->
           <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
             <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
@@ -105,6 +85,28 @@
         <section id="profile" class="section">
           <div class="profile-header" id="profileHeader"></div>
           <div class="profile-tabs" id="profileTabs"></div>
+
+          <!-- === МЕНЮ СТВОРЕННЯ ПОСТА (ПЕРЕНЕСЕНО З ГОЛОВНОЇ) === -->
+          <div class="card" id="newPostBox" style="display:none;">
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+              <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;" tabindex="0"></textarea>
+              <div class="emoji-picker-container">
+                <button class="emoji-button" id="postEmojiBtn" tabindex="0">😊</button>
+                <div class="emoji-picker" id="postEmojiPicker"></div>
+              </div>
+            </div>
+            <div class="file-input-wrapper" style="margin-bottom:8px;">
+              <input type="file" id="postMedia" accept="image/*,video/*" multiple>
+              <div class="file-input-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span id="postMediaLabel">+ Медіа (до 3 файлів)</span>
+              </div>
+            </div>
+            <div id="postMediaPreviews" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;"></div>
+            <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
+          </div>
+
+          <!-- Стрічка постів профілю -->
           <div class="feed" id="profileFeed"></div>
         </section>
 
