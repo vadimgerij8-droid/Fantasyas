@@ -10,7 +10,7 @@ import { register, login, googleLogin, appleLogin, resetPassword, logout } from 
 import { createPost, loadMorePosts, loadHashtags, loadFilterHashtags, clearFilter, applyFilter } from './posts.js';
 import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFollowingList } from './profile.js';
 import { loadChatList, openChat, closeChat, sendMessage, handleTyping, handleMessageContextAction, searchUsersForChat } from './chat.js';
-import { loadSettings, setupSettingsListeners } from './settings.js';
+import { loadSettings, setupSettingsListeners, applySettings } from './settings.js'; // додано applySettings
 import { 
   onAuthStateChanged, signOut 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -18,7 +18,7 @@ import {
   doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc, getDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-// ================= Глобальні змінні (залишаємо тільки ті, що потрібні для слухачів) =================
+// ================= Глобальні змінні =================
 let unsubscribeChatList = null;
 
 // ================= Ініціалізація при завантаженні DOM =================
@@ -92,6 +92,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const navItem = document.querySelector(`.nav-item[data-section="${prev}"]`);
       if (navItem) navItem.click();
     }
+  });
+
+  // Перемикання вкладок у налаштуваннях (додано)
+  document.querySelectorAll('.settings-nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const tab = item.dataset.tab;
+      document.querySelectorAll('.settings-nav-item').forEach(nav => nav.classList.remove('active'));
+      document.querySelectorAll('.settings-tab-content').forEach(content => content.classList.remove('active'));
+      item.classList.add('active');
+      const tabContent = document.getElementById(`settings-${tab}`);
+      if (tabContent) tabContent.classList.add('active');
+    });
   });
 
   // Обробники авторизації
@@ -433,10 +445,8 @@ onAuthStateChanged(auth, (user) => {
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'none';
     const newPostBox = document.getElementById('newPostBox');
-    // За замовчуванням ховаємо блок створення поста (показуватиметься лише у власному профілі на вкладці posts)
     if (newPostBox) newPostBox.style.display = 'none';
 
-    // Оновлення онлайн-статусу кожні 30 секунд
     const interval = setInterval(updateLastOnline, 30000);
     setLastOnlineInterval(interval);
 
@@ -445,14 +455,19 @@ onAuthStateChanged(auth, (user) => {
       if (docSnap.exists()) {
         setCurrentUserData(docSnap.data());
         if (docSnap.data().settings) {
-          Object.assign(state.userSettings, docSnap.data().settings);
-          // Застосувати налаштування
-          if (state.userSettings.preferences.darkMode) {
-            document.body.classList.add('dark');
-          } else {
-            document.body.classList.remove('dark');
-          }
+          // Оновлюємо налаштування з Firestore (глибоке злиття)
+          const firestoreSettings = docSnap.data().settings;
+          state.userSettings = {
+            ...state.userSettings,
+            ...firestoreSettings,
+            notifications: { ...state.userSettings.notifications, ...(firestoreSettings.notifications || {}) },
+            privacy: { ...state.userSettings.privacy, ...(firestoreSettings.privacy || {}) },
+            preferences: { ...state.userSettings.preferences, ...(firestoreSettings.preferences || {}) },
+            security: { ...state.userSettings.security, ...(firestoreSettings.security || {}) }
+          };
         }
+        // Застосовуємо всі налаштування (темна тема, анімації тощо)
+        applySettings();
 
         // Оновлення кнопок підписки в постах
         document.querySelectorAll('.follow-btn-post').forEach(btn => {
@@ -479,7 +494,7 @@ onAuthStateChanged(auth, (user) => {
           totalUnread += data.unread[user.uid];
         }
       });
-      updateUnreadCount(totalUnread - state.unreadCount); // оновлюємо різницею
+      updateUnreadCount(totalUnread - state.unreadCount);
       updateUnreadBadge(state.unreadCount);
       if (document.getElementById('chats')?.classList.contains('active')) {
         loadChatList();
@@ -490,7 +505,6 @@ onAuthStateChanged(auth, (user) => {
     });
 
     resetPagination();
-    // Завантаження власного профілю
     import('./profile.js').then(module => module.loadMyProfile());
 
   } else {
