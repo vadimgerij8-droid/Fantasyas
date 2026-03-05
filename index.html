@@ -530,13 +530,20 @@
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
 
-  <!-- Додатковий скрипт для умовного показу меню створення поста в профілі (оновлений) -->
+  <!-- Додатковий скрипт для умовного показу меню створення поста в профілі (покращена версія) -->
   <script>
     (function() {
+      // Функція отримання поточного користувача з різних можливих ключів localStorage
       function getCurrentUser() {
-        return localStorage.getItem('currentUser') || localStorage.getItem('nickname') || null;
+        const keys = ['currentUser', 'nickname', 'user', 'username'];
+        for (let key of keys) {
+          const value = localStorage.getItem(key);
+          if (value) return value;
+        }
+        return null;
       }
 
+      // Функція перевірки, чи профіль належить поточному користувачеві
       function isOwnProfile() {
         const currentUser = getCurrentUser();
         if (!currentUser) return false;
@@ -544,20 +551,21 @@
         const profileHeader = document.getElementById('profileHeader');
         if (!profileHeader) return false;
 
-        // Спробуємо знайти нікнейм у різних можливих елементах
+        // Шукаємо елемент з нікнеймом за поширеними класами
         const possibleSelectors = [
           '.profile-nickname', '.profile-username', '.nickname', '.username',
-          '.profile-header .nickname', '.profile-header .username'
+          '.profile-header .nickname', '.profile-header .username',
+          '.profile-header span.nickname', '.profile-header span.username'
         ];
         for (let sel of possibleSelectors) {
           const el = profileHeader.querySelector(sel);
           if (el) {
-            let text = el.textContent.trim().replace(/^@/, '');
+            let text = el.textContent.trim().replace(/^@/, ''); // видаляємо @ на початку
             if (text === currentUser) return true;
           }
         }
 
-        // Якщо не знайшли окремого елемента, перевіримо текст усередині profileHeader
+        // Якщо не знайшли окремого елемента, спробуємо знайти текст з @ у всьому заголовку
         const text = profileHeader.innerText;
         const match = text.match(/@(\w+)/);
         if (match && match[1] === currentUser) return true;
@@ -565,6 +573,7 @@
         return false;
       }
 
+      // Функція отримання активної вкладки профілю
       function getActiveTab() {
         const tabsContainer = document.getElementById('profileTabs');
         if (!tabsContainer) return null;
@@ -572,6 +581,7 @@
         return activeTab ? activeTab.textContent.trim() : null;
       }
 
+      // Основна функція оновлення видимості блоку створення поста
       function updateNewPostBoxVisibility() {
         const newPostBox = document.getElementById('newPostBox');
         if (!newPostBox) return;
@@ -585,51 +595,62 @@
         const own = isOwnProfile();
         const activeTab = getActiveTab();
 
-        if (own && activeTab === 'Пости') {
+        // Для налагодження можна розкоментувати:
+        // console.log('own:', own, 'activeTab:', activeTab, 'currentUser:', getCurrentUser());
+
+        // Перевіряємо, чи активна вкладка "Пости" (з урахуванням можливих пробілів)
+        if (own && activeTab && activeTab.toLowerCase() === 'пости') {
           newPostBox.style.display = 'block';
         } else {
           newPostBox.style.display = 'none';
         }
       }
 
-      // Спостерігаємо за змінами в усьому профілі
+      // Встановлюємо спостереження за змінами в профілі
       const profileSection = document.getElementById('profile');
       if (profileSection) {
         const observer = new MutationObserver(() => {
           updateNewPostBoxVisibility();
         });
+        // Спостерігаємо за всіма змінами в дочірніх елементах і атрибутах
         observer.observe(profileSection, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
       }
 
-      // Кліки по вкладках профілю
+      // Слідкуємо за кліками по вкладках профілю (делегування)
       const tabsContainer = document.getElementById('profileTabs');
       if (tabsContainer) {
-        tabsContainer.addEventListener('click', () => {
+        tabsContainer.addEventListener('click', (e) => {
+          // Даємо час на оновлення класу active
           setTimeout(updateNewPostBoxVisibility, 50);
         });
       }
 
-      // Перехід у профіль через нижнє меню
+      // Слідкуємо за переходами по нижньому меню
       const bottomNav = document.getElementById('bottomNav');
       if (bottomNav) {
         bottomNav.addEventListener('click', (e) => {
           const target = e.target.closest('.nav-item');
           if (target && target.dataset.section === 'profile') {
-            setTimeout(updateNewPostBoxVisibility, 200);
+            // Даємо час на завантаження профілю
+            setTimeout(updateNewPostBoxVisibility, 300);
           }
         });
       }
 
-      // Подія, яку може генерувати main.js після завантаження профілю
+      // Обробляємо подію, яку може генерувати main.js після завантаження профілю
       document.addEventListener('profileLoaded', updateNewPostBoxVisibility);
-      // Зміни в localStorage (вхід/вихід)
+      // Також реагуємо на зміни в localStorage (вхід/вихід)
       window.addEventListener('storage', (e) => {
-        if (e.key === 'currentUser' || e.key === 'nickname') {
+        const keys = ['currentUser', 'nickname', 'user', 'username'];
+        if (keys.includes(e.key)) {
           updateNewPostBoxVisibility();
         }
       });
 
-      // Перший виклик
+      // Періодична перевірка на випадок, якщо події не спрацьовують (резервний варіант)
+      setInterval(updateNewPostBoxVisibility, 1000);
+
+      // Викликаємо при завантаженні сторінки
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', updateNewPostBoxVisibility);
       } else {
