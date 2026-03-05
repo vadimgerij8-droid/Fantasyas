@@ -155,7 +155,7 @@ body {
   50% { transform: translateY(-6px); }
 }
 
-/* ========== ФОКУС (ПОКРАЩЕНО) ========== */
+/* ========== ФОКУС ========== */
 .focused {
   outline: none !important;
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.25), 0 0 20px rgba(var(--accent-rgb), 0.15) !important;
@@ -488,7 +488,7 @@ body {
   gap: 24px;
 }
 
-/* НОВА СТРУКТУРА КАРТОЧКИ ПОСТА (з фіксом для довгих імен) */
+/* НОВА СТРУКТУРА КАРТОЧКИ ПОСТА */
 .post {
   background: var(--card);
   border: 1px solid var(--border);
@@ -541,7 +541,7 @@ body {
   min-width: 0;
 }
 
-/* Ім’я та username – обрізаються з трьома крапками */
+/* Ім’я та username – обрізаються */
 .post-author {
   font-weight: 700;
   color: var(--text-primary);
@@ -567,7 +567,7 @@ body {
   max-width: 150px;
 }
 
-/* Дата – не переноситься */
+/* Дата */
 .post-date {
   color: var(--text-tertiary);
   font-size: 0.75rem;
@@ -589,7 +589,7 @@ body {
   flex-shrink: 0;
 }
 
-/* Меню поста (три крапки) */
+/* Меню поста */
 .post-menu-btn {
   background: none;
   border: none;
@@ -719,7 +719,7 @@ body {
   margin-left: auto;
 }
 
-/* Адаптація для маленьких екранів */
+/* Адаптація для мобільних */
 @media (max-width: 600px) {
   .post-header {
     gap: 8px;
