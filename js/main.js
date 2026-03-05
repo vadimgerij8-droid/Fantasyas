@@ -53,6 +53,12 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelector('.bottom-nav')?.classList.remove('hide-chat-mode');
       document.querySelector('.back-btn').classList.remove('visible');
 
+      // Приховуємо блок створення поста при переході в будь-який розділ, крім профілю
+      const newPostBox = document.getElementById('newPostBox');
+      if (section !== 'profile' && newPostBox) {
+        newPostBox.style.display = 'none';
+      }
+
       if (section === 'home' && state.currentUser) {
         resetPagination();
       }
@@ -427,7 +433,8 @@ onAuthStateChanged(auth, (user) => {
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'none';
     const newPostBox = document.getElementById('newPostBox');
-    if (newPostBox) newPostBox.style.display = 'block';
+    // За замовчуванням ховаємо блок створення поста (показуватиметься лише у власному профілі на вкладці posts)
+    if (newPostBox) newPostBox.style.display = 'none';
 
     // Оновлення онлайн-статусу кожні 30 секунд
     const interval = setInterval(updateLastOnline, 30000);
