@@ -60,9 +60,9 @@
             <div id="activeFilter" class="active-filter"></div>
           </div>
 
-          <!-- Стрічка постів (БЛОК СТВОРЕННЯ ПОСТА ВИДАЛЕНО) -->
+          <!-- Стрічка постів (без блоку створення) -->
           <div class="feed" id="feed">
-            <!-- Приклад поста -->
+            <!-- Приклад поста з новою структурою -->
             <div class="post" data-post-id="example1">
               <div class="post-header">
                 <div class="post-avatar">
@@ -70,8 +70,8 @@
                 </div>
                 <div class="post-author-info">
                   <div class="post-author-row">
-                    <span class="post-author">Дуже довге ім'я користувача яке не поміщається</span>
-                    <span class="post-username">@надзвичайно_довгий_нікнейм_який_треба_обрізати</span>
+                    <span class="post-author">Дуже довге ім'я користувача</span>
+                    <span class="post-username">@надзвичайно_довгий_нік</span>
                   </div>
                   <div class="post-date">1 год тому</div>
                 </div>
@@ -115,7 +115,7 @@
           <div class="profile-header" id="profileHeader"></div>
           <div class="profile-tabs" id="profileTabs"></div>
 
-          <!-- === БЛОК СТВОРЕННЯ ПОСТА (ПЕРЕНЕСЕНО СЮДИ) === -->
+          <!-- БЛОК СТВОРЕННЯ ПОСТА (ПЕРЕНЕСЕНО СЮДИ) -->
           <div class="card" id="newPostBox" style="display: block; margin-bottom: 24px;">
             <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
               <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;" tabindex="0"></textarea>
@@ -167,12 +167,152 @@
 
         <!-- ========== СЕКЦІЯ ЧАТИ ========== -->
         <section id="chats" class="section">
-          <!-- ... (весь код чатів без змін) ... -->
+          <div class="chats-container">
+            <aside class="chat-list-sidebar" id="chatListSidebar">
+              <div class="chat-search">
+                <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
+                <div id="chatSearchResults" class="user-list" style="display: none;"></div>
+              </div>
+              <div id="chatList" class="chat-list">
+                <!-- Приклад чату -->
+                <div class="chat-item" data-user-id="user1">
+                  <div class="chat-avatar">
+                    <div class="avatar small" style="background-image: url('https://via.placeholder.com/32')"></div>
+                    <span class="online-indicator"></span>
+                  </div>
+                  <div class="chat-info">
+                    <div class="chat-name-text">Користувач 1</div>
+                    <div class="chat-last">Останнє повідомлення...</div>
+                  </div>
+                  <div class="chat-time">12:30</div>
+                  <div class="chat-badge" style="display:none;">3</div>
+                </div>
+              </div>
+            </aside>
+            <div class="chat-window-container" id="chatWindowContainer" style="display: none;">
+              <div class="chat-window">
+                <div class="chat-header">
+                  <button class="chat-back-btn" id="chatBackBtn">←</button>
+                  <div class="chat-header-info" id="chatHeaderInfo">
+                    <div class="avatar" id="chatAvatar" tabindex="0" role="button"></div>
+                    <div class="chat-header-text">
+                      <div id="chatName" class="chat-name"></div>
+                      <div id="chatStatus" class="chat-status"></div>
+                    </div>
+                  </div>
+                  <div class="chat-header-menu">
+                    <button class="chat-menu-btn" id="chatMenuBtn">⋯</button>
+                    <div class="chat-menu-dropdown" id="chatMenuDropdown">
+                      <div class="chat-menu-item" data-action="viewProfile">Переглянути профіль</div>
+                      <div class="chat-menu-item" data-action="mute">Замутити</div>
+                      <div class="chat-menu-item" data-action="report">Поскаржитися</div>
+                      <div class="chat-menu-item" data-action="block">Заблокувати</div>
+                      <div class="chat-menu-item" data-action="clearHistory">Очистити історію</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                  <span>друкує</span>
+                  <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+                </div>
+                <div id="replyPreview" class="reply-preview" style="display: none;">
+                  <span class="reply-sender" id="replySender"></span>
+                  <span class="reply-text" id="replyText"></span>
+                  <button class="close-reply" id="closeReply">✕</button>
+                </div>
+                <div class="chat-input-area">
+                  <button class="chat-attach-btn" id="chatAttachBtn">📎</button>
+                  <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
+                  <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
+                  <div class="emoji-picker-container">
+                    <button class="emoji-button" id="chatEmojiBtn">😊</button>
+                    <div class="emoji-picker" id="chatEmojiPicker"></div>
+                  </div>
+                  <button class="btn btn-primary btn-icon" id="sendMessage">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="context-menu" id="messageContextMenu">
+            <div class="context-menu-item" data-action="reply">Відповісти</div>
+            <div class="context-menu-item" data-action="edit">Редагувати</div>
+            <div class="context-menu-item" data-action="copy">Копіювати текст</div>
+            <div class="context-menu-item" data-action="deleteSelf">Видалити для себе</div>
+            <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
+          </div>
+          <div class="reaction-picker" id="reactionPicker">
+            <button class="reaction-btn" data-emoji="👍">👍</button>
+            <button class="reaction-btn" data-emoji="❤️">❤️</button>
+            <button class="reaction-btn" data-emoji="😂">😂</button>
+            <button class="reaction-btn" data-emoji="😮">😮</button>
+            <button class="reaction-btn" data-emoji="😢">😢</button>
+            <button class="reaction-btn" data-emoji="👎">👎</button>
+            <button class="reaction-btn more" data-emoji="more">➕</button>
+          </div>
         </section>
 
         <!-- ========== СЕКЦІЯ НАЛАШТУВАННЯ ========== -->
         <section id="settings" class="section card">
-          <!-- ... (весь код налаштувань без змін) ... -->
+          <div class="settings-container" style="display: flex; gap: 24px; flex-wrap: wrap;">
+            <nav class="settings-nav" style="flex: 0 0 200px; border-right: 1px solid var(--border); padding-right: 16px;">
+              <div class="settings-nav-item active" data-tab="account">Обліковий запис</div>
+              <div class="settings-nav-item" data-tab="privacy">Конфіденційність</div>
+              <div class="settings-nav-item" data-tab="notifications">Сповіщення</div>
+              <div class="settings-nav-item" data-tab="appearance">Зовнішній вигляд</div>
+              <div class="settings-nav-item" data-tab="data-storage">Дані та сховище</div>
+              <div class="settings-nav-item" data-tab="security">Безпека</div>
+              <div class="settings-nav-item" data-tab="privacy-policy">Політика конфіденційності</div>
+              <div class="settings-nav-item" data-tab="logout" style="color: var(--danger);">Вийти</div>
+            </nav>
+            <div class="settings-content" style="flex:1;">
+              <div class="settings-tab-content active" id="settings-account">
+                <h3>Обліковий запис</h3>
+                <div class="settings-group" id="accountStats"></div>
+                <div class="settings-group" id="accountInfo"></div>
+                <div class="settings-group">
+                  <h4>Мова</h4>
+                  <select id="settingLanguage" class="input">
+                    <option value="uk">Українська</option>
+                    <option value="en">English</option>
+                    <option value="ru">Русский</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-tab-content" id="settings-privacy">
+                <h3>Конфіденційність</h3>
+                <!-- ... повний вміст як у вашому оригіналі ... -->
+              </div>
+              <div class="settings-tab-content" id="settings-notifications">
+                <h3>Сповіщення</h3>
+                <!-- ... -->
+              </div>
+              <div class="settings-tab-content" id="settings-appearance">
+                <h3>Зовнішній вигляд</h3>
+                <!-- ... -->
+              </div>
+              <div class="settings-tab-content" id="settings-data-storage">
+                <h3>Дані та сховище</h3>
+                <!-- ... -->
+              </div>
+              <div class="settings-tab-content" id="settings-security">
+                <h3>Безпека</h3>
+                <!-- ... -->
+              </div>
+              <div class="settings-tab-content" id="settings-privacy-policy">
+                <h3>Політика конфіденційності</h3>
+                <button class="btn" id="privacyPolicyBtn">Ознайомитися</button>
+              </div>
+              <div class="settings-tab-content" id="settings-logout">
+                <button class="btn btn-danger" id="logoutBtn" style="width:100%;">Вийти</button>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>
@@ -180,50 +320,34 @@
     <!-- ========== НИЖНЄ МЕНЮ ========== -->
     <nav class="bottom-nav" id="bottomNav">
       <div class="nav-item active" data-section="home" tabindex="0">
-        <svg class="icon" viewBox="0 0 24 24">
-          <path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Головна</span>
       </div>
       <div class="nav-item" data-section="search" tabindex="0">
-        <svg class="icon" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <span>Пошук</span>
       </div>
       <div class="nav-item" data-section="hashtags" tabindex="0">
-        <svg class="icon" viewBox="0 0 24 24">
-          <path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/>
-        </svg>
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg>
         <span>Хештеги</span>
       </div>
       <div class="nav-item" data-section="profile" tabindex="0">
-        <svg class="icon" viewBox="0 0 24 24">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span>Профіль</span>
       </div>
       <div class="nav-item" data-section="chats" tabindex="0">
-        <svg class="icon" viewBox="0 0 24 24">
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-        </svg>
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>Чати</span>
         <span class="badge" id="unreadBadge" style="display:none;">0</span>
       </div>
       <div class="nav-item" data-section="settings" tabindex="0">
-        <svg class="icon" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.07.07A10 10 0 0 0 12 17.66a10 10 0 0 0 6.26-2.26z"/>
-        </svg>
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.07.07A10 10 0 0 0 12 17.66a10 10 0 0 0 6.26-2.26z"/></svg>
         <span>Налаштування</span>
       </div>
     </nav>
   </div>
 
-  <!-- ========== ВСІ МОДАЛЬНІ ВІКНА ========== -->
+  <!-- ========== МОДАЛЬНІ ВІКНА ========== -->
   <div class="modal" id="editProfileModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -289,7 +413,7 @@
         <button class="modal-close" id="closePrivacyModal">✕</button>
       </div>
       <div class="modal-body">
-        <p>Текст політики конфіденційності... (тут можна вставити згенерований текст)</p>
+        <p>Текст політики конфіденційності...</p>
       </div>
     </div>
   </div>
