@@ -529,5 +529,111 @@
 
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
+
+  <!-- Додатковий скрипт для умовного показу меню створення поста в профілі -->
+  <script>
+    (function() {
+      // Функція для отримання логіна поточного користувача (за потреби змініть ключ localStorage)
+      function getCurrentUser() {
+        return localStorage.getItem('currentUser') || localStorage.getItem('nickname') || null;
+      }
+
+      // Функція для визначення, чи це власний профіль
+      function isOwnProfile() {
+        const currentUser = getCurrentUser();
+        if (!currentUser) return false;
+
+        const profileHeader = document.getElementById('profileHeader');
+        if (!profileHeader) return false;
+
+        // Спробуємо знайти нікнейм у профілі (часто класи .profile-nickname, .nickname, .username)
+        const nicknameEl = profileHeader.querySelector('.profile-nickname, .profile-username, .nickname, .username');
+        if (nicknameEl) {
+          const profileNick = nicknameEl.textContent.trim().replace('@', '');
+          return profileNick === currentUser;
+        }
+
+        // Якщо не знайшли окремого елемента, спробуємо витягти з тексту (наприклад, "@username")
+        const text = profileHeader.innerText;
+        const match = text.match(/@(\w+)/);
+        if (match) {
+          return match[1] === currentUser;
+        }
+
+        return false;
+      }
+
+      // Функція для отримання активної вкладки
+      function getActiveTab() {
+        const tabsContainer = document.getElementById('profileTabs');
+        if (!tabsContainer) return null;
+        const activeTab = tabsContainer.querySelector('.tab.active, .profile-tab.active');
+        return activeTab ? activeTab.textContent.trim() : null;
+      }
+
+      // Основна функція оновлення видимості блоку створення поста
+      function updateNewPostBoxVisibility() {
+        const newPostBox = document.getElementById('newPostBox');
+        if (!newPostBox) return;
+
+        const profileSection = document.getElementById('profile');
+        // Якщо секція профілю не активна — ховаємо
+        if (!profileSection || !profileSection.classList.contains('active')) {
+          newPostBox.style.display = 'none';
+          return;
+        }
+
+        const own = isOwnProfile();
+        const activeTab = getActiveTab();
+
+        // Показуємо тільки якщо це власний профіль І активна вкладка "Пости"
+        if (own && activeTab === 'Пости') {
+          newPostBox.style.display = 'block';
+        } else {
+          newPostBox.style.display = 'none';
+        }
+      }
+
+      // Спостерігаємо за змінами в секції профілю (наприклад, коли підвантажуються дані)
+      const profileSection = document.getElementById('profile');
+      if (profileSection) {
+        const observer = new MutationObserver(updateNewPostBoxVisibility);
+        observer.observe(profileSection, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+      }
+
+      // Слідкуємо за кліками по вкладках профілю
+      const tabsContainer = document.getElementById('profileTabs');
+      if (tabsContainer) {
+        tabsContainer.addEventListener('click', function(e) {
+          // Даємо час на оновлення класів (active)
+          setTimeout(updateNewPostBoxVisibility, 50);
+        });
+      }
+
+      // Реагуємо на переходи по навігації
+      const bottomNav = document.getElementById('bottomNav');
+      if (bottomNav) {
+        bottomNav.addEventListener('click', function(e) {
+          const target = e.target.closest('.nav-item');
+          if (target && target.dataset.section === 'profile') {
+            setTimeout(updateNewPostBoxVisibility, 100);
+          }
+        });
+      }
+
+      // Якщо десь в коді генерується подія про завантаження профілю, можемо її обробити
+      document.addEventListener('profileLoaded', updateNewPostBoxVisibility);
+
+      // Викликаємо при завантаженні сторінки
+      window.addEventListener('load', updateNewPostBoxVisibility);
+
+      // Також оновлюємо при зміні localStorage (наприклад, вхід/вихід)
+      window.addEventListener('storage', function(e) {
+        if (e.key === 'currentUser' || e.key === 'nickname') {
+          updateNewPostBoxVisibility();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
