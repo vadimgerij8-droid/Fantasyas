@@ -488,7 +488,7 @@ body {
   gap: 24px;
 }
 
-/* НОВА СТРУКТУРА КАРТОЧКИ ПОСТА */
+/* НОВА СТРУКТУРА КАРТОЧКИ ПОСТА (з фіксом для довгих імен) */
 .post {
   background: var(--card);
   border: 1px solid var(--border);
@@ -497,7 +497,7 @@ body {
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
   animation: fadeIn 0.6s ease-out;
-  position: relative;
+  margin-bottom: 20px;
 }
 .post:hover, .post.focused {
   box-shadow: var(--shadow-lg);
@@ -505,15 +505,16 @@ body {
   border-color: var(--accent);
 }
 
-/* Верхня частина: аватар | центр | кнопки */
+/* Верхня частина: три колонки без перенесення */
 .post-header {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 12px;
+  flex-wrap: nowrap;
 }
 
-/* Лівий блок – аватар */
+/* Ліва колонка – аватар */
 .post-avatar {
   flex-shrink: 0;
 }
@@ -522,7 +523,7 @@ body {
   height: 48px;
 }
 
-/* Центральний блок – ім’я, username, дата */
+/* Центральна колонка – ім’я, username, дата */
 .post-author-info {
   flex: 1;
   min-width: 0;
@@ -531,13 +532,16 @@ body {
   gap: 2px;
 }
 
+/* Рядок з ім’ям та username */
 .post-author-row {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
+/* Ім’я та username – обрізаються з трьома крапками */
 .post-author {
   font-weight: 700;
   color: var(--text-primary);
@@ -545,7 +549,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 150px;
+  max-width: 200px;
   transition: color 0.25s, transform 0.2s;
 }
 .post-author:hover {
@@ -560,22 +564,24 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
+  max-width: 150px;
 }
 
+/* Дата – не переноситься */
 .post-date {
   color: var(--text-tertiary);
   font-size: 0.75rem;
   display: flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
 }
 .post-date::before {
   content: "•";
   margin-right: 4px;
 }
 
-/* Правий блок – кнопка підписки + меню */
+/* Права колонка – кнопка підписки + меню */
 .post-header-actions {
   display: flex;
   align-items: center;
@@ -606,7 +612,7 @@ body {
   transform: scale(1.15);
 }
 
-/* Контент поста (текст, медіа) */
+/* Контент поста */
 .post-content {
   margin-bottom: 14px;
   white-space: pre-wrap;
@@ -713,7 +719,7 @@ body {
   margin-left: auto;
 }
 
-/* Адаптація для мобільних */
+/* Адаптація для маленьких екранів */
 @media (max-width: 600px) {
   .post-header {
     gap: 8px;
@@ -739,7 +745,7 @@ body {
   }
 }
 
-/* ========== ГАЛЕРЕЯ ПОСТІВ (НОВЕ) ========== */
+/* ========== ГАЛЕРЕЯ ПОСТІВ ========== */
 .post-gallery {
   position: relative;
   overflow: hidden;
@@ -2266,7 +2272,7 @@ body.dark .emoji-picker .emoji-item:hover {
   margin-top: 12px;
 }
 
-/* ========== НАЛАШТУВАННЯ (НОВІ СТИЛІ) ========== */
+/* ========== НАЛАШТУВАННЯ ========== */
 .settings-nav {
   display: flex;
   flex-direction: column;
