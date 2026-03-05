@@ -8,7 +8,8 @@ import {
 import { showToast, updateLastOnline, updateUnreadBadge, setupEmojiPicker, setupFileInput, debounce } from './utils.js';
 import { register, login, googleLogin, appleLogin, resetPassword, logout } from './auth.js';
 import { createPost, loadMorePosts, loadHashtags, loadFilterHashtags, clearFilter, applyFilter } from './posts.js';
-import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFollowingList } from './profile.js';
+// Імпортуємо оригінальну viewProfile, щоб обгорнути її
+import { viewProfile as originalViewProfile, loadMyProfile, saveProfileEdit, toggleFollow, openFollowersList, openFollowingList } from './profile.js';
 import { loadChatList, openChat, closeChat, sendMessage, handleTyping, handleMessageContextAction, searchUsersForChat } from './chat.js';
 import { loadSettings, setupSettingsListeners } from './settings.js';
 import { 
@@ -18,8 +19,51 @@ import {
   doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc, getDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-// ================= Глобальні змінні (залишаємо тільки ті, що потрібні для слухачів) =================
+// ================= Глобальні змінні =================
 let unsubscribeChatList = null;
+let currentProfileUser = null; // ID користувача, чий профіль зараз відкрито
+
+// ================= Оновлення видимості меню створення поста =================
+function updateNewPostBoxVisibility() {
+  const newPostBox = document.getElementById('newPostBox');
+  if (!newPostBox) return;
+
+  // 1. Користувач не авторизований
+  if (!state.currentUser) {
+    newPostBox.style.display = 'none';
+    return;
+  }
+
+  // 2. Активний розділ не "profile"
+  const activeSection = document.querySelector('.section.active')?.id;
+  if (activeSection !== 'profile') {
+    newPostBox.style.display = 'none';
+    return;
+  }
+
+  // 3. Це не мій профіль
+  if (!currentProfileUser || currentProfileUser !== state.currentUser.uid) {
+    newPostBox.style.display = 'none';
+    return;
+  }
+
+  // 4. Активна вкладка не "posts"
+  const activeTab = document.querySelector('.profile-tabs .tab.active')?.dataset.tab;
+  if (activeTab !== 'posts') {
+    newPostBox.style.display = 'none';
+    return;
+  }
+
+  // Всі умови виконано
+  newPostBox.style.display = 'block';
+}
+
+// ================= Обгорнута функція перегляду профілю =================
+const viewProfile = async (uid) => {
+  await originalViewProfile(uid);
+  currentProfileUser = uid; // Запам'ятовуємо, чий профіль відкрито
+  updateNewPostBoxVisibility();
+};
 
 // ================= Ініціалізація при завантаженні DOM =================
 document.addEventListener('DOMContentLoaded', () => {
@@ -70,11 +114,15 @@ document.addEventListener('DOMContentLoaded', () => {
         await loadChatList();
       }
       if (section === 'profile' && state.currentUser) {
+        // Відкриваємо власний профіль
         await viewProfile(state.currentUser.uid);
       }
       if (section === 'settings') {
         loadSettings();
       }
+
+      // Оновлюємо видимість меню створення поста при зміні розділу
+      updateNewPostBoxVisibility();
     });
   });
 
@@ -416,6 +464,15 @@ document.addEventListener('DOMContentLoaded', () => {
       viewProfile(uid);
     }
   });
+
+  // Слухач для перемикання вкладок у профілі
+  document.getElementById('profileTabs')?.addEventListener('click', (e) => {
+    const tab = e.target.closest('.tab');
+    if (tab) {
+      // Даємо час, щоб профіль оновив активний клас
+      setTimeout(updateNewPostBoxVisibility, 50);
+    }
+  });
 });
 
 // ================= onAuthStateChanged =================
@@ -426,8 +483,7 @@ onAuthStateChanged(auth, (user) => {
     setCurrentUser(user);
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'none';
-    const newPostBox = document.getElementById('newPostBox');
-    if (newPostBox) newPostBox.style.display = 'block';
+    // Більше не показуємо newPostBox тут безумовно
 
     // Оновлення онлайн-статусу кожні 30 секунд
     const interval = setInterval(updateLastOnline, 30000);
@@ -483,16 +539,19 @@ onAuthStateChanged(auth, (user) => {
     });
 
     resetPagination();
-    // Завантаження власного профілю
-    import('./profile.js').then(module => module.loadMyProfile());
+    // Завантаження власного профілю (але не показуємо його одразу)
+    loadMyProfile();
+
+    // Оновлюємо видимість меню після входу
+    updateNewPostBoxVisibility();
 
   } else {
     setCurrentUser(null);
     setCurrentUserData(null);
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'block';
-    const newPostBox = document.getElementById('newPostBox');
-    if (newPostBox) newPostBox.style.display = 'none';
+    // При виході приховуємо меню
+    updateNewPostBoxVisibility();
     updateUnreadBadge(0);
   }
 });
