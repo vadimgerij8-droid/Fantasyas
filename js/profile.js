@@ -1,7 +1,7 @@
 import { db } from './config.js';
 import { 
   doc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion, arrayRemove, 
-  serverTimestamp, writeBatch, setDoc
+  serverTimestamp, writeBatch, setDoc, addDoc
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { 
   state,
@@ -10,6 +10,34 @@ import {
 import { showToast, uploadToCloudinary, vibrate, debounce } from './utils.js';
 import { renderPosts } from './posts.js';
 import { getChatId, openChat } from './chat.js';
+
+// ================= Змінна для відстеження поточного профілю =================
+let currentProfileUid = null;
+
+// ================= Допоміжна функція для показу/приховування блоку створення поста =================
+function updateNewPostBoxVisibility() {
+  const newPostBox = document.getElementById('newPostBox');
+  if (!newPostBox) return;
+
+  // Перевіряємо, чи активний розділ профілю (для безпеки)
+  const profileSection = document.getElementById('profile');
+  if (!profileSection || !profileSection.classList.contains('active')) {
+    newPostBox.style.display = 'none';
+    return;
+  }
+
+  // Якщо це не наш профіль – ховаємо
+  if (!state.currentUser || currentProfileUid !== state.currentUser.uid) {
+    newPostBox.style.display = 'none';
+    return;
+  }
+
+  // Перевіряємо, чи активна вкладка "posts"
+  const postsTab = document.querySelector('.profile-tab[data-tab="posts"]');
+  const isPostsActive = postsTab && postsTab.classList.contains('active');
+
+  newPostBox.style.display = isPostsActive ? 'block' : 'none';
+}
 
 // ================= Підписка/відписка =================
 export const toggleFollow = debounce(async (targetUid, buttonElement) => {
@@ -88,6 +116,9 @@ export async function viewProfile(uid) {
   } else {
     document.querySelector('.back-btn').classList.remove('visible');
   }
+
+  // Запам'ятовуємо, чий профіль зараз відкрито
+  currentProfileUid = uid;
 
   if (uid === state.currentUser?.uid) {
     await loadMyProfile();
@@ -296,10 +327,14 @@ function renderProfile(data, uid, isOwn) {
         document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         loadProfileFeed(uid, tab.dataset.tab);
+        // Оновлюємо видимість блоку створення поста при зміні вкладки
+        updateNewPostBoxVisibility();
       };
     });
   }
   loadProfileFeed(uid, 'posts');
+  // Оновлюємо видимість блоку створення поста після рендеру профілю
+  updateNewPostBoxVisibility();
 }
 
 // ================= Завантаження стрічки профілю =================
