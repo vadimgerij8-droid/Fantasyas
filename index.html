@@ -3,377 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
-  <title>FANTASYAS · Крутий апдейт</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-
-    body {
-      background: #f5f5f5;
-      color: #1e1e1e;
-    }
-
-    .app {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      min-height: 100vh;
-      box-shadow: 0 0 20px rgba(0,0,0,0.05);
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .main {
-      flex: 1;
-      overflow-y: auto;
-      padding-bottom: 70px; /* місце для нижнього меню */
-    }
-
-    /* Верхня панель */
-    .top-bar {
-      display: flex;
-      align-items: center;
-      padding: 12px 16px;
-      border-bottom: 1px solid #eee;
-      background: white;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    .back-btn {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      padding: 0 8px 0 0;
-      color: #333;
-    }
-
-    .top-bar-title {
-      font-weight: 700;
-      font-size: 20px;
-    }
-
-    /* Контент */
-    .content {
-      padding: 16px;
-    }
-
-    .section {
-      display: none;
-    }
-
-    .section.active {
-      display: block;
-    }
-
-    /* Картки */
-    .card {
-      background: white;
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      border: 1px solid #f0f0f0;
-      margin-bottom: 24px;
-    }
-
-    /* Інпути */
-    .input {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid #ddd;
-      border-radius: 30px;
-      font-size: 15px;
-      outline: none;
-      transition: 0.2s;
-      margin-bottom: 12px;
-    }
-
-    .input:focus {
-      border-color: #007aff;
-    }
-
-    /* Кнопки */
-    .btn {
-      background: #f0f0f0;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 30px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: 0.2s;
-      font-size: 15px;
-    }
-
-    .btn-primary {
-      background: #007aff;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: #005bbf;
-    }
-
-    /* Пост */
-    .post {
-      background: white;
-      border-radius: 24px;
-      padding: 16px;
-      margin-bottom: 20px;
-      border: 1px solid #f0f0f0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    }
-
-    .post-header {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .post-avatar {
-      cursor: pointer;
-    }
-
-    .avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background-size: cover;
-      background-position: center;
-      background-color: #e0e0e0;
-      cursor: pointer;
-    }
-
-    .avatar.small {
-      width: 32px;
-      height: 32px;
-    }
-
-    .post-author-info {
-      flex: 1;
-    }
-
-    .post-author-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: baseline;
-    }
-
-    .post-author {
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .post-author:hover {
-      text-decoration: underline;
-    }
-
-    .post-username {
-      color: #888;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .post-username:hover {
-      text-decoration: underline;
-    }
-
-    .post-date {
-      font-size: 12px;
-      color: #aaa;
-    }
-
-    .post-content {
-      margin: 12px 0;
-      line-height: 1.5;
-    }
-
-    .post-media {
-      width: 100%;
-      border-radius: 18px;
-      margin: 8px 0;
-    }
-
-    .post-footer {
-      display: flex;
-      gap: 20px;
-      margin-top: 12px;
-    }
-
-    .post-footer button {
-      background: none;
-      border: none;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      color: #555;
-      transition: 0.2s;
-      padding: 6px 10px;
-      border-radius: 30px;
-    }
-
-    .post-footer button:hover {
-      background: #f5f5f5;
-    }
-
-    /* Анімації лайка та збереження */
-    .like-btn.active {
-      color: #f00;
-      animation: likePop 0.3s ease;
-    }
-    @keyframes likePop {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.3); }
-      100% { transform: scale(1); }
-    }
-
-    .save-btn.active {
-      color: #007aff;
-      animation: savePop 0.3s ease;
-    }
-    @keyframes savePop {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.2); }
-      100% { transform: scale(1); }
-    }
-
-    /* Нижнє меню */
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      border-top: 1px solid #eee;
-      display: flex;
-      justify-content: space-around;
-      padding: 8px 0 12px;
-      z-index: 20;
-    }
-
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      font-size: 11px;
-      color: #888;
-      cursor: pointer;
-      transition: 0.2s;
-      padding: 4px 12px;
-      border-radius: 30px;
-    }
-
-    .nav-item.active {
-      color: #007aff;
-      font-weight: 600;
-    }
-
-    .icon {
-      width: 24px;
-      height: 24px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 2;
-      margin-bottom: 2px;
-    }
-
-    /* Модальні вікна */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    .modal.active {
-      display: flex;
-    }
-
-    .modal-content {
-      background: white;
-      width: 90%;
-      max-width: 400px;
-      border-radius: 32px;
-      padding: 24px;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .modal-close {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-      color: #888;
-    }
-
-    /* Toast */
-    #toast {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #333;
-      color: white;
-      padding: 10px 20px;
-      border-radius: 40px;
-      font-size: 14px;
-      opacity: 0;
-      transition: 0.2s;
-      z-index: 1100;
-      pointer-events: none;
-    }
-
-    #toast.show {
-      opacity: 1;
-    }
-
-    /* Завантажити ще */
-    .load-more-btn {
-      width: 100%;
-      padding: 14px;
-      background: #f5f5f5;
-      border: none;
-      border-radius: 40px;
-      font-weight: 600;
-      margin: 20px 0;
-      cursor: pointer;
-    }
-
-    /* Скелетон (заглушка завантаження) */
-    .skeleton {
-      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-      background-size: 200% 100%;
-      animation: loading 1.5s infinite;
-      border-radius: 16px;
-    }
-    @keyframes loading {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-  </style>
+  <title>FANTASYAS · Соцмережа</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app">
@@ -384,314 +16,316 @@
         <div class="top-bar-title" id="pageTitle">Головна</div>
       </header>
 
-      <!-- Контент (секції) -->
+      <!-- Контент -->
       <div class="content" id="content">
-        <!-- ========== ГОЛОВНА ========== -->
+        <!-- Головна -->
         <section id="home" class="section active">
-          <!-- Блок авторизації (спрощено) -->
           <div class="card" id="authBox">
             <div id="loginForm">
-              <input type="text" id="loginNickname" class="input" placeholder="Псевдонім (без @)" autocomplete="off"/>
-              <input type="password" id="loginPassword" class="input" placeholder="Пароль"/>
+              <input type="text" id="loginNickname" class="input" placeholder="Псевдонім (без @)" />
+              <input type="password" id="loginPassword" class="input" placeholder="Пароль" />
               <button class="btn btn-primary" id="loginBtn" style="width:100%; margin-top:12px;">Увійти</button>
-              <p style="margin-top:18px;">Немає акаунта? <span id="toRegister" style="color:#007aff;cursor:pointer;">Зареєструватися</span></p>
+              <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn" id="googleLoginBtn" style="flex:1;">Google</button>
+                <button class="btn" id="appleLoginBtn" style="flex:1;">Apple</button>
+              </div>
+              <p style="margin-top:18px;">Немає акаунта? <span id="toRegister" style="color:var(--accent);cursor:pointer;">Зареєструватися</span></p>
             </div>
             <div id="registerForm" style="display:none;">
-              <input type="text" id="registerNickname" class="input" placeholder="Псевдонім (без @)"/>
-              <input type="password" id="registerPassword" class="input" placeholder="Пароль"/>
-              <button class="btn btn-primary" id="registerBtn" style="width:100%;">Зареєструватися</button>
-              <p style="margin-top:18px;">Вже є акаунт? <span id="toLogin" style="color:#007aff;cursor:pointer;">Увійти</span></p>
+              <input type="text" id="registerNickname" class="input" placeholder="Псевдонім (без @)" />
+              <input type="password" id="registerPassword" class="input" placeholder="Пароль" />
+              <button class="btn btn-primary" id="registerBtn" style="width:100%; margin-top:12px;">Зареєструватися</button>
+              <p style="margin-top:18px;">Вже є акаунт? <span id="toLogin" style="color:var(--accent);cursor:pointer;">Увійти</span></p>
             </div>
           </div>
 
-          <!-- Фільтри (просто кнопки) -->
-          <div style="display:flex; gap:10px; margin-bottom:20px;">
+          <div class="feed-header">
             <button class="btn" id="feedNewBtn">Нові</button>
             <button class="btn" id="feedPopularBtn">Популярні</button>
             <button class="btn" id="filterBtn">Фільтри</button>
+            <div id="activeFilter" class="active-filter"></div>
           </div>
 
-          <!-- Стрічка постів (буде наповнюватись через JS) -->
           <div class="feed" id="feed"></div>
-          <!-- Індикатор завантаження та кнопка "Завантажити ще" -->
-          <div id="skeletonContainer" style="display:none;">
-            <div class="skeleton" style="height:200px; margin-bottom:20px;"></div>
-            <div class="skeleton" style="height:200px;"></div>
-          </div>
-          <button class="load-more-btn" id="loadMoreBtn">Завантажити ще</button>
+          <div class="feed-end-sentinel" id="feedSentinel"></div>
         </section>
 
-        <!-- ========== ПОШУК ========== -->
+        <!-- Пошук -->
         <section id="search" class="section">
-          <input type="text" id="searchInput" class="input" placeholder="Пошук..."/>
+          <input type="text" id="searchInput" class="input" placeholder="Пошук за @id, ім'ям або #хештегом..." />
           <div class="user-list" id="userList" style="margin-top:20px;"></div>
         </section>
 
-        <!-- ========== ХЕШТЕГИ ========== -->
+        <!-- Хештеги -->
         <section id="hashtags" class="section">
-          <h2>Популярні хештеги</h2>
-          <div class="hashtag-list" id="hashtagList">#день #вечір #круто</div>
+          <h2 style="margin-bottom:16px;">Популярні хештеги</h2>
+          <div class="hashtag-list" id="hashtagList"></div>
         </section>
 
-        <!-- ========== ПРОФІЛЬ ========== -->
+        <!-- Профіль -->
         <section id="profile" class="section">
-          <div class="profile-header" id="profileHeader">Профіль</div>
+          <div class="profile-header" id="profileHeader"></div>
           <div class="profile-tabs" id="profileTabs"></div>
-          <!-- Блок створення поста (в профілі) -->
-          <div class="card" id="newPostBox">
-            <textarea id="postText" class="input" placeholder="Що нового?" rows="2"></textarea>
-            <button class="btn btn-primary" id="addPost">Опублікувати</button>
+          <!-- Блок створення поста (тільки для свого профілю) -->
+          <div class="card" id="newPostBox" style="display: none; margin-bottom: 24px;">
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
+              <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;"></textarea>
+              <div class="emoji-picker-container">
+                <button class="emoji-button" id="postEmojiBtn">😊</button>
+                <div class="emoji-picker" id="postEmojiPicker"></div>
+              </div>
+            </div>
+            <div class="file-input-wrapper">
+              <input type="file" id="postMedia" accept="image/*,video/*" multiple>
+              <div class="file-input-button">
+                <span id="postMediaLabel">+ Медіа (до 3 файлів)</span>
+              </div>
+            </div>
+            <div id="postMediaPreviews" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;"></div>
+            <button class="btn btn-primary" id="addPost" style="margin-top:12px;">Опублікувати</button>
           </div>
-          <!-- Стрічка профілю -->
           <div class="feed" id="profileFeed"></div>
         </section>
 
-        <!-- ========== ЧАТИ ========== -->
+        <!-- Чати -->
         <section id="chats" class="section">
-          <div>Чати (демо)</div>
+          <div class="chats-container">
+            <aside class="chat-list-sidebar" id="chatListSidebar">
+              <div class="chat-search">
+                <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
+                <div id="chatSearchResults" class="user-list" style="display: none;"></div>
+              </div>
+              <div id="chatList" class="chat-list"></div>
+            </aside>
+            <div class="chat-window-container" id="chatWindowContainer" style="display: none;">
+              <div class="chat-window">
+                <div class="chat-header">
+                  <button class="chat-back-btn" id="chatBackBtn">←</button>
+                  <div class="chat-header-info" id="chatHeaderInfo">
+                    <div class="avatar" id="chatAvatar"></div>
+                    <div class="chat-header-text">
+                      <div id="chatName" class="chat-name"></div>
+                      <div id="chatStatus" class="chat-status"></div>
+                    </div>
+                  </div>
+                  <div class="chat-header-menu">
+                    <button class="chat-menu-btn" id="chatMenuBtn">⋯</button>
+                    <div class="chat-menu-dropdown" id="chatMenuDropdown">
+                      <div class="chat-menu-item" data-action="viewProfile">Переглянути профіль</div>
+                      <div class="chat-menu-item" data-action="mute">Замутити</div>
+                      <div class="chat-menu-item" data-action="report">Поскаржитися</div>
+                      <div class="chat-menu-item" data-action="block">Заблокувати</div>
+                      <div class="chat-menu-item" data-action="clearHistory">Очистити історію</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                  <span>друкує</span>
+                  <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+                </div>
+                <div id="replyPreview" class="reply-preview" style="display: none;">
+                  <span class="reply-sender" id="replySender"></span>
+                  <span class="reply-text" id="replyText"></span>
+                  <button class="close-reply" id="closeReply">✕</button>
+                </div>
+                <div class="chat-input-area">
+                  <button class="chat-attach-btn" id="chatAttachBtn">📎</button>
+                  <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
+                  <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення...">
+                  <div class="emoji-picker-container">
+                    <button class="emoji-button" id="chatEmojiBtn">😊</button>
+                    <div class="emoji-picker" id="chatEmojiPicker"></div>
+                  </div>
+                  <button class="btn btn-primary btn-icon" id="sendMessage">➤</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="context-menu" id="messageContextMenu">
+            <div class="context-menu-item" data-action="reply">Відповісти</div>
+            <div class="context-menu-item" data-action="edit">Редагувати</div>
+            <div class="context-menu-item" data-action="copy">Копіювати текст</div>
+            <div class="context-menu-item" data-action="deleteSelf">Видалити для себе</div>
+            <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
+          </div>
+          <div class="reaction-picker" id="reactionPicker">
+            <button class="reaction-btn" data-emoji="👍">👍</button>
+            <button class="reaction-btn" data-emoji="❤️">❤️</button>
+            <button class="reaction-btn" data-emoji="😂">😂</button>
+            <button class="reaction-btn" data-emoji="😮">😮</button>
+            <button class="reaction-btn" data-emoji="😢">😢</button>
+            <button class="reaction-btn" data-emoji="👎">👎</button>
+          </div>
         </section>
 
-        <!-- ========== НАЛАШТУВАННЯ ========== -->
-        <section id="settings" class="section">
-          <div>Налаштування</div>
+        <!-- Налаштування -->
+        <section id="settings" class="section card">
+          <div class="settings-container">
+            <nav class="settings-nav">
+              <div class="settings-nav-item active" data-tab="account">Обліковий запис</div>
+              <div class="settings-nav-item" data-tab="privacy">Конфіденційність</div>
+              <div class="settings-nav-item" data-tab="notifications">Сповіщення</div>
+              <div class="settings-nav-item" data-tab="appearance">Зовнішній вигляд</div>
+              <div class="settings-nav-item" data-tab="data-storage">Дані та сховище</div>
+              <div class="settings-nav-item" data-tab="security">Безпека</div>
+              <div class="settings-nav-item" data-tab="privacy-policy">Політика конфіденційності</div>
+              <div class="settings-nav-item" data-tab="logout" style="color: var(--danger);">Вийти</div>
+            </nav>
+            <div class="settings-content">
+              <div class="settings-tab-content active" id="settings-account">
+                <h3>Обліковий запис</h3>
+                <div class="settings-group" id="accountStats"></div>
+                <div class="settings-group">
+                  <h4>Мова</h4>
+                  <select id="settingLanguage" class="input">
+                    <option value="uk">Українська</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-tab-content" id="settings-privacy">...</div>
+              <div class="settings-tab-content" id="settings-notifications">...</div>
+              <div class="settings-tab-content" id="settings-appearance">...</div>
+              <div class="settings-tab-content" id="settings-data-storage">...</div>
+              <div class="settings-tab-content" id="settings-security">...</div>
+              <div class="settings-tab-content" id="settings-privacy-policy">...</div>
+              <div class="settings-tab-content" id="settings-logout">
+                <button class="btn btn-danger" id="logoutBtn" style="width:100%;">Вийти</button>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>
 
     <!-- Нижнє меню -->
     <nav class="bottom-nav" id="bottomNav">
-      <div class="nav-item active" data-section="home">🏠<span>Головна</span></div>
-      <div class="nav-item" data-section="search">🔍<span>Пошук</span></div>
-      <div class="nav-item" data-section="hashtags">#<span>Хештеги</span></div>
-      <div class="nav-item" data-section="profile">👤<span>Профіль</span></div>
-      <div class="nav-item" data-section="chats">💬<span>Чати</span></div>
-      <div class="nav-item" data-section="settings">⚙️<span>Налаш.</span></div>
+      <div class="nav-item active" data-section="home">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Головна</span>
+      </div>
+      <div class="nav-item" data-section="search">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Пошук</span>
+      </div>
+      <div class="nav-item" data-section="hashtags">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg>
+        <span>Хештеги</span>
+      </div>
+      <div class="nav-item" data-section="profile">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Профіль</span>
+      </div>
+      <div class="nav-item" data-section="chats">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Чати</span>
+        <span class="badge" id="unreadBadge" style="display:none;">0</span>
+      </div>
+      <div class="nav-item" data-section="settings">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.07.07A10 10 0 0 0 12 17.66a10 10 0 0 0 6.26-2.26z"/></svg>
+        <span>Налаштування</span>
+      </div>
     </nav>
   </div>
 
-  <!-- Модальне вікно перегляду профілю -->
-  <div class="modal" id="profileViewModal">
+  <!-- Модальні вікна -->
+  <div class="modal" id="editProfileModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 id="profileModalTitle">Профіль користувача</h3>
-        <button class="modal-close" id="closeProfileModal">&times;</button>
+        <h3>Редагувати профіль</h3>
+        <button class="modal-close" id="closeModal">✕</button>
       </div>
-      <div class="modal-body" id="profileModalBody">
-        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px;">
-          <div class="avatar" id="modalAvatar" style="width: 64px; height: 64px;"></div>
-          <div>
-            <div id="modalName" style="font-weight: 700; font-size: 18px;">Ім'я</div>
-            <div id="modalUsername" style="color: #666;">@нік</div>
-          </div>
+      <div class="modal-body">
+        <div class="file-input-wrapper">
+          <input type="file" id="editAvatar" accept="image/*">
+          <div class="file-input-button">Обрати аватар</div>
         </div>
-        <p id="modalBio" style="margin-bottom: 16px;">Біографія користувача...</p>
-        <div style="display: flex; gap: 20px;">
-          <span><strong id="modalFollowers">0</strong> підписників</span>
-          <span><strong id="modalFollowing">0</strong> підписок</span>
-        </div>
+        <img id="editAvatarPreview" class="avatar-preview" style="display:none;">
+        <input type="text" id="editNickname" class="input" placeholder="Псевдонім">
+        <textarea id="editBio" class="input" placeholder="Біографія" rows="3"></textarea>
+        <input type="text" id="editNote" class="input" placeholder="Нотатка">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="saveProfileEdit">Зберегти</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast сповіщення -->
+  <div class="modal" id="editPostModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Редагувати пост</h3>
+        <button class="modal-close" id="closeEditPostModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="editPostText" class="input" placeholder="Текст поста" rows="4"></textarea>
+        <div id="editPostMediaPreview"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="savePostEdit">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="followersModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Підписники</h3>
+        <button class="modal-close" id="closeFollowersModal">✕</button>
+      </div>
+      <div class="modal-body" id="followersList"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="followingModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Підписки</h3>
+        <button class="modal-close" id="closeFollowingModal">✕</button>
+      </div>
+      <div class="modal-body" id="followingList"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="filterModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Фільтр за хештегом</h3>
+        <button class="modal-close" id="closeFilterModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="filter-list" id="filterList"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="clearFilterBtn">Скинути</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="muteModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Замутити користувача</h3>
+        <button class="modal-close" id="closeMuteModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Виберіть тривалість:</p>
+        <div class="radio-group">
+          <label><input type="radio" name="muteDuration" value="1"> 1 година</label>
+          <label><input type="radio" name="muteDuration" value="24"> 24 години</label>
+          <label><input type="radio" name="muteDuration" value="168"> Тиждень</label>
+          <label><input type="radio" name="muteDuration" value="forever"> Назавжди</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="saveMuteBtn">Застосувати</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
-  <script>
-    (function() {
-      // ---------- Глобальні дані ----------
-      const users = [
-        { id: 1, name: 'Олексій Петренко', username: '@oleksiy', avatar: 'https://i.pravatar.cc/150?u=1', bio: 'Фотограф, мрійник', followers: 120, following: 80 },
-        { id: 2, name: 'Марія Іваненко', username: '@maria_i', avatar: 'https://i.pravatar.cc/150?u=2', bio: 'Дизайнерка', followers: 340, following: 120 },
-        { id: 3, name: 'Іван Довгий', username: '@ivan_d', avatar: 'https://i.pravatar.cc/150?u=3', bio: 'Музикант', followers: 560, following: 200 },
-      ];
-
-      // Функція створення HTML поста
-      function createPost(user, text, date, likes = 0, comments = 0, saved = false, liked = false) {
-        const postDiv = document.createElement('div');
-        postDiv.className = 'post';
-        postDiv.setAttribute('data-user-id', user.id);
-        postDiv.innerHTML = `
-          <div class="post-header">
-            <div class="post-avatar">
-              <div class="avatar" style="background-image: url('${user.avatar}')" data-userid="${user.id}"></div>
-            </div>
-            <div class="post-author-info">
-              <div class="post-author-row">
-                <span class="post-author" data-userid="${user.id}">${user.name}</span>
-                <span class="post-username" data-userid="${user.id}">${user.username}</span>
-              </div>
-              <div class="post-date">${date}</div>
-            </div>
-          </div>
-          <div class="post-content">${text}</div>
-          <img src="https://picsum.photos/600/400?random=${Math.random()}" class="post-media" alt="media">
-          <div class="post-footer">
-            <button class="like-btn ${liked ? 'active' : ''}" data-liked="${liked}">❤️ <span class="likes-count">${likes}</span></button>
-            <button class="comment-btn">💬 <span>${comments}</span></button>
-            <button class="save-btn ${saved ? 'active' : ''}" data-saved="${saved}">🔖</button>
-          </div>
-        `;
-        return postDiv;
-      }
-
-      // ---------- Заповнення головної стрічки (багато постів) ----------
-      const feed = document.getElementById('feed');
-      const loadMoreBtn = document.getElementById('loadMoreBtn');
-      let postCounter = 0;
-      const POSTS_PER_PAGE = 5;
-
-      function generatePosts(count) {
-        for (let i = 0; i < count; i++) {
-          const user = users[Math.floor(Math.random() * users.length)];
-          const post = createPost(
-            user,
-            `Це текст поста №${postCounter + 1} з хештегами #круто #${user.username.substring(1)}`,
-            'щойно',
-            Math.floor(Math.random() * 50),
-            Math.floor(Math.random() * 10),
-            Math.random() > 0.7,
-            Math.random() > 0.7
-          );
-          feed.appendChild(post);
-          postCounter++;
-        }
-      }
-
-      // Початкове завантаження
-      generatePosts(POSTS_PER_PAGE);
-
-      // Кнопка "Завантажити ще"
-      loadMoreBtn.addEventListener('click', function() {
-        generatePosts(POSTS_PER_PAGE);
-      });
-
-      // ---------- Анімації лайка та збереження + підняття лічильника ----------
-      document.addEventListener('click', function(e) {
-        // Лайк
-        if (e.target.closest('.like-btn')) {
-          const btn = e.target.closest('.like-btn');
-          e.preventDefault();
-          const liked = btn.getAttribute('data-liked') === 'true';
-          const newLiked = !liked;
-          btn.setAttribute('data-liked', newLiked);
-          btn.classList.toggle('active', newLiked);
-          const countSpan = btn.querySelector('.likes-count');
-          let count = parseInt(countSpan.textContent, 10);
-          countSpan.textContent = newLiked ? count + 1 : count - 1;
-          showToast(newLiked ? '➕ Лайк додано' : '➖ Лайк прибрано');
-        }
-
-        // Збереження
-        if (e.target.closest('.save-btn')) {
-          const btn = e.target.closest('.save-btn');
-          e.preventDefault();
-          const saved = btn.getAttribute('data-saved') === 'true';
-          const newSaved = !saved;
-          btn.setAttribute('data-saved', newSaved);
-          btn.classList.toggle('active', newSaved);
-          showToast(newSaved ? '🔖 Збережено' : '🗑️ Видалено зі збереженого');
-        }
-
-        // Клік на автора/нік/аватар – показати профіль
-        const target = e.target.closest('.post-author, .post-username, .post-avatar .avatar');
-        if (target) {
-          const userId = target.getAttribute('data-userid');
-          if (userId) {
-            const user = users.find(u => u.id == userId) || users[0];
-            showProfileModal(user);
-          }
-        }
-      });
-
-      // ---------- Модальне вікно профілю ----------
-      const modal = document.getElementById('profileViewModal');
-      const closeModal = document.getElementById('closeProfileModal');
-      const modalAvatar = document.getElementById('modalAvatar');
-      const modalName = document.getElementById('modalName');
-      const modalUsername = document.getElementById('modalUsername');
-      const modalBio = document.getElementById('modalBio');
-      const modalFollowers = document.getElementById('modalFollowers');
-      const modalFollowing = document.getElementById('modalFollowing');
-
-      function showProfileModal(user) {
-        modalAvatar.style.backgroundImage = `url('${user.avatar}')`;
-        modalName.textContent = user.name;
-        modalUsername.textContent = user.username;
-        modalBio.textContent = user.bio || 'Біографія відсутня';
-        modalFollowers.textContent = user.followers;
-        modalFollowing.textContent = user.following;
-        modal.classList.add('active');
-      }
-
-      closeModal.addEventListener('click', function() {
-        modal.classList.remove('active');
-      });
-
-      window.addEventListener('click', function(e) {
-        if (e.target === modal) {
-          modal.classList.remove('active');
-        }
-      });
-
-      // ---------- Toast ----------
-      const toast = document.getElementById('toast');
-      function showToast(msg, duration = 1500) {
-        toast.textContent = msg;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), duration);
-      }
-
-      // ---------- Проста навігація по секціях ----------
-      const navItems = document.querySelectorAll('.nav-item');
-      const sections = {
-        home: document.getElementById('home'),
-        search: document.getElementById('search'),
-        hashtags: document.getElementById('hashtags'),
-        profile: document.getElementById('profile'),
-        chats: document.getElementById('chats'),
-        settings: document.getElementById('settings')
-      };
-
-      navItems.forEach(item => {
-        item.addEventListener('click', function() {
-          const sectionName = this.dataset.section;
-          navItems.forEach(n => n.classList.remove('active'));
-          this.classList.add('active');
-          Object.values(sections).forEach(s => s.classList.remove('active'));
-          if (sections[sectionName]) {
-            sections[sectionName].classList.add('active');
-            document.getElementById('pageTitle').textContent = this.innerText.trim();
-          }
-        });
-      });
-
-      // Демо: показати профіль при кліку на аватар в профілі (якщо є)
-      // Також додамо трохи постів у профіль
-      const profileFeed = document.getElementById('profileFeed');
-      if (profileFeed) {
-        profileFeed.appendChild(createPost(users[0], 'Мій перший пост', '5 хв тому', 2, 1, true, true));
-        profileFeed.appendChild(createPost(users[0], 'Ще один пост', '2 год тому', 5, 0, false, false));
-      }
-
-      // Демо авторизації (просто перемикання форм)
-      document.getElementById('toRegister')?.addEventListener('click', function() {
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('registerForm').style.display = 'block';
-      });
-      document.getElementById('toLogin')?.addEventListener('click', function() {
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('registerForm').style.display = 'none';
-      });
-
-      // Кнопка "Фільтри" — просто демо
-      document.getElementById('filterBtn')?.addEventListener('click', function() {
-        showToast('Відкрито фільтри (демо)');
-      });
-
-      // Кнопки "Нові", "Популярні"
-      document.getElementById('feedNewBtn')?.addEventListener('click', () => showToast('Нові пости (демо)'));
-      document.getElementById('feedPopularBtn')?.addEventListener('click', () => showToast('Популярні (демо)'));
-    })();
-  </script>
+  <script src="main.js"></script>
 </body>
 </html>
