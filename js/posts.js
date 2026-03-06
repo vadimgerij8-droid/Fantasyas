@@ -1,7 +1,7 @@
 import { db } from './config.js';
 import { 
   collection, addDoc, doc, getDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter, 
-  getDocs, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch 
+  getDocs, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, onSnapshot 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { 
   state,
@@ -15,22 +15,6 @@ export function extractHashtags(text) {
   const regex = /#(\w+)/g;
   const matches = text.match(regex);
   return matches ? matches.map(tag => tag.toLowerCase()) : [];
-}
-
-// ================= Створення сповіщення (додається в batch) =================
-function addNotificationToBatch(batch, toUserId, fromUserId, type, postId, text = '') {
-  if (toUserId === fromUserId) return; // не сповіщати самого себе
-
-  const notificationRef = doc(collection(db, "notifications"));
-  batch.set(notificationRef, {
-    toUserId,
-    fromUserId,
-    type,
-    postId,
-    text,
-    createdAt: serverTimestamp(),
-    read: false
-  });
 }
 
 // ================= Лайк (з debounce) =================
@@ -69,7 +53,6 @@ export const toggleLike = debounce(async (postId, buttonElement) => {
     if (isLiked === wasLiked) {
       const batch = writeBatch(db);
       if (isLiked) {
-        // Видаляємо лайк
         batch.update(postRef, {
           likes: arrayRemove(state.currentUser.uid),
           likesCount: increment(-1),
@@ -79,7 +62,6 @@ export const toggleLike = debounce(async (postId, buttonElement) => {
           likedPosts: arrayRemove(postId)
         });
       } else {
-        // Додаємо лайк
         batch.update(postRef, {
           likes: arrayUnion(state.currentUser.uid),
           likesCount: increment(1),
@@ -89,16 +71,6 @@ export const toggleLike = debounce(async (postId, buttonElement) => {
           likedPosts: arrayUnion(postId)
         });
         vibrate(30);
-
-        // Створюємо сповіщення автору поста
-        addNotificationToBatch(
-          batch,
-          postData.author,
-          state.currentUser.uid,
-          'like',
-          postId,
-          'подобається ваш пост'
-        );
       }
       await batch.commit();
     } else {
@@ -353,6 +325,7 @@ export async function loadMorePosts(containerId = 'feed') {
     renderPosts(snapshot.docs, containerId);
   } catch (e) {
     console.error("Помилка завантаження постів:", e);
+    // Покращена обробка помилки
     if (e.code === 'failed-precondition' || e.message.includes('index')) {
       const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
       if (match) {
@@ -604,48 +577,20 @@ export async function loadComments(postId, container) {
 
 export async function addComment(postId, text) {
   if (!state.currentUser || !text.trim()) return;
-
-  // Отримуємо дані поста (потрібен автор для сповіщення)
-  const postRef = doc(db, "posts", postId);
-  const postSnap = await getDoc(postRef);
-  if (!postSnap.exists()) {
-    throw new Error('Пост не знайдено');
-  }
-  const postData = postSnap.data();
-
-  // Отримуємо дані користувача
   const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
   const user = userSnap.data();
-
-  const batch = writeBatch(db);
-
-  // Додаємо коментар
-  const commentRef = doc(collection(db, `posts/${postId}/comments`));
-  batch.set(commentRef, {
+  const commentRef = collection(db, `posts/${postId}/comments`);
+  await addDoc(commentRef, {
     author: state.currentUser.uid,
     authorName: user.nickname,
     authorAvatar: user.avatar || '',
     text: text.trim(),
     createdAt: serverTimestamp()
   });
-
-  // Оновлюємо лічильник коментарів та популярність
-  batch.update(postRef, { 
+  await updateDoc(doc(db, "posts", postId), { 
     commentsCount: increment(1),
     popularity: increment(40)
   });
-
-  // Створюємо сповіщення автору поста
-  addNotificationToBatch(
-    batch,
-    postData.author,
-    state.currentUser.uid,
-    'comment',
-    postId,
-    `коментар: ${text.trim().substring(0, 50)}${text.length > 50 ? '…' : ''}`
-  );
-
-  await batch.commit();
 }
 
 // ================= Перегляди =================
