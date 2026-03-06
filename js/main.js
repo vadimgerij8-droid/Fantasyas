@@ -10,16 +10,17 @@ import { register, login, googleLogin, appleLogin, resetPassword, logout } from 
 import { createPost, loadMorePosts, loadHashtags, loadFilterHashtags, clearFilter, applyFilter } from './posts.js';
 import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFollowingList } from './profile.js';
 import { loadChatList, openChat, closeChat, sendMessage, handleTyping, handleMessageContextAction, searchUsersForChat } from './chat.js';
-import { loadSettings, setupSettingsListeners, applySettings } from './settings.js'; // додано applySettings
+import { loadSettings, setupSettingsListeners, applySettings } from './settings.js';
 import { 
   onAuthStateChanged, signOut 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { 
-  doc, onSnapshot, collection, query, where, serverTimestamp, updateDoc, getDoc, getDocs
+  doc, onSnapshot, collection, query, where, orderBy, serverTimestamp, updateDoc, getDoc, getDocs, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ================= Глобальні змінні =================
 let unsubscribeChatList = null;
+let unsubscribeNotifications = null; // для лічильника сповіщень
 
 // ================= Ініціалізація при завантаженні DOM =================
 document.addEventListener('DOMContentLoaded', () => {
@@ -94,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Перемикання вкладок у налаштуваннях (додано)
+  // Перемикання вкладок у налаштуваннях
   document.querySelectorAll('.settings-nav-item').forEach(item => {
     item.addEventListener('click', () => {
       const tab = item.dataset.tab;
@@ -434,6 +435,41 @@ document.addEventListener('DOMContentLoaded', () => {
       viewProfile(uid);
     }
   });
+
+  // ========== СИСТЕМА СПОВІЩЕНЬ ==========
+  const notificationsButton = document.getElementById('notificationsButton');
+  const notificationsPanel = document.getElementById('notificationsPanel');
+  const notificationsBadge = document.getElementById('notificationsBadge');
+  const markAllReadBtn = document.getElementById('markAllRead');
+
+  if (notificationsButton) {
+    // Відкриття/закриття панелі
+    notificationsButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (notificationsPanel.classList.contains('hidden')) {
+        // Завантажуємо сповіщення при відкритті
+        loadNotifications();
+        notificationsPanel.classList.remove('hidden');
+      } else {
+        notificationsPanel.classList.add('hidden');
+      }
+    });
+
+    // Закриття при кліку поза панеллю
+    document.addEventListener('click', (event) => {
+      if (!notificationsPanel.contains(event.target) && !notificationsButton.contains(event.target)) {
+        notificationsPanel.classList.add('hidden');
+      }
+    });
+
+    // Позначити всі прочитаними
+    if (markAllReadBtn) {
+      markAllReadBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await markAllNotificationsAsRead();
+      });
+    }
+  }
 });
 
 // ================= onAuthStateChanged =================
@@ -455,7 +491,6 @@ onAuthStateChanged(auth, (user) => {
       if (docSnap.exists()) {
         setCurrentUserData(docSnap.data());
         if (docSnap.data().settings) {
-          // Оновлюємо налаштування з Firestore (глибоке злиття)
           const firestoreSettings = docSnap.data().settings;
           state.userSettings = {
             ...state.userSettings,
@@ -466,10 +501,8 @@ onAuthStateChanged(auth, (user) => {
             security: { ...state.userSettings.security, ...(firestoreSettings.security || {}) }
           };
         }
-        // Застосовуємо всі налаштування (темна тема, анімації тощо)
         applySettings();
 
-        // Оновлення кнопок підписки в постах
         document.querySelectorAll('.follow-btn-post').forEach(btn => {
           const targetUid = btn.dataset.uid;
           if (targetUid) {
@@ -504,6 +537,20 @@ onAuthStateChanged(auth, (user) => {
       showToast('Помилка оновлення списку чатів.');
     });
 
+    // ===== Слухач непрочитаних сповіщень =====
+    if (unsubscribeNotifications) unsubscribeNotifications();
+    const notificationsQuery = query(
+      collection(db, "notifications"),
+      where("userId", "==", user.uid),
+      where("read", "==", false)
+    );
+    unsubscribeNotifications = onSnapshot(notificationsQuery, (snapshot) => {
+      const unreadCount = snapshot.size;
+      updateNotificationsBadge(unreadCount);
+    }, (error) => {
+      console.error("Notifications listener error:", error);
+    });
+
     resetPagination();
     import('./profile.js').then(module => module.loadMyProfile());
 
@@ -515,6 +562,11 @@ onAuthStateChanged(auth, (user) => {
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'none';
     updateUnreadBadge(0);
+    updateNotificationsBadge(0);
+    if (unsubscribeNotifications) {
+      unsubscribeNotifications();
+      unsubscribeNotifications = null;
+    }
   }
 });
 
@@ -527,8 +579,6 @@ async function loadSearchUsers() {
 
   if (val.startsWith('#')) {
     const tag = val.substring(1);
-    const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-    const { db } = await import('./config.js');
     const q = query(collection(db, "posts"), where("hashtags", "array-contains", tag));
     const snapshot = await getDocs(q);
     userList.innerHTML = '<h3 style="margin-bottom:12px;">Пости з тегом</h3>';
@@ -587,5 +637,134 @@ function resetPagination() {
   if (feed) {
     feed.innerHTML = '';
     loadMorePosts();
+  }
+}
+
+// ================= ФУНКЦІЇ ДЛЯ СПОВІЩЕНЬ =================
+// Оновлення значка сповіщень
+function updateNotificationsBadge(count) {
+  const badge = document.getElementById('notificationsBadge');
+  if (badge) {
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'flex' : 'none';
+  }
+}
+
+// Завантаження сповіщень з Firestore та рендер у панель
+async function loadNotifications() {
+  if (!state.currentUser) return;
+  const notificationsList = document.getElementById('notificationsList');
+  if (!notificationsList) return;
+
+  // Показуємо скелетон
+  notificationsList.innerHTML = `
+    <div class="skeleton-notification">
+      <div class="skeleton-avatar"></div>
+      <div style="flex:1">
+        <div class="skeleton-line" style="width:60%"></div>
+        <div class="skeleton-line" style="width:30%"></div>
+      </div>
+    </div>
+    <div class="skeleton-notification">
+      <div class="skeleton-avatar"></div>
+      <div style="flex:1">
+        <div class="skeleton-line" style="width:60%"></div>
+        <div class="skeleton-line" style="width:30%"></div>
+      </div>
+    </div>
+  `;
+
+  try {
+    const q = query(
+      collection(db, "notifications"),
+      where("userId", "==", state.currentUser.uid),
+      orderBy("createdAt", "desc")
+    );
+    const snapshot = await getDocs(q);
+    renderNotifications(snapshot.docs);
+  } catch (error) {
+    console.error("Error loading notifications:", error);
+    showToast("Помилка завантаження сповіщень");
+    notificationsList.innerHTML = '<p style="padding:16px;text-align:center;">Не вдалося завантажити сповіщення</p>';
+  }
+}
+
+// Рендер сповіщень у список
+function renderNotifications(docs) {
+  const notificationsList = document.getElementById('notificationsList');
+  if (!notificationsList) return;
+
+  if (docs.length === 0) {
+    notificationsList.innerHTML = '<p style="padding:16px;text-align:center;color:var(--text-tertiary);">Немає сповіщень</p>';
+    return;
+  }
+
+  let html = '';
+  docs.forEach(doc => {
+    const data = doc.data();
+    const time = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleString('uk-UA', { hour: '2-digit', minute: '2-digit' }) : '';
+    const unreadClass = data.read ? '' : 'unread';
+    html += `
+      <div class="notification-item ${unreadClass}" data-id="${doc.id}">
+        <div class="notification-avatar" style="background-image:url('${data.avatar || ''}'); background-size:cover; background-position:center;"></div>
+        <div class="notification-content">
+          <div class="notification-text">${data.text || ''}</div>
+          <div class="notification-time">${time}</div>
+        </div>
+      </div>
+    `;
+  });
+  notificationsList.innerHTML = html;
+
+  // Додаємо обробники для кліку на окреме сповіщення (наприклад, перехід за посиланням)
+  document.querySelectorAll('.notification-item').forEach(item => {
+    item.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = item.dataset.id;
+      if (!id) return;
+
+      // Позначаємо як прочитане
+      if (item.classList.contains('unread')) {
+        try {
+          await updateDoc(doc(db, "notifications", id), { read: true });
+          item.classList.remove('unread');
+          const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+          updateNotificationsBadge(unreadCount);
+        } catch (error) {
+          console.error("Error marking notification as read:", error);
+        }
+      }
+
+      // Тут можна додати перехід за посиланням, якщо notification містить data.link
+      if (data.link) {
+        // наприклад, перейти на пост або профіль
+      }
+    });
+  });
+}
+
+// Позначити всі сповіщення як прочитані
+async function markAllNotificationsAsRead() {
+  if (!state.currentUser) return;
+  const unreadItems = document.querySelectorAll('.notification-item.unread');
+  if (unreadItems.length === 0) return;
+
+  const batch = writeBatch(db);
+  unreadItems.forEach(item => {
+    const id = item.dataset.id;
+    if (id) {
+      const ref = doc(db, "notifications", id);
+      batch.update(ref, { read: true });
+    }
+  });
+
+  try {
+    await batch.commit();
+    unreadItems.forEach(item => item.classList.remove('unread'));
+    updateNotificationsBadge(0);
+    showToast('Усі сповіщення позначено прочитаними');
+  } catch (error) {
+    console.error("Error marking all as read:", error);
+    showToast('Помилка при оновленні');
   }
 }
