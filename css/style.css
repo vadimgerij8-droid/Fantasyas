@@ -2217,6 +2217,9 @@ body.dark .emoji-picker .emoji-item:hover {
   animation: fadeIn 0.3s ease-out;
   box-shadow: var(--shadow-sm);
 }
+.active-filter:empty {
+  display: none;
+}
 .active-filter svg {
   width: 1.2em;
   height: 1.2em;
