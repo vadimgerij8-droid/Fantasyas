@@ -1,4 +1,4 @@
- /* ========== ГЛОБАЛЬНІ СТИЛІ ========== */
+/* ========== ГЛОБАЛЬНІ СТИЛІ ========== */
 * {
   margin: 0;
   padding: 0;
@@ -584,7 +584,7 @@ body {
 /* Права колонка – кнопка підписки + меню */
 .post-header-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;  /* ЗМІНЕНО: з center на flex-start, щоб кнопка була на рівні імені */
   gap: 8px;
   flex-shrink: 0;
 }
