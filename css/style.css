@@ -1721,6 +1721,58 @@ body.dark .emoji-picker .emoji-item:hover {
   font-size: 1.4rem;
   color: var(--text-secondary);
 }
+
+/* ========== СТИЛЬНЕ МЕНЮ РЕДАГУВАННЯ (Instagram-стиль) ========== */
+.message-actions-menu {
+  position: absolute;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  min-width: 220px;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  padding: 6px 0;
+  animation: scaleIn 0.2s ease-out;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(var(--surface-rgb), 0.9);
+}
+.message-actions-menu.show {
+  display: flex;
+}
+.message-actions-menu .menu-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+}
+.message-actions-menu .menu-item:last-child {
+  border-bottom: none;
+}
+.message-actions-menu .menu-item:hover {
+  background: var(--surface);
+  transform: translateX(4px);
+}
+.message-actions-menu .menu-item svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+.message-actions-menu .menu-item.danger {
+  color: var(--danger);
+}
+.message-actions-menu .menu-item.danger:hover {
+  background: rgba(158, 158, 158, 0.1);
+}
+
 @media (max-width: 768px) {
   .chats-container {
     flex-direction: column;
