@@ -61,7 +61,25 @@
           </div>
 
           <!-- Стрічка постів -->
-          <div class="feed" id="feed"></div>
+          <div class="feed" id="feed">
+            <!-- Приклад поста з новою шапкою, переробленою за вимогою -->
+            <div class="post">
+              <div class="post-header">
+                <div class="user-info">
+                  <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
+                  <div class="user-text">
+                    <div class="user-name">Ім'я Користувача</div>
+                    <div class="user-username">@username</div>
+                  </div>
+                </div>
+                <button class="follow-btn">Підписатися</button>
+              </div>
+              <div class="post-content">
+                <p>Текст поста. Тут може бути будь-який вміст, але головне — шапка оформлена згідно з завданням.</p>
+              </div>
+            </div>
+            <!-- Решта постів будуть додаватися динамічно -->
+          </div>
           <div class="feed-end-sentinel" id="feedSentinel"></div>
           <div id="skeletonContainer" style="display:none;">
             <div class="skeleton" style="height:200px; margin-bottom:20px;"></div>
