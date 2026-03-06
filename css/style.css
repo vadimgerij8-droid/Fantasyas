@@ -584,9 +584,14 @@ body {
 /* Права колонка – кнопка підписки + меню */
 .post-header-actions {
   display: flex;
-  align-items: flex-start;  /* ЗМІНЕНО: з center на flex-start, щоб кнопка була на рівні імені */
+  align-items: flex-start;  /* Виправлено: кнопка на рівні імені */
   gap: 8px;
   flex-shrink: 0;
+}
+
+/* Сховати кнопку підписки на постах */
+.follow-btn-post {
+  display: none;
 }
 
 /* Меню поста */
