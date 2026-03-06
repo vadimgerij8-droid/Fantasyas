@@ -13,12 +13,8 @@ const firebaseConfig = {
   appId: "1:721763921060:web:3d61044ea2424e8176ca31"
 };
 
-// Ініціалізація Firebase
 const app = initializeApp(firebaseConfig);
-
-// Ініціалізація сервісів
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Експорт для використання в інших модулях
 export { app, auth, db };
