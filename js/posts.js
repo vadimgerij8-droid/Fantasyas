@@ -357,7 +357,8 @@ export function renderPosts(docs, containerId = 'feed') {
     const post = { id: docSnap.id, ...docSnap.data() };
     const liked = post.likes?.includes(state.currentUser?.uid) || false;
     const saved = post.saves?.includes(state.currentUser?.uid) || false;
-    const postTime = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString() : '';
+    // Змінено формат часу: тільки години:хвилини (24-годинний)
+    const postTime = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
     const isAuthor = state.currentUser && post.author === state.currentUser.uid;
     const isFollowing = state.currentUserFollowing.includes(post.author);
 
@@ -561,12 +562,14 @@ export async function loadComments(postId, container) {
     const comment = doc.data();
     const commentEl = document.createElement('div');
     commentEl.className = 'comment';
+    // Змінено формат часу для коментарів: тільки години:хвилини
+    const commentTime = comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
     commentEl.innerHTML = `
       <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" data-uid="${comment.author}"></div>
       <div class="comment-content">
         <div>
           <span class="comment-author" data-uid="${comment.author}">${comment.authorName}</span>
-          <span class="comment-time">${new Date(comment.createdAt?.seconds * 1000).toLocaleString()}</span>
+          <span class="comment-time">${commentTime}</span>
         </div>
         <div class="comment-text">${comment.text}</div>
       </div>
