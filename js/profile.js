@@ -14,29 +14,19 @@ import { getChatId, openChat } from './chat.js';
 // ================= Змінна для відстеження поточного профілю =================
 let currentProfileUid = null;
 
-// ================= Допоміжна функція для показу/приховування блоку створення поста =================
-function updateNewPostBoxVisibility() {
-  const newPostBox = document.getElementById('newPostBox');
-  if (!newPostBox) return;
+// ================= Допоміжна функція для створення сповіщення (додається в batch) =================
+function addNotificationToBatch(batch, toUserId, fromUserId, type, text = '') {
+  if (toUserId === fromUserId) return; // не сповіщати самого себе
 
-  // Перевіряємо, чи активний розділ профілю (для безпеки)
-  const profileSection = document.getElementById('profile');
-  if (!profileSection || !profileSection.classList.contains('active')) {
-    newPostBox.style.display = 'none';
-    return;
-  }
-
-  // Якщо це не наш профіль – ховаємо
-  if (!state.currentUser || currentProfileUid !== state.currentUser.uid) {
-    newPostBox.style.display = 'none';
-    return;
-  }
-
-  // Перевіряємо, чи активна вкладка "posts"
-  const postsTab = document.querySelector('.profile-tab[data-tab="posts"]');
-  const isPostsActive = postsTab && postsTab.classList.contains('active');
-
-  newPostBox.style.display = isPostsActive ? 'block' : 'none';
+  const notificationRef = doc(collection(db, "notifications"));
+  batch.set(notificationRef, {
+    toUserId,
+    fromUserId,
+    type,
+    text,
+    createdAt: serverTimestamp(),
+    read: false
+  });
 }
 
 // ================= Підписка/відписка =================
@@ -70,6 +60,15 @@ export const toggleFollow = debounce(async (targetUid, buttonElement) => {
       batch.update(myRef, { following: arrayUnion(targetUid) });
       batch.update(targetRef, { followers: arrayUnion(state.currentUser.uid) });
       vibrate(30);
+
+      // Створюємо сповіщення про підписку
+      addNotificationToBatch(
+        batch,
+        targetUid,
+        state.currentUser.uid,
+        'follow',
+        'підписався(лась) на вас'
+      );
     }
     await batch.commit();
   } catch (error) {
