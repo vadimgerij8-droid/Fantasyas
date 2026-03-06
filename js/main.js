@@ -12,10 +12,20 @@ import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFoll
 import { loadChatList, openChat, closeChat, sendMessage, handleTyping, handleMessageContextAction, searchUsersForChat } from './chat.js';
 import { loadSettings, setupSettingsListeners, applySettings } from './settings.js';
 import { 
-  onAuthStateChanged, signOut 
+  onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { 
-  doc, onSnapshot, collection, query, where, orderBy, serverTimestamp, updateDoc, getDoc, getDocs, writeBatch
+  doc, 
+  onSnapshot, 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  serverTimestamp, 
+  updateDoc, 
+  getDoc, 
+  getDocs, 
+  writeBatch 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // ================= Глобальні змінні =================
@@ -613,7 +623,7 @@ async function loadSearchUsers() {
     div.className = 'chat-item';
     div.tabIndex = 0;
     div.innerHTML = `
-      <div class="avatar small" style="background-image:url(${data.avatar || ''})" tabindex="0"></div>
+      <div class="avatar small" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
       <div class="chat-info">
         <div class="chat-name">${data.nickname}</div>
         <div class="chat-last">${data.userId}</div>
@@ -677,7 +687,7 @@ async function loadNotifications() {
   try {
     const q = query(
       collection(db, "notifications"),
-      where("userId", "==", state.currentUser.uid),
+      where("toUserId", "==", state.currentUser.uid),
       orderBy("createdAt", "desc")
     );
     const snapshot = await getDocs(q);
@@ -706,7 +716,7 @@ function renderNotifications(docs) {
     const unreadClass = data.read ? '' : 'unread';
     html += `
       <div class="notification-item ${unreadClass}" data-id="${doc.id}">
-        <div class="notification-avatar" style="background-image:url('${data.avatar || ''}'); background-size:cover; background-position:center;"></div>
+        <div class="notification-avatar" style="background-image:url('${data.fromAvatar || ''}'); background-size:cover; background-position:center;"></div>
         <div class="notification-content">
           <div class="notification-text">${data.text || ''}</div>
           <div class="notification-time">${time}</div>
@@ -716,7 +726,7 @@ function renderNotifications(docs) {
   });
   notificationsList.innerHTML = html;
 
-  // Додаємо обробники для кліку на окреме сповіщення (наприклад, перехід за посиланням)
+  // Додаємо обробники для кліку на окреме сповіщення
   document.querySelectorAll('.notification-item').forEach(item => {
     item.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -736,9 +746,7 @@ function renderNotifications(docs) {
       }
 
       // Тут можна додати перехід за посиланням, якщо notification містить data.link
-      if (data.link) {
-        // наприклад, перейти на пост або профіль
-      }
+      // if (data.link) { ... }
     });
   });
 }
