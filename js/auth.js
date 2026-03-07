@@ -9,7 +9,7 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { showToast } from './utils.js';
+import { showToast, clearPresence } from './utils.js';
 import { state } from './state.js';
 
 // Реєстрація
@@ -54,7 +54,8 @@ export async function register(nickname, password) {
       blockedUsers: [],
       settings: { ...state.userSettings },
       createdAt: serverTimestamp(),
-      lastOnline: serverTimestamp(),
+      online: false,
+      lastSeen: serverTimestamp(),
       email: email
     });
 
@@ -129,7 +130,8 @@ export async function googleLogin() {
         blockedUsers: [],
         settings: { ...state.userSettings },
         createdAt: serverTimestamp(),
-        lastOnline: serverTimestamp(),
+        online: false,
+        lastSeen: serverTimestamp(),
         email: user.email
       });
     }
@@ -177,7 +179,8 @@ export async function appleLogin() {
         blockedUsers: [],
         settings: { ...state.userSettings },
         createdAt: serverTimestamp(),
-        lastOnline: serverTimestamp(),
+        online: false,
+        lastSeen: serverTimestamp(),
         email: user.email
       });
     }
@@ -215,6 +218,7 @@ export async function resetPassword(nickname) {
 
 // Вихід
 export async function logout() {
+  await clearPresence(); // оновлюємо статус на offline
   try {
     await signOut(auth);
   } catch (err) {
