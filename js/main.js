@@ -5,12 +5,12 @@ import {
   setCurrentUser, setCurrentUserData, setLastOnlineInterval, setUnsubscribeFollowing,
   cleanupAllListeners, updateUnreadCount, resetPaginationState
 } from './state.js';
-import { showToast, updateLastOnline, updateUnreadBadge, setupEmojiPicker, setupFileInput, debounce } from './utils.js';
+import { showToast, updateLastSeen, updateUnreadBadge, setupEmojiPicker, setupFileInput, debounce, setupPresence, clearPresence } from './utils.js';
 import { register, login, googleLogin, appleLogin, resetPassword, logout } from './auth.js';
 import { createPost, loadMorePosts, loadHashtags, loadFilterHashtags, clearFilter, applyFilter } from './posts.js';
 import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFollowingList } from './profile.js';
 import { loadChatList, openChat, closeChat, sendMessage, handleTyping, handleMessageContextAction, searchUsersForChat } from './chat.js';
-import { loadSettings, setupSettingsListeners, applySettings } from './settings.js'; // додано applySettings
+import { loadSettings, setupSettingsListeners, applySettings } from './settings.js';
 import { 
   onAuthStateChanged, signOut 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Перемикання вкладок у налаштуваннях (додано)
+  // Перемикання вкладок у налаштуваннях
   document.querySelectorAll('.settings-nav-item').forEach(item => {
     item.addEventListener('click', () => {
       const tab = item.dataset.tab;
@@ -442,20 +442,25 @@ onAuthStateChanged(auth, (user) => {
 
   if (user) {
     setCurrentUser(user);
+    // Налаштовуємо присутність
+    setupPresence(user);
+
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'none';
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'none';
 
-    const interval = setInterval(updateLastOnline, 30000);
-    setLastOnlineInterval(interval);
+    // Інтервал для оновлення lastSeen (вже робиться в setupPresence, тому не потрібен окремо)
+    // Але для сумісності залишимо, або приберемо. Краще прибрати дублювання.
+    // Ми вже маємо інтервал в setupPresence, тому цей можна не запускати.
+    // const interval = setInterval(updateLastSeen, 30000);
+    // setLastOnlineInterval(interval);
 
     const userRef = doc(db, "users", user.uid);
     const unsubFollowing = onSnapshot(userRef, (docSnap) => {
       if (docSnap.exists()) {
         setCurrentUserData(docSnap.data());
         if (docSnap.data().settings) {
-          // Оновлюємо налаштування з Firestore (глибоке злиття)
           const firestoreSettings = docSnap.data().settings;
           state.userSettings = {
             ...state.userSettings,
@@ -466,10 +471,8 @@ onAuthStateChanged(auth, (user) => {
             security: { ...state.userSettings.security, ...(firestoreSettings.security || {}) }
           };
         }
-        // Застосовуємо всі налаштування (темна тема, анімації тощо)
         applySettings();
 
-        // Оновлення кнопок підписки в постах
         document.querySelectorAll('.follow-btn-post').forEach(btn => {
           const targetUid = btn.dataset.uid;
           if (targetUid) {
@@ -510,6 +513,9 @@ onAuthStateChanged(auth, (user) => {
   } else {
     setCurrentUser(null);
     setCurrentUserData(null);
+    // Очищаємо присутність (інтервал і, можливо, статус offline)
+    clearPresence();
+
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'block';
     const newPostBox = document.getElementById('newPostBox');
