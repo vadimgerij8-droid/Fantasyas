@@ -104,15 +104,10 @@
           <div class="profile-header" id="profileHeader"></div>
           <div class="profile-tabs" id="profileTabs"></div>
 
-          <!-- === МЕНЮ СТВОРЕННЯ ПОСТА (ПЕРЕНЕСЕНО З ГОЛОВНОЇ) === -->
+          <!-- === МЕНЮ СТВОРЕННЯ ПОСТА (ЕМОДЗІ ВИДАЛЕНО) === -->
           <div class="card" id="newPostBox" style="display:none;">
-            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px;">
-              <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="flex:1;" tabindex="0"></textarea>
-              <div class="emoji-picker-container">
-                <button class="emoji-button" id="postEmojiBtn" tabindex="0">😊</button>
-                <div class="emoji-picker" id="postEmojiPicker"></div>
-              </div>
-            </div>
+            <!-- Видалено контейнер з емодзі -->
+            <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="margin-bottom:10px;" tabindex="0"></textarea>
             <div class="file-input-wrapper" style="margin-bottom:8px;">
               <input type="file" id="postMedia" accept="image/*,video/*" multiple>
               <div class="file-input-button">
@@ -183,15 +178,12 @@
                   <button class="close-reply" id="closeReply">✕</button>
                 </div>
 
-                <!-- Панель введення -->
+                <!-- Панель введення (емодзі видалено) -->
                 <div class="chat-input-area">
                   <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
                   <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
                   <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
-                  <div class="emoji-picker-container">
-                    <button class="emoji-button" id="chatEmojiBtn" tabindex="0">😊</button>
-                    <div class="emoji-picker" id="chatEmojiPicker"></div>
-                  </div>
+                  <!-- Видалено кнопку та меню емодзі -->
                   <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -212,7 +204,7 @@
             <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
           </div>
 
-          <!-- Панель реакцій -->
+          <!-- Панель реакцій (залишається без змін) -->
           <div class="reaction-picker" id="reactionPicker">
             <button class="reaction-btn" data-emoji="👍">👍</button>
             <button class="reaction-btn" data-emoji="❤️">❤️</button>
