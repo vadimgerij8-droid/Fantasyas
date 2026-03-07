@@ -131,13 +131,58 @@ export async function uploadToCloudinary(file) {
   return data.secure_url;
 }
 
-// ================= Оновлення онлайн-статусу =================
-export async function updateLastOnline() {
+// ================= Оновлення онлайн-статусу (для серцебиття) =================
+export async function updateLastSeen() {
   if (!state.currentUser) return;
   try {
-    await updateDoc(doc(db, "users", state.currentUser.uid), { lastOnline: serverTimestamp() });
+    await updateDoc(doc(db, "users", state.currentUser.uid), { 
+      lastSeen: serverTimestamp() 
+    });
   } catch (e) {
-    console.error('Failed to update lastOnline:', e);
+    console.error('Failed to update lastSeen:', e);
+  }
+}
+
+// ================= Налаштування присутності (викликати після входу) =================
+let presenceInterval = null;
+
+export function setupPresence(user) {
+  if (!user) return;
+
+  const userRef = doc(db, "users", user.uid);
+
+  // Встановлюємо онлайн при підключенні
+  updateDoc(userRef, {
+    online: true,
+    lastSeen: serverTimestamp()
+  }).catch(console.error);
+
+  // При відключенні (закриття вкладки/браузера) автоматично ставимо offline
+  userRef.onDisconnect().update({
+    online: false,
+    lastSeen: serverTimestamp()
+  }).catch(console.error);
+
+  // Періодичне оновлення lastSeen кожні 30 секунд
+  if (presenceInterval) clearInterval(presenceInterval);
+  presenceInterval = setInterval(() => {
+    updateDoc(userRef, { lastSeen: serverTimestamp() }).catch(console.error);
+  }, 30000);
+}
+
+// ================= Очищення присутності (викликати при виході) =================
+export async function clearPresence() {
+  if (presenceInterval) {
+    clearInterval(presenceInterval);
+    presenceInterval = null;
+  }
+  if (state.currentUser) {
+    // Ставимо offline перед виходом
+    const userRef = doc(db, "users", state.currentUser.uid);
+    await updateDoc(userRef, {
+      online: false,
+      lastSeen: serverTimestamp()
+    }).catch(console.error);
   }
 }
 
