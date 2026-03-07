@@ -8,29 +8,11 @@ import {
   setCurrentChat, clearChatState, setReplyContext, clearReplyContext,
   setUnsubscribeMessages, setUnsubscribeTyping, setUnsubscribeChatPresence
 } from './state.js';
-import { showToast, uploadToCloudinary, debounce } from './utils.js';
+import { showToast, uploadToCloudinary, debounce, formatLastSeen } from './utils.js';
 import { viewProfile, blockUser } from './profile.js';
 
 // ================= Допоміжні функції =================
 export const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
-
-// Форматування часу останнього візиту
-function formatLastSeen(timestamp) {
-  if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'щойно';
-  if (diffMins < 60) return `${diffMins} хв тому`;
-  if (diffHours < 24) return `${diffHours} год тому`;
-  if (diffDays === 1) return 'вчора';
-  if (diffDays < 7) return `${diffDays} дн тому`;
-  return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
-}
 
 // ================= Завантаження списку чатів =================
 export async function loadChatList() {
@@ -61,8 +43,8 @@ export async function loadChatList() {
       const updatedAt = chat.updatedAt?.seconds * 1000 || 0;
       const time = updatedAt ? new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-      const isOnline = user.online === true;
-      const lastSeen = user.lastSeen;
+      const lastSeen = user.lastSeen?.seconds * 1000 || 0;
+      const isOnline = (Date.now() - lastSeen) < 60000; // 60 секунд
 
       chatItems.push({
         chatId: docSnap.id,
@@ -103,7 +85,7 @@ function renderChatList(chatItems) {
     div.tabIndex = 0;
 
     // Підказка з часом останнього візиту
-    const lastSeenText = item.lastSeen ? formatLastSeen(item.lastSeen) : '';
+    const lastSeenText = item.lastSeen ? formatLastSeen({ seconds: item.lastSeen / 1000 }) : '';
     div.title = item.isOnline ? 'онлайн' : `Останній візит: ${lastSeenText}`;
 
     div.innerHTML = `
@@ -157,13 +139,13 @@ export async function openChat(chatId, otherUid, otherName, otherUserId, otherAv
 
   subscribeToMessages(chatId);
 
-  // Підписка на статус онлайн
+  // Підписка на статус (lastSeen)
   if (state.unsubscribeChatPresence) state.unsubscribeChatPresence();
   const unsubPresence = onSnapshot(doc(db, "users", otherUid), (snap) => {
     const user = snap.data();
     if (!user) return;
-    const isOnline = user.online === true;
     const lastSeen = user.lastSeen;
+    const isOnline = lastSeen ? (Date.now() - (lastSeen.seconds * 1000)) < 60000 : false;
     const statusEl = document.getElementById('chatStatus');
     if (isOnline) {
       statusEl.textContent = 'онлайн';
