@@ -8,8 +8,8 @@ import {
   sendPasswordResetEmail,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { showToast, clearPresence } from './utils.js';
+import { doc, setDoc, getDoc, collection, query, where, getDocs, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { showToast, stopHeartbeat } from './utils.js';
 import { state } from './state.js';
 
 // Реєстрація
@@ -54,7 +54,6 @@ export async function register(nickname, password) {
       blockedUsers: [],
       settings: { ...state.userSettings },
       createdAt: serverTimestamp(),
-      online: false,
       lastSeen: serverTimestamp(),
       email: email
     });
@@ -130,7 +129,6 @@ export async function googleLogin() {
         blockedUsers: [],
         settings: { ...state.userSettings },
         createdAt: serverTimestamp(),
-        online: false,
         lastSeen: serverTimestamp(),
         email: user.email
       });
@@ -179,7 +177,6 @@ export async function appleLogin() {
         blockedUsers: [],
         settings: { ...state.userSettings },
         createdAt: serverTimestamp(),
-        online: false,
         lastSeen: serverTimestamp(),
         email: user.email
       });
@@ -218,7 +215,12 @@ export async function resetPassword(nickname) {
 
 // Вихід
 export async function logout() {
-  await clearPresence(); // оновлюємо статус на offline
+  // Оновлюємо lastSeen перед виходом
+  if (state.currentUser) {
+    const userRef = doc(db, "users", state.currentUser.uid);
+    await updateDoc(userRef, { lastSeen: serverTimestamp() }).catch(console.error);
+  }
+  stopHeartbeat();
   try {
     await signOut(auth);
   } catch (err) {
