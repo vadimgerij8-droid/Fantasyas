@@ -131,58 +131,53 @@ export async function uploadToCloudinary(file) {
   return data.secure_url;
 }
 
-// ================= Оновлення онлайн-статусу (для серцебиття) =================
-export async function updateLastSeen() {
-  if (!state.currentUser) return;
-  try {
-    await updateDoc(doc(db, "users", state.currentUser.uid), { 
-      lastSeen: serverTimestamp() 
-    });
-  } catch (e) {
-    console.error('Failed to update lastSeen:', e);
-  }
+// ================= Функції для онлайн-статусу =================
+let heartbeatInterval = null;
+
+// Форматування часу останнього візиту
+export function formatLastSeen(timestamp) {
+  if (!timestamp) return '';
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'щойно';
+  if (diffMins < 60) return `${diffMins} хв тому`;
+  if (diffHours < 24) return `${diffHours} год тому`;
+  if (diffDays === 1) return 'вчора';
+  if (diffDays < 7) return `${diffDays} дн тому`;
+  return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
 }
 
-// ================= Налаштування присутності (викликати після входу) =================
-let presenceInterval = null;
-
-export function setupPresence(user) {
+// Запуск heartbeat (періодичне оновлення lastSeen)
+export function startHeartbeat(user) {
   if (!user) return;
 
   const userRef = doc(db, "users", user.uid);
 
-  // Встановлюємо онлайн при підключенні
-  updateDoc(userRef, {
-    online: true,
-    lastSeen: serverTimestamp()
-  }).catch(console.error);
+  // Встановлюємо lastSeen при старті
+  updateDoc(userRef, { lastSeen: serverTimestamp() }).catch(console.error);
 
-  // При відключенні (закриття вкладки/браузера) автоматично ставимо offline
-  userRef.onDisconnect().update({
-    online: false,
-    lastSeen: serverTimestamp()
-  }).catch(console.error);
-
-  // Періодичне оновлення lastSeen кожні 30 секунд
-  if (presenceInterval) clearInterval(presenceInterval);
-  presenceInterval = setInterval(() => {
+  // Оновлюємо кожні 30 секунд
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  heartbeatInterval = setInterval(() => {
     updateDoc(userRef, { lastSeen: serverTimestamp() }).catch(console.error);
   }, 30000);
+
+  // При закритті вкладки оновлюємо lastSeen востаннє
+  window.addEventListener('beforeunload', function() {
+    updateDoc(userRef, { lastSeen: serverTimestamp() }).catch(console.error);
+  });
 }
 
-// ================= Очищення присутності (викликати при виході) =================
-export async function clearPresence() {
-  if (presenceInterval) {
-    clearInterval(presenceInterval);
-    presenceInterval = null;
-  }
-  if (state.currentUser) {
-    // Ставимо offline перед виходом
-    const userRef = doc(db, "users", state.currentUser.uid);
-    await updateDoc(userRef, {
-      online: false,
-      lastSeen: serverTimestamp()
-    }).catch(console.error);
+// Зупинка heartbeat (при виході)
+export function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
   }
 }
 
