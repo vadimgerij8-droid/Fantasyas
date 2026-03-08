@@ -11,6 +11,7 @@ import {
 import { showToast, uploadToCloudinary, debounce, formatLastSeen } from './utils.js';
 import { viewProfile, blockUser } from './profile.js';
 
+// ================= Допоміжні функції =================
 export const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
 
 // ================= Завантаження списку чатів =================
@@ -81,8 +82,8 @@ function renderChatList(chatItems) {
     div.className = `chat-item ${item.unread > 0 ? 'unread' : ''}`;
     div.dataset.chatId = item.chatId;
     div.dataset.otherUid = item.otherUid;
-    div.dataset.username = item.user.nickname;
-    div.dataset.avatar = item.user.avatar || '';
+    div.dataset.username = item.user.nickname;      // додано для глобального обробника
+    div.dataset.avatar = item.user.avatar || '';    // додано
     div.tabIndex = 0;
 
     const lastSeenText = item.lastSeen ? formatLastSeen({ seconds: item.lastSeen / 1000 }) : '';
@@ -102,7 +103,9 @@ function renderChatList(chatItems) {
       ${item.unread > 0 ? `<div class="chat-badge">${item.unread}</div>` : ''}
     `;
 
+    // Індивідуальний обробник (залишаємо для сумісності)
     div.addEventListener('click', (e) => {
+      // Запобігаємо спрацьовуванню глобального обробника двічі
       e.stopPropagation();
       openChat(item.chatId, item.otherUid, item.user.nickname, item.user.userId, item.user.avatar);
     });
@@ -111,10 +114,12 @@ function renderChatList(chatItems) {
   });
 }
 
-// ================= Глобальний обробник (запасний) =================
+// ================= Глобальний обробник кліку на .chat-item (страхувальний) =================
 document.addEventListener('click', (e) => {
   const item = e.target.closest('.chat-item');
   if (!item) return;
+
+  // Якщо подія вже оброблена індивідуальним слухачем – ігноруємо
   if (e.defaultPrevented) return;
 
   const chatId = item.dataset.chatId;
@@ -130,66 +135,38 @@ document.addEventListener('click', (e) => {
 // ================= Відкриття чату =================
 export async function openChat(chatId, otherUid, otherName, otherUserId, otherAvatar) {
   try {
-    // ========== ПЕРЕВІРКА НАЯВНОСТІ ЕЛЕМЕНТІВ ==========
-    const chatWindow = document.getElementById('chatWindowContainer');
-    if (!chatWindow) {
-      alert('❌ ПОМИЛКА: елемент #chatWindowContainer не знайдено в HTML! Додайте id="chatWindowContainer" до контейнера чату.');
-      return;
-    }
+    console.log('openChat called', { chatId, otherUid, otherName });
 
-    const chatNameEl = document.getElementById('chatName');
-    if (!chatNameEl) {
-      alert('❌ ПОМИЛКА: елемент #chatName не знайдено! Додайте id="chatName" до заголовка.');
-      return;
-    }
-
-    const chatStatusEl = document.getElementById('chatStatus');
-    if (!chatStatusEl) {
-      alert('❌ ПОМИЛКА: елемент #chatStatus не знайдено! Додайте id="chatStatus" для статусу.');
-      return;
-    }
-
-    const chatAvatarEl = document.getElementById('chatAvatar');
-    if (!chatAvatarEl) {
-      alert('❌ ПОМИЛКА: елемент #chatAvatar не знайдено! Додайте id="chatAvatar" для аватара.');
-      return;
-    }
-
-    const chatListSidebar = document.getElementById('chatListSidebar');
-    // chatListSidebar може бути відсутній на мобільних, але це не критично
-
-    const bottomNav = document.querySelector('.bottom-nav');
-    // bottomNav може бути відсутній, теж не критично
-
-    const typingIndicator = document.getElementById('typingIndicator');
-    // typingIndicator може бути відсутній, але краще перевіримо
-
-    const chatText = document.getElementById('chatText');
-    if (!chatText) {
-      alert('❌ ПОМИЛКА: елемент #chatText не знайдено! Додайте поле введення з id="chatText".');
-      return;
-    }
-
-    // ========== ВСІ ЕЛЕМЕНТИ Є — ПРОДОВЖУЄМО ==========
     if (!state.currentUser) {
-      alert('❌ Користувач не авторизований. Увійдіть в систему.');
+      console.warn('Користувач не авторизований');
       return;
     }
 
     setCurrentChat(chatId, otherUid, otherName, otherUserId, otherAvatar);
 
-    // Заповнюємо дані
+    // Елементи DOM
+    const chatNameEl = document.getElementById('chatName');
+    const chatStatusEl = document.getElementById('chatStatus');
+    const chatAvatarEl = document.getElementById('chatAvatar');
+    const chatWindowContainer = document.getElementById('chatWindowContainer');
+    const chatListSidebar = document.getElementById('chatListSidebar');
+    const bottomNav = document.querySelector('.bottom-nav');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const chatText = document.getElementById('chatText');
+
+    if (!chatNameEl || !chatStatusEl || !chatAvatarEl || !chatWindowContainer) {
+      console.error('Не знайдено обов’язкові елементи DOM для чату');
+      showToast('Помилка інтерфейсу чату');
+      return;
+    }
+
     chatNameEl.textContent = otherName;
     chatStatusEl.textContent = '';
     chatAvatarEl.style.backgroundImage = otherAvatar ? `url(${otherAvatar})` : 'none';
 
-    // ПОКАЗУЄМО ВІКНО ЧАТУ
-    chatWindow.style.display = 'flex';
-    alert('✅ Вікно чату має з\'явитися. Якщо ви бачите це повідомлення, а вікна немає – проблема в CSS.');
-
-    // Ховаємо сайдбар на мобільних
-    if (window.innerWidth < 768 && chatListSidebar) {
-      chatListSidebar.classList.add('hide');
+    chatWindowContainer.style.display = 'flex';
+    if (window.innerWidth < 768) {
+      chatListSidebar?.classList.add('hide');
     }
 
     if (bottomNav) {
@@ -200,12 +177,12 @@ export async function openChat(chatId, otherUid, otherName, otherUserId, otherAv
     const chatRef = doc(db, "chats", chatId);
     await updateDoc(chatRef, {
       [`unread.${state.currentUser.uid}`]: 0
-    }).catch(err => alert('Помилка оновлення непрочитаних: ' + err.message));
+    }).catch(console.error);
 
     // Підписка на повідомлення
     subscribeToMessages(chatId);
 
-    // Підписка на статус
+    // Підписка на статус (lastSeen)
     if (state.unsubscribeChatPresence) state.unsubscribeChatPresence();
     const unsubPresence = onSnapshot(doc(db, "users", otherUid), (snap) => {
       const user = snap.data();
@@ -214,7 +191,11 @@ export async function openChat(chatId, otherUid, otherName, otherUserId, otherAv
       const isOnline = lastSeen ? (Date.now() - (lastSeen.seconds * 1000)) < 60000 : false;
       const statusEl = document.getElementById('chatStatus');
       if (!statusEl) return;
-      statusEl.textContent = isOnline ? 'онлайн' : `був(ла) ${formatLastSeen(lastSeen)}`;
+      if (isOnline) {
+        statusEl.textContent = 'онлайн';
+      } else {
+        statusEl.textContent = `був(ла) ${formatLastSeen(lastSeen)}`;
+      }
     });
     setUnsubscribeChatPresence(unsubPresence);
 
@@ -234,19 +215,19 @@ export async function openChat(chatId, otherUid, otherName, otherUserId, otherAv
 
     setTimeout(() => chatText?.focus(), 200);
   } catch (error) {
-    alert('❌ Сталася помилка у openChat: ' + error.message);
-    console.error(error);
+    console.error('Помилка у openChat:', error);
+    showToast('Не вдалося відкрити чат');
   }
 }
 
-// ========== ІНШІ ФУНКЦІЇ (без змін) ==========
+// ================= Підписка на повідомлення =================
 function subscribeToMessages(chatId) {
   if (!state.currentUser) return;
   if (state.unsubscribeMessages) state.unsubscribeMessages();
 
   const messagesContainer = document.getElementById('chatMessages');
   if (!messagesContainer) {
-    alert('❌ #chatMessages не знайдено!');
+    console.error('chatMessages не знайдено');
     return;
   }
   messagesContainer.innerHTML = '';
@@ -279,7 +260,7 @@ function subscribeToMessages(chatId) {
     });
     setUnsubscribeMessages(unsub);
   } catch (error) {
-    alert('Помилка створення підписки: ' + error.message);
+    console.error('Помилка створення підписки:', error);
   }
 }
 
@@ -491,6 +472,7 @@ export async function sendMessage(text, file) {
   }
 }
 
+// Індикатор друку
 export function handleTyping() {
   if (!state.currentUser || !state.currentChatId || !state.currentChatPartner) return;
 
@@ -709,10 +691,10 @@ export function closeChat() {
   clearChatState();
 }
 
-// ================= Обробник кнопки "Назад" =================
+// ================= Обробник кнопки "Назад" у чаті =================
 document.getElementById('chatBackBtn')?.addEventListener('click', closeChat);
 
-// ================= Закриття по Escape =================
+// Також можна додати обробник на клавішу Escape
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.getElementById('chatWindowContainer')?.style.display === 'flex') {
     closeChat();
