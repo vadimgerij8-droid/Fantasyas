@@ -132,7 +132,21 @@
                 <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
                 <div id="chatSearchResults" class="user-list" style="display: none;"></div>
               </div>
-              <div id="chatList" class="chat-list"></div>
+              <div id="chatList" class="chat-list">
+                <!-- Приклад чату для демонстрації -->
+                <div class="chat-item" data-user-id="user123" data-user-name="Тестовий Користувач" data-user-avatar="https://via.placeholder.com/56">
+                  <div class="chat-avatar">
+                    <div class="avatar" style="background-image: url('https://via.placeholder.com/56')"></div>
+                  </div>
+                  <div class="chat-info">
+                    <div class="chat-name-text">Тестовий Користувач</div>
+                    <div class="chat-last">Привіт! Як справи?</div>
+                  </div>
+                  <div class="chat-meta">
+                    <div class="chat-time">10:30</div>
+                  </div>
+                </div>
+              </div>
             </aside>
 
             <!-- Вікно чату -->
@@ -537,7 +551,232 @@
   <!-- Глобальний Toast -->
   <div id="toast"></div>
 
-  <!-- Підключення основного скрипта (модуль) -->
-  <script type="module" src="js/main.js"></script>
+  <!-- JavaScript для роботи чатів -->
+  <script>
+    // ===== РОБОТА З ЧАТАМИ =====
+    document.addEventListener('DOMContentLoaded', function() {
+      const chatList = document.getElementById('chatList');
+      const chatWindowContainer = document.getElementById('chatWindowContainer');
+      const chatListSidebar = document.getElementById('chatListSidebar');
+      const chatBackBtn = document.getElementById('chatBackBtn');
+      const chatName = document.getElementById('chatName');
+      const chatAvatar = document.getElementById('chatAvatar');
+      const chatStatus = document.getElementById('chatStatus');
+      const chatMessages = document.getElementById('chatMessages');
+      const chatText = document.getElementById('chatText');
+      const sendMessageBtn = document.getElementById('sendMessage');
+      const bottomNav = document.getElementById('bottomNav');
+
+      let currentChatId = null;
+
+      // Відкриття чату при кліку на користувача
+      if (chatList) {
+        chatList.addEventListener('click', function(e) {
+          const chatItem = e.target.closest('.chat-item');
+          if (!chatItem) return;
+
+          const userId = chatItem.dataset.userId;
+          const userName = chatItem.dataset.userName;
+          const userAvatar = chatItem.dataset.userAvatar;
+
+          if (!userId) {
+            console.error('Chat item missing user-id');
+            return;
+          }
+
+          openChat(userId, userName, userAvatar);
+        });
+      }
+
+      // Функція відкриття чату
+      function openChat(userId, userName, userAvatar) {
+        currentChatId = userId;
+        
+        // Оновлюємо заголовок чату
+        if (chatName) chatName.textContent = userName || 'Користувач';
+        if (chatAvatar) {
+          chatAvatar.style.backgroundImage = `url('${userAvatar || 'https://via.placeholder.com/40'}')`;
+          chatAvatar.style.backgroundSize = 'cover';
+        }
+        if (chatStatus) chatStatus.textContent = 'онлайн';
+
+        // Показуємо вікно чату
+        if (chatWindowContainer) {
+          chatWindowContainer.style.display = 'flex';
+        }
+        
+        // На мобільних приховуємо список чатів
+        if (window.innerWidth <= 768) {
+          if (chatListSidebar) chatListSidebar.style.display = 'none';
+          if (chatBackBtn) chatBackBtn.style.display = 'flex';
+          if (bottomNav) bottomNav.classList.add('hide-chat-mode');
+        }
+
+        // Завантажуємо повідомлення (заглушка)
+        loadMessages(userId);
+      }
+
+      // Функція закриття чату (назад)
+      if (chatBackBtn) {
+        chatBackBtn.addEventListener('click', function() {
+          if (chatWindowContainer) chatWindowContainer.style.display = 'none';
+          if (chatListSidebar) chatListSidebar.style.display = 'flex';
+          if (chatBackBtn) chatBackBtn.style.display = 'none';
+          if (bottomNav) bottomNav.classList.remove('hide-chat-mode');
+          currentChatId = null;
+        });
+      }
+
+      // Відправка повідомлення
+      if (sendMessageBtn) {
+        sendMessageBtn.addEventListener('click', sendMessage);
+      }
+
+      if (chatText) {
+        chatText.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            sendMessage();
+          }
+        });
+      }
+
+      function sendMessage() {
+        const text = chatText.value.trim();
+        if (!text || !currentChatId) return;
+
+        // Додаємо повідомлення в чат
+        addMessage(text, 'sent');
+        chatText.value = '';
+      }
+
+      function addMessage(text, type) {
+        if (!chatMessages) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = `message-wrapper ${type}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = `message-bubble ${type}`;
+        bubble.innerHTML = `<div class="message-text">${escapeHtml(text)}</div>`;
+        
+        const footer = document.createElement('div');
+        footer.className = 'message-footer';
+        const time = new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+        footer.innerHTML = `<span class="message-time">${time}</span>`;
+        
+        bubble.appendChild(footer);
+        wrapper.appendChild(bubble);
+        chatMessages.appendChild(wrapper);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function loadMessages(userId) {
+        if (!chatMessages) return;
+        chatMessages.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);padding:20px;">Завантаження повідомлень...</div>';
+        
+        // Імітація завантаження
+        setTimeout(() => {
+          chatMessages.innerHTML = '';
+          // Тестові повідомлення
+          addMessage('Привіт! Як справи?', 'received');
+        }, 500);
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // ===== НАВІГАЦІЯ =====
+      const navItems = document.querySelectorAll('.nav-item');
+      const sections = document.querySelectorAll('.section');
+
+      navItems.forEach(item => {
+        item.addEventListener('click', function() {
+          const sectionId = this.dataset.section;
+          
+          // Оновлюємо активні стани
+          navItems.forEach(nav => nav.classList.remove('active'));
+          this.classList.add('active');
+          
+          sections.forEach(section => {
+            section.classList.remove('active');
+            if (section.id === sectionId) {
+              section.classList.add('active');
+            }
+          });
+
+          // Оновлюємо заголовок
+          const pageTitle = document.getElementById('pageTitle');
+          const titles = {
+            'home': 'Головна',
+            'search': 'Пошук',
+            'hashtags': 'Хештеги',
+            'profile': 'Профіль',
+            'chats': 'Чати',
+            'settings': 'Налаштування'
+          };
+          if (pageTitle) pageTitle.textContent = titles[sectionId] || 'FANTASYAS';
+        });
+      });
+
+      // ===== МЕНЮ ЧАТУ =====
+      const chatMenuBtn = document.getElementById('chatMenuBtn');
+      const chatMenuDropdown = document.getElementById('chatMenuDropdown');
+
+      if (chatMenuBtn && chatMenuDropdown) {
+        chatMenuBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          chatMenuDropdown.classList.toggle('show');
+        });
+
+        document.addEventListener('click', function() {
+          chatMenuDropdown.classList.remove('show');
+        });
+
+        // Обробка пунктів меню
+        chatMenuDropdown.querySelectorAll('.chat-menu-item').forEach(item => {
+          item.addEventListener('click', function() {
+            const action = this.dataset.action;
+            console.log('Chat action:', action);
+            chatMenuDropdown.classList.remove('show');
+            
+            if (action === 'viewProfile') {
+              showToast('Відкриття профілю...');
+            } else if (action === 'mute') {
+              document.getElementById('muteModal')?.classList.add('active');
+            }
+          });
+        });
+      }
+
+      // ===== TOAST =====
+      function showToast(message) {
+        const toast = document.getElementById('toast');
+        if (toast) {
+          toast.textContent = message;
+          toast.classList.add('show');
+          setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+      }
+
+      // ===== МОДАЛКИ =====
+      document.querySelectorAll('.modal-close').forEach(btn => {
+        btn.addEventListener('click', function() {
+          this.closest('.modal').classList.remove('active');
+        });
+      });
+
+      // Закриття модалки при кліку поза нею
+      document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+          if (e.target === this) {
+            this.classList.remove('active');
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>
