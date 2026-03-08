@@ -171,8 +171,7 @@ body {
 
 /* ========== ОСНОВНИЙ ЛАЯУТ ========== */
 .app {
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;          /* змінено */
   position: relative;
   display: flex;
   flex-direction: column;
@@ -181,7 +180,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;            /* змінено */
   background: var(--bg);
   animation: fadeIn 0.6s ease-out;
 }
