@@ -1341,7 +1341,7 @@ body.dark .emoji-picker .emoji-item:hover {
 
 .chat-window-container {
   flex: 1;
-  display: flex;
+  display: none;
   flex-direction: column;
   min-height: 0;
   width: 100%;
