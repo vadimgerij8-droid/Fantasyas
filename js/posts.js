@@ -7,7 +7,7 @@ import {
   state,
   setFilterHashtag, resetPaginationState, setCurrentFeedType
 } from './state.js';
-import { showToast, vibrate, uploadToCloudinary, debounce, setupEmojiPicker } from './utils.js';
+import { showToast, vibrate, uploadToCloudinary, debounce, setupEmojiPicker, escapeHtml } from './utils.js';
 import { toggleFollow } from './profile.js';
 
 // ================= Допоміжні функції =================
@@ -15,6 +15,17 @@ export function extractHashtags(text) {
   const regex = /#(\w+)/g;
   const matches = text.match(regex);
   return matches ? matches.map(tag => tag.toLowerCase()) : [];
+}
+
+// ================= Очищення стрічки =================
+export function clearFeed() {
+  // Відписуємось від усіх слухачів постів
+  state.postListeners.forEach(unsubscribe => unsubscribe());
+  state.postListeners.clear();
+  
+  // Очищаємо DOM
+  const feed = document.getElementById('feed');
+  if (feed) feed.innerHTML = '';
 }
 
 // ================= Лайк (з debounce) =================
@@ -148,6 +159,15 @@ export async function createPost(text, files) {
     return false;
   }
 
+  // Валідація типів файлів
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+  for (const file of files) {
+    if (!allowedTypes.includes(file.type)) {
+      showToast(`Недопустимий тип файлу: ${file.type}`);
+      return false;
+    }
+  }
+
   try {
     showToast('Завантаження...');
 
@@ -180,8 +200,11 @@ export async function createPost(text, files) {
       popularity: 0
     });
 
-    await updateDoc(doc(db, "users", state.currentUser.uid), { posts: arrayUnion(postDoc.id) });
+    await updateDoc(doc(db, "users", state.currentUser.uid), { 
+      posts: arrayUnion(postDoc.id) 
+    });
 
+    // Очищаємо форму
     document.getElementById('postText').value = '';
     document.getElementById('postMedia').value = '';
     document.getElementById('postMediaPreviews').innerHTML = '';
@@ -213,6 +236,7 @@ export async function editPost(postId) {
     return;
   }
   
+  // TODO: Замінити prompt на модальне вікно
   const newText = prompt('Редагувати текст поста:', post.text || '');
   if (newText === null) return;
   
@@ -235,6 +259,9 @@ export async function editPost(postId) {
 export async function deletePost(postId) {
   if (!state.currentUser) return;
   if (!confirm('Видалити цей пост назавжди?')) return;
+
+  const deleteBtn = document.querySelector(`.delete-post-btn[data-post-id="${postId}"]`);
+  if (deleteBtn) deleteBtn.disabled = true;
 
   try {
     const postRef = doc(db, "posts", postId);
@@ -262,12 +289,22 @@ export async function deletePost(postId) {
 
     // Видаляємо елемент з DOM
     const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
-    if (postElement) postElement.remove();
+    if (postElement) {
+      // Відписуємось від слухача перед видаленням
+      const unsubscribe = state.postListeners.get(postId);
+      if (unsubscribe) {
+        unsubscribe();
+        state.postListeners.delete(postId);
+      }
+      postElement.remove();
+    }
 
     showToast('Пост видалено');
   } catch (error) {
     console.error('Помилка видалення поста:', error);
     showToast('Не вдалося видалити пост');
+  } finally {
+    if (deleteBtn) deleteBtn.disabled = false;
   }
 }
 
@@ -355,9 +392,14 @@ export function renderPosts(docs, containerId = 'feed') {
 
   docs.forEach(docSnap => {
     const post = { id: docSnap.id, ...docSnap.data() };
+    
+    // Перевіряємо, чи пост ще не відображається
+    if (document.querySelector(`.post[data-post-id="${post.id}"]`)) return;
+    
     const liked = post.likes?.includes(state.currentUser?.uid) || false;
     const saved = post.saves?.includes(state.currentUser?.uid) || false;
-    // Формат: день.місяць.рік години:хвилини
+    
+    // Формат дати: день.місяць.рік години:хвилини
     const postTime = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString('uk-UA', {
       day: '2-digit',
       month: '2-digit',
@@ -366,101 +408,240 @@ export function renderPosts(docs, containerId = 'feed') {
       minute: '2-digit',
       hour12: false
     }) : '';
+    
     const isAuthor = state.currentUser && post.author === state.currentUser.uid;
-    const isFollowing = state.currentUserFollowing.includes(post.author);
+    const isFollowing = state.currentUserFollowing?.includes(post.author) || false;
 
+    // Створюємо елемент поста
     const postEl = document.createElement('div');
     postEl.className = 'post';
     postEl.dataset.postId = post.id;
     postEl.tabIndex = 0;
 
-    let actionsHtml = '';
-    if (isAuthor) {
-      actionsHtml = `<div class="post-actions">
-        <button class="edit-post-btn" title="Редагувати пост" data-post-id="${post.id}" tabindex="0">✎</button>
-        <button class="delete-post-btn" title="Видалити пост" data-post-id="${post.id}" tabindex="0">🗑</button>
-      </div>`;
+    // Форматуємо текст з хештегами (екрануємо HTML)
+    let contentHtml = escapeHtml(post.text || '');
+    contentHtml = contentHtml.replace(/#(\w+)/g, '<span class="hashtag" data-tag="$1">#$1</span>');
+
+    // Будівництво поста через createElement (без innerHTML для складних частин)
+    
+    // Шапка поста
+    const header = document.createElement('div');
+    header.className = 'post-header';
+    
+    // Аватар
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = 'avatar';
+    avatarDiv.style.backgroundImage = `url(${post.authorAvatar || ''})`;
+    avatarDiv.dataset.uid = post.author;
+    avatarDiv.tabIndex = 0;
+    header.appendChild(avatarDiv);
+    
+    // Інформація про автора
+    const authorInfo = document.createElement('div');
+    authorInfo.className = 'post-author-info';
+    
+    const authorRow = document.createElement('div');
+    authorRow.className = 'post-author-row';
+    
+    const authorName = document.createElement('span');
+    authorName.className = 'post-author';
+    authorName.dataset.uid = post.author;
+    authorName.tabIndex = 0;
+    authorName.textContent = post.authorName || 'Невідомо';
+    authorRow.appendChild(authorName);
+    
+    const authorUserId = document.createElement('span');
+    authorUserId.className = 'post-username';
+    authorUserId.textContent = post.authorUserId || '';
+    authorRow.appendChild(authorUserId);
+    
+    // Кнопка підписки (якщо не автор)
+    if (!isAuthor && state.currentUser) {
+      const followBtn = document.createElement('button');
+      followBtn.className = `follow-btn-post ${isFollowing ? 'following' : ''}`;
+      followBtn.dataset.uid = post.author;
+      followBtn.tabIndex = 0;
+      followBtn.textContent = isFollowing ? 'Відписатися' : 'Підписатися';
+      followBtn.onclick = (e) => {
+        e.stopPropagation();
+        toggleFollow(post.author, followBtn);
+      };
+      authorRow.appendChild(followBtn);
     }
+    
+    authorInfo.appendChild(authorRow);
+    
+    const postTimeSpan = document.createElement('div');
+    postTimeSpan.className = 'post-time';
+    postTimeSpan.textContent = postTime;
+    authorInfo.appendChild(postTimeSpan);
+    
+    header.appendChild(authorInfo);
+    
+    // Дії з постом (редагування/видалення для автора)
+    if (isAuthor) {
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'post-actions';
+      
+      const editBtn = document.createElement('button');
+      editBtn.className = 'edit-post-btn';
+      editBtn.title = 'Редагувати пост';
+      editBtn.dataset.postId = post.id;
+      editBtn.tabIndex = 0;
+      editBtn.textContent = '✎';
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        editPost(post.id);
+      };
+      actionsDiv.appendChild(editBtn);
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-post-btn';
+      deleteBtn.title = 'Видалити пост';
+      deleteBtn.dataset.postId = post.id;
+      deleteBtn.tabIndex = 0;
+      deleteBtn.textContent = '🗑';
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        deletePost(post.id);
+      };
+      actionsDiv.appendChild(deleteBtn);
+      
+      header.appendChild(actionsDiv);
+    }
+    
+    postEl.appendChild(header);
 
-    let contentHtml = post.text || '';
-    const hashtagRegex = /#(\w+)/g;
-    contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
-
-    const followButtonHtml = !isAuthor && state.currentUser ? 
-      `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>` : '';
-
-    postEl.innerHTML = `
-      ${actionsHtml}
-      <div class="post-header">
-        <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" data-uid="${post.author}" tabindex="0"></div>
-        <div class="post-author-info">
-          <div>
-            <span class="post-author" data-uid="${post.author}" tabindex="0">${post.authorName || 'Невідомо'}</span>
-            <span class="post-meta">${post.authorUserId || ''}</span>
-            ${followButtonHtml}
-          </div>
-          <div class="post-time">${postTime}</div>
-        </div>
-      </div>
-      <div class="post-content">${contentHtml}</div>
-    `;
+    // Контент поста
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'post-content';
+    contentDiv.innerHTML = contentHtml; // innerHTML безпечний після escapeHtml
+    postEl.appendChild(contentDiv);
 
     // Галерея
     if (post.media && post.media.length > 0) {
       const gallery = createGallery(post.media);
       postEl.appendChild(gallery);
     } else if (post.mediaUrl) {
-      const mediaEl = post.mediaType === 'image'
-        ? `<img src="${post.mediaUrl}" class="post-media" loading="lazy" tabindex="0">`
-        : `<video src="${post.mediaUrl}" controls class="post-media" tabindex="0"></video>`;
-      postEl.innerHTML += mediaEl;
+      if (post.mediaType === 'image') {
+        const img = document.createElement('img');
+        img.src = post.mediaUrl;
+        img.className = 'post-media';
+        img.loading = 'lazy';
+        img.tabIndex = 0;
+        postEl.appendChild(img);
+      } else {
+        const video = document.createElement('video');
+        video.src = post.mediaUrl;
+        video.controls = true;
+        video.className = 'post-media';
+        video.tabIndex = 0;
+        postEl.appendChild(video);
+      }
     }
 
+    // Футер (кнопки)
     const footer = document.createElement('div');
     footer.className = 'post-footer';
-    footer.innerHTML = `
-      <button class="like-btn ${liked ? 'liked' : ''}" data-post-id="${post.id}" tabindex="0">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-        <span>${post.likesCount || 0}</span>
-      </button>
-      <button class="comment-toggle-btn" data-post-id="${post.id}" tabindex="0">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span>${post.commentsCount || 0}</span>
-      </button>
-      <button class="save-btn ${saved ? 'saved' : ''}" data-post-id="${post.id}" tabindex="0">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-      </button>
-      <span class="view-count" title="Перегляди">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/></svg>
-        ${post.views || 0}
-      </span>
+    
+    // Кнопка лайка
+    const likeBtn = document.createElement('button');
+    likeBtn.className = `like-btn ${liked ? 'liked' : ''}`;
+    likeBtn.dataset.postId = post.id;
+    likeBtn.tabIndex = 0;
+    likeBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      <span>${post.likesCount || 0}</span>
     `;
+    likeBtn.onclick = () => toggleLike(post.id, likeBtn);
+    footer.appendChild(likeBtn);
+    
+    // Кнопка коментарів
+    const commentBtn = document.createElement('button');
+    commentBtn.className = 'comment-toggle-btn';
+    commentBtn.dataset.postId = post.id;
+    commentBtn.tabIndex = 0;
+    commentBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>${post.commentsCount || 0}</span>
+    `;
+    footer.appendChild(commentBtn);
+    
+    // Кнопка збереження
+    const saveBtn = document.createElement('button');
+    saveBtn.className = `save-btn ${saved ? 'saved' : ''}`;
+    saveBtn.dataset.postId = post.id;
+    saveBtn.tabIndex = 0;
+    saveBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    `;
+    saveBtn.onclick = () => toggleSave(post.id, saveBtn);
+    footer.appendChild(saveBtn);
+    
+    // Лічильник переглядів
+    const viewSpan = document.createElement('span');
+    viewSpan.className = 'view-count';
+    viewSpan.title = 'Перегляди';
+    viewSpan.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/></svg>
+      ${post.views || 0}
+    `;
+    footer.appendChild(viewSpan);
+    
     postEl.appendChild(footer);
 
+    // Секція коментарів (спочатку прихована)
     const commentsSection = document.createElement('div');
     commentsSection.className = 'comments-section';
     commentsSection.id = `comments-${post.id}`;
     commentsSection.style.display = 'none';
-    commentsSection.innerHTML = `
-      <div class="comments-list" id="comments-list-${post.id}"></div>
-      <div class="comment-form">
-        <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Напишіть коментар..." tabindex="0">
-        <div class="emoji-picker-container" style="position: relative;">
-          <button class="emoji-button" id="comment-emoji-${post.id}" tabindex="0">😊</button>
-          <div class="emoji-picker" id="comment-picker-${post.id}"></div>
-        </div>
-        <button class="btn btn-primary btn-icon" id="submit-comment-${post.id}" tabindex="0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-      </div>
-    `;
+    
+    const commentsList = document.createElement('div');
+    commentsList.className = 'comments-list';
+    commentsList.id = `comments-list-${post.id}`;
+    commentsSection.appendChild(commentsList);
+    
+    const commentForm = document.createElement('div');
+    commentForm.className = 'comment-form';
+    
+    const commentInput = document.createElement('input');
+    commentInput.type = 'text';
+    commentInput.id = `comment-input-${post.id}`;
+    commentInput.className = 'comment-input';
+    commentInput.placeholder = 'Напишіть коментар...';
+    commentInput.tabIndex = 0;
+    commentForm.appendChild(commentInput);
+    
+    const emojiContainer = document.createElement('div');
+    emojiContainer.style.position = 'relative';
+    
+    const emojiBtn = document.createElement('button');
+    emojiBtn.className = 'emoji-button';
+    emojiBtn.id = `comment-emoji-${post.id}`;
+    emojiBtn.tabIndex = 0;
+    emojiBtn.textContent = '😊';
+    emojiContainer.appendChild(emojiBtn);
+    
+    const emojiPicker = document.createElement('div');
+    emojiPicker.className = 'emoji-picker';
+    emojiPicker.id = `comment-picker-${post.id}`;
+    emojiContainer.appendChild(emojiPicker);
+    
+    commentForm.appendChild(emojiContainer);
+    
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'btn btn-primary btn-icon';
+    submitBtn.id = `submit-comment-${post.id}`;
+    submitBtn.tabIndex = 0;
+    submitBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`;
+    commentForm.appendChild(submitBtn);
+    
+    commentsSection.appendChild(commentForm);
     postEl.appendChild(commentsSection);
 
     feed.appendChild(postEl);
 
-    incrementPostView(post.id);
-
-    // Обробники
+    // Обробники подій
     postEl.querySelectorAll('.hashtag').forEach(span => {
       span.onclick = (e) => {
         e.stopPropagation();
@@ -469,68 +650,52 @@ export function renderPosts(docs, containerId = 'feed') {
       };
     });
 
-    // Обробник для кнопки редагування
-    const editBtn = postEl.querySelector('.edit-post-btn');
-    if (editBtn) {
-      editBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        editPost(post.id);
-      });
-    }
-
-    // Обробник для кнопки видалення
-    const deleteBtn = postEl.querySelector('.delete-post-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deletePost(post.id);
-      });
-    }
-
-    const commentInput = document.getElementById(`comment-input-${post.id}`);
-    if (commentInput) {
-      setupEmojiPicker(`comment-emoji-${post.id}`, `comment-picker-${post.id}`, `comment-input-${post.id}`);
-    }
-
-    const toggleBtn = postEl.querySelector('.comment-toggle-btn');
-    toggleBtn.onclick = async () => {
+    // Обробник для кнопки коментарів
+    commentBtn.onclick = async () => {
       if (commentsSection.style.display === 'none') {
         commentsSection.style.display = 'block';
-        const commentsList = document.getElementById(`comments-list-${post.id}`);
-        if (commentsList) await loadComments(post.id, commentsList);
+        await loadComments(post.id, commentsList);
       } else {
         commentsSection.style.display = 'none';
       }
     };
 
-    const submitBtn = document.getElementById(`submit-comment-${post.id}`);
-    if (submitBtn) {
-      submitBtn.onclick = async () => {
-        const text = commentInput.value.trim();
-        if (!text) return;
-        try {
-          await addComment(post.id, text);
-          commentInput.value = '';
-          const commentsList = document.getElementById(`comments-list-${post.id}`);
-          if (commentsList) await loadComments(post.id, commentsList);
-          const countSpan = toggleBtn.querySelector('span');
-          if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
-          showToast('Коментар додано');
-        } catch (error) {
-          console.error('Error adding comment:', error);
-          showToast('Помилка: ' + error.message);
-        }
-      };
-    }
+    // Обробник для відправки коментаря
+    submitBtn.onclick = async () => {
+      const text = commentInput.value.trim();
+      if (!text) return;
+      try {
+        await addComment(post.id, text);
+        commentInput.value = '';
+        await loadComments(post.id, commentsList);
+        const countSpan = commentBtn.querySelector('span');
+        if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
+        showToast('Коментар додано');
+      } catch (error) {
+        console.error('Error adding comment:', error);
+        showToast('Помилка: ' + error.message);
+      }
+    };
+
+    // Emoji picker
+    setupEmojiPicker(`comment-emoji-${post.id}`, `comment-picker-${post.id}`, `comment-input-${post.id}`);
 
     // Підписка на оновлення поста
     const postRef = doc(db, "posts", post.id);
     const unsubscribe = onSnapshot(postRef, (snap) => {
+      // Перевіряємо, чи елемент ще в DOM
+      if (!postEl.isConnected) {
+        unsubscribe();
+        return;
+      }
+      
       if (snap.exists()) {
         const data = snap.data();
+        
+        // Оновлюємо лайк
+        const liked = data.likes?.includes(state.currentUser?.uid) || false;
         const likeBtn = postEl.querySelector('.like-btn');
         if (likeBtn) {
-          const liked = data.likes?.includes(state.currentUser?.uid) || false;
           const countSpan = likeBtn.querySelector('span');
           if (liked) {
             likeBtn.classList.add('liked');
@@ -539,25 +704,62 @@ export function renderPosts(docs, containerId = 'feed') {
           }
           if (countSpan) countSpan.textContent = data.likesCount || 0;
         }
+        
+        // Оновлюємо збереження
+        const saved = data.saves?.includes(state.currentUser?.uid) || false;
         const saveBtn = postEl.querySelector('.save-btn');
         if (saveBtn) {
-          const saved = data.saves?.includes(state.currentUser?.uid) || false;
           if (saved) {
             saveBtn.classList.add('saved');
           } else {
             saveBtn.classList.remove('saved');
           }
         }
+        
+        // Оновлюємо кількість коментарів
+        const commentBtn = postEl.querySelector('.comment-toggle-btn span');
+        if (commentBtn) commentBtn.textContent = data.commentsCount || 0;
+        
+        // Оновлюємо перегляди
+        const viewSpan = postEl.querySelector('.view-count');
+        if (viewSpan) {
+          const viewCount = viewSpan.childNodes[2]; // текстовий вузол після SVG
+          if (viewCount) viewCount.textContent = data.views || 0;
+        }
       } else {
-        if (postEl.parentNode) postEl.parentNode.removeChild(postEl);
+        // Пост видалено
+        if (postEl.parentNode) {
+          postEl.parentNode.removeChild(postEl);
+        }
         unsubscribe();
         state.postListeners.delete(post.id);
       }
     }, (error) => {
       console.error(`Error listening to post ${post.id}:`, error);
     });
+    
     state.postListeners.set(post.id, unsubscribe);
+
+    // Відстеження переглядів через Intersection Observer
+    observePostView(post.id, postEl);
   });
+}
+
+// ================= Intersection Observer для переглядів =================
+const viewObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const postId = entry.target.dataset.postId;
+      incrementPostView(postId);
+      viewObserver.unobserve(entry.target); // тільки один раз
+    }
+  });
+}, { threshold: 0.5 });
+
+function observePostView(postId, postEl) {
+  if (!state.currentUser) return;
+  if (state.viewedPosts.has(postId)) return;
+  viewObserver.observe(postEl);
 }
 
 // ================= Коментарі =================
@@ -569,7 +771,7 @@ export async function loadComments(postId, container) {
     const comment = doc.data();
     const commentEl = document.createElement('div');
     commentEl.className = 'comment';
-    // Формат для коментарів: день.місяць.рік години:хвилини
+    
     const commentTime = comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleString('uk-UA', {
       day: '2-digit',
       month: '2-digit',
@@ -578,14 +780,15 @@ export async function loadComments(postId, container) {
       minute: '2-digit',
       hour12: false
     }) : '';
+    
     commentEl.innerHTML = `
       <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" data-uid="${comment.author}"></div>
       <div class="comment-content">
         <div>
-          <span class="comment-author" data-uid="${comment.author}">${comment.authorName}</span>
+          <span class="comment-author" data-uid="${comment.author}">${escapeHtml(comment.authorName)}</span>
           <span class="comment-time">${commentTime}</span>
         </div>
-        <div class="comment-text">${comment.text}</div>
+        <div class="comment-text">${escapeHtml(comment.text)}</div>
       </div>
     `;
     container.appendChild(commentEl);
@@ -625,16 +828,15 @@ async function incrementPostView(postId) {
   }
 }
 
-// ================= Галерея =================
+// ================= Галерея (виправлена) =================
 function createGallery(media) {
   const gallery = document.createElement('div');
   gallery.className = 'post-gallery';
-  gallery.setAttribute('data-current', 0);
 
   const inner = document.createElement('div');
   inner.className = 'gallery-inner';
 
-  media.forEach((item, index) => {
+  media.forEach((item) => {
     const slide = document.createElement('div');
     slide.className = 'gallery-slide';
     if (item.type === 'image') {
@@ -661,29 +863,16 @@ function createGallery(media) {
   counter.textContent = `1/${media.length}`;
   gallery.appendChild(counter);
 
-  let startX = 0;
-  inner.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX;
-  });
-
-  inner.addEventListener('touchend', (e) => {
-    if (!startX) return;
-    const endX = e.changedTouches[0].clientX;
-    const diff = endX - startX;
-    const current = parseInt(gallery.dataset.current);
-    if (diff > 50 && current > 0) {
-      gallery.dataset.current = current - 1;
-    } else if (diff < -50 && current < media.length - 1) {
-      gallery.dataset.current = current + 1;
-    } else {
-      return;
-    }
-    const newCurrent = parseInt(gallery.dataset.current);
-    inner.style.transform = `translateX(-${newCurrent * 100}%)`;
+  // Оновлення індикаторів при скролі
+  inner.addEventListener('scroll', () => {
+    const slideWidth = inner.clientWidth;
+    const currentIndex = Math.round(inner.scrollLeft / slideWidth);
+    
     indicators.querySelectorAll('span').forEach((dot, i) => {
-      dot.className = i === newCurrent ? 'active' : '';
+      dot.className = i === currentIndex ? 'active' : '';
     });
-    counter.textContent = `${newCurrent + 1}/${media.length}`;
+    
+    counter.textContent = `${currentIndex + 1}/${media.length}`;
   });
 
   return gallery;
@@ -734,7 +923,8 @@ export function searchHashtag(tag) {
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.value = '#' + tag;
-    document.querySelector('[data-section="search"]').click();
+    const searchTab = document.querySelector('[data-section="search"]');
+    if (searchTab) searchTab.click();
   }
 }
 
@@ -786,29 +976,28 @@ export function applyFilter(tag) {
   // При застосуванні фільтра автоматично перемикаємо на "Нові", щоб уникнути помилки індексу
   if (state.currentFeedType === 'popular') {
     setCurrentFeedType('new');
-    document.getElementById('feedNewBtn').classList.add('active');
-    document.getElementById('feedPopularBtn').classList.remove('active');
+    const newBtn = document.getElementById('feedNewBtn');
+    const popularBtn = document.getElementById('feedPopularBtn');
+    if (newBtn) newBtn.classList.add('active');
+    if (popularBtn) popularBtn.classList.remove('active');
   }
 
   const activeDiv = document.getElementById('activeFilter');
   activeDiv.innerHTML = `#${tag} <button id="clearFilterChip">✕</button>`;
   document.getElementById('clearFilterChip').onclick = clearFilter;
 
+  // Очищаємо стрічку перед завантаженням
+  clearFeed();
   resetPaginationState();
-  const feed = document.getElementById('feed');
-  if (feed) {
-    feed.innerHTML = '';
-    loadMorePosts();
-  }
+  loadMorePosts();
 }
 
 export function clearFilter() {
   setFilterHashtag(null);
   document.getElementById('activeFilter').innerHTML = '';
+  
+  // Очищаємо стрічку перед завантаженням
+  clearFeed();
   resetPaginationState();
-  const feed = document.getElementById('feed');
-  if (feed) {
-    feed.innerHTML = '';
-    loadMorePosts();
-  }
+  loadMorePosts();
 }
