@@ -99,12 +99,13 @@
   position: absolute;
   bottom: 2px;
   right: 2px;
-  width: 12px;
-  height: 12px;
-  background: var(--success); /* змінено на зелений */
+  width: 14px;  /* збільшено з 12px */
+  height: 14px; /* збільшено з 12px */
+  background: var(--success); /* зелений */
   border: 2px solid var(--card);
   border-radius: 50%;
   margin: 0;
+  /* анімація відсутня */
 }
 .chat-info {
   flex: 1;
@@ -227,11 +228,11 @@
 }
 .chat-status.online::before {
   content: '';
-  width: 8px;
-  height: 8px;
-  background: var(--success);
+  width: 10px;  /* збільшено з 8px */
+  height: 10px; /* збільшено з 8px */
+  background: var(--success); /* зелений */
   border-radius: 50%;
-  animation: pulse-soft 2s infinite;
+  /* анімацію видалено */
 }
 .chat-header-menu {
   position: relative;
