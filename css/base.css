@@ -1,0 +1,223 @@
+/* ========== base.css ========== */
+
+/* ========== ГЛОБАЛЬНІ СТИЛІ ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Manrope', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --bg: #ffffff;
+  --surface: #f5f5f5;
+  --surface-rgb: 245, 245, 245;
+  --card: #ffffff;
+  --border: #e0e0e0;
+  --text-primary: #212121;
+  --text-secondary: #424242;
+  --text-tertiary: #757575;
+  --accent: #333333;
+  --accent-hover: #555555;
+  --accent-light: #bdbdbd;
+  --accent-rgb: 51, 51, 51;
+  --danger: #9e9e9e;
+  --danger-hover: #7a7a7a;
+  --warning: #bdbdbd;
+  --success: #757575;
+  --like: #e91e63;
+  --bookmark: #FFC107;
+  --shadow-sm: 0 3px 14px rgba(0,0,0,0.05);
+  --shadow-md: 0 8px 32px rgba(0,0,0,0.07);
+  --shadow-lg: 0 16px 52px rgba(0,0,0,0.10);
+  --shadow-glow: 0 0 20px rgba(var(--accent-rgb), 0.15);
+  --transition: 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+  --transition-slow: 0.62s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --radius-sm: 14px;
+  --radius-md: 22px;
+  --radius-lg: 30px;
+  --header-height: 64px;
+  --bottom-nav-height: 70px;
+  --btn-hover-text: white;
+  --btn-primary-text: white;
+}
+
+body.dark {
+  --bg: #000000;
+  --surface: #121212;
+  --surface-rgb: 18, 18, 18;
+  --card: #1a1a1a;
+  --border: #333333;
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --text-tertiary: #bdbdbd;
+  --accent: #ffffff;
+  --accent-hover: #f0f0f0;
+  --accent-light: #aaaaaa;
+  --accent-rgb: 255, 255, 255;
+  --danger: #b0b0b0;
+  --danger-hover: #8a8a8a;
+  --warning: #bdbdbd;
+  --success: #9e9e9e;
+  --like: #f06292;
+  --bookmark: #FFD54F;
+  --shadow-sm: 0 3px 16px rgba(0,0,0,0.75);
+  --shadow-md: 0 8px 36px rgba(0,0,0,0.85);
+  --shadow-lg: 0 16px 60px rgba(0,0,0,0.95);
+  --shadow-glow: 0 0 30px rgba(var(--accent-rgb), 0.2);
+  --btn-hover-text: black;
+  --btn-primary-text: black;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background var(--transition-slow), color var(--transition-slow);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ========== АНІМАЦІЇ ========== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.96); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes slideIn {
+  from { transform: translateX(-50px) rotate(-2deg); opacity: 0; filter: blur(4px); }
+  to { transform: translateX(0) rotate(0); opacity: 1; filter: blur(0); }
+}
+@keyframes scaleIn {
+  from { transform: scale(0.9) translateY(10px); opacity: 0; filter: blur(2px); }
+  to { transform: scale(1) translateY(0); opacity: 1; filter: blur(0); }
+}
+@keyframes pulse-soft {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.2); }
+  50% { transform: scale(1.04); box-shadow: 0 0 0 20px rgba(var(--accent-rgb), 0); }
+}
+@keyframes shimmer {
+  0% { background-position: -1400px 0; }
+  100% { background-position: 1400px 0; }
+}
+@keyframes gentleGlow {
+  0% { box-shadow: 0 0 0 0 var(--accent-light); }
+  70% { box-shadow: 0 0 24px 6px rgba(var(--accent-rgb), 0.3); }
+  100% { box-shadow: 0 0 0 0 var(--accent-light); }
+}
+@keyframes heartBeat {
+  0%, 100% { transform: scale(1); }
+  40%  { transform: scale(1.32); }
+  60%  { transform: scale(0.90); }
+  80%  { transform: scale(1.18); }
+}
+@keyframes bookmarkTikTok {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.2) rotate(-5deg); filter: drop-shadow(0 8px 12px rgba(255, 193, 7, 0.5)); }
+  50% { transform: scale(0.95) rotate(3deg); }
+  75% { transform: scale(1.05) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0); filter: drop-shadow(0 0 0 var(--bookmark)); }
+}
+@keyframes commentPop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%  { transform: translateY(-8px) scale(1.18); }
+}
+@keyframes ripple {
+  0% { transform: scale(0, 0); opacity: 0.5; }
+  100% { transform: scale(24, 24); opacity: 0; }
+}
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes glow {
+  0% { box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.4); }
+  50% { box-shadow: 0 0 26px rgba(var(--accent-rgb), 0.6); }
+  100% { box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.4); }
+}
+@keyframes typingDot {
+  0%, 60% { opacity: 0; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+@keyframes floatUp {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-20px); opacity: 0; }
+}
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes messageSlideIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes navItemBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes floatIn {
+  0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes navGlow {
+  0%, 100% { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(var(--accent-rgb), 0.1); }
+  50% { box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), 0 0 20px 2px rgba(var(--accent-rgb), 0.15); }
+}
+@keyframes iconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* ========== ДОДАТКОВІ УТИЛІТИ ========== */
+.content::-webkit-scrollbar,
+.chat-list::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+.content::-webkit-scrollbar-track,
+.chat-list::-webkit-scrollbar-track,
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+.content::-webkit-scrollbar-thumb,
+.chat-list::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.content::-webkit-scrollbar-thumb:hover,
+.chat-list::-webkit-scrollbar-thumb:hover,
+.chat-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-light);
+}
+
+button, a, input, textarea, .card, .post, .chat-item, .comment {
+  transition: all 0.2s ease;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: none) {
+  .bottom-nav .nav-item:hover {
+    transform: none;
+    background: transparent;
+  }
+  .bottom-nav .nav-item:active {
+    transform: scale(0.95);
+    background: rgba(var(--accent-rgb), 0.1);
+  }
+  .post:hover {
+    transform: none;
+  }
+  .chat-item:hover {
+    transform: none;
+  }
+}
