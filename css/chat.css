@@ -82,6 +82,8 @@
   position: relative;
   flex-shrink: 0;
   transition: transform 0.3s ease;
+  width: 56px;
+  height: 56px;
 }
 .chat-item:hover .chat-avatar {
   transform: scale(1.1) rotate(5deg);
