@@ -312,24 +312,30 @@
   margin-top: 8px;
   margin-bottom: 10px;
   background: #000;
+  width: 100%;
 }
+
 .gallery-inner {
   display: flex;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  /* ховаємо смугу прокрутки, але функціонал залишається */
   scrollbar-width: none;
   -ms-overflow-style: none;
+  width: 100%;
+  /* ВАЖЛИВО: не додавати transition або transform */
 }
+
 .gallery-inner::-webkit-scrollbar {
   display: none;
 }
+
 .gallery-slide {
   flex: 0 0 100%;
   scroll-snap-align: start;
 }
+
 .gallery-slide img,
 .gallery-slide video {
   width: 100%;
@@ -338,6 +344,7 @@
   background: #000;
   display: block;
 }
+
 .gallery-indicators {
   position: absolute;
   bottom: 8px;
@@ -348,6 +355,7 @@
   gap: 6px;
   z-index: 2;
 }
+
 .gallery-indicators span {
   width: 8px;
   height: 8px;
@@ -355,11 +363,13 @@
   background: rgba(255,255,255,0.5);
   transition: background 0.2s, width 0.2s;
 }
+
 .gallery-indicators span.active {
   background: var(--accent);
   width: 20px;
   border-radius: 4px;
 }
+
 .gallery-counter {
   position: absolute;
   top: 8px;
