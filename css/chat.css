@@ -85,6 +85,13 @@
   width: 56px;
   height: 56px;
 }
+.chat-avatar img,
+.chat-avatar .avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
 .chat-item:hover .chat-avatar {
   transform: scale(1.1) rotate(5deg);
 }
