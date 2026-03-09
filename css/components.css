@@ -1,156 +1,18 @@
-/* ========== base/reset.css ========== */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* ========== components.css ========== */
 
-html {
-  -webkit-text-size-adjust: 100%;
-  -moz-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  scroll-behavior: smooth;
-}
-
-body {
-  min-height: 100vh;
-  line-height: 1.5;
-  text-rendering: optimizeSpeed;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-img,
-picture,
-video,
-canvas,
-svg {
-  display: block;
-  max-width: 100%;
-}
-
-input,
-button,
-textarea,
-select {
-  font: inherit;
-}
-
-p,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  overflow-wrap: break-word;
-}
-
-/* ========== змінні (variables.css) ========== */
-:root {
-  /* кольори */
-  --accent-h: 210;
-  --accent-s: 80%;
-  --accent-l: 50%;
-  --accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
-  --accent-rgb: 0, 120, 255; /* приблизно hsl(210, 100%, 50%) */
-  --accent-hover: hsl(var(--accent-h), var(--accent-s), calc(var(--accent-l) - 8%));
-
-  --surface: #f8fafc;
-  --card: #ffffff;
-  --text-primary: #0f172a;
-  --text-secondary: #334155;
-  --border: #cbd5e1;
-  --danger: #dc2626;
-  --danger-hover: #b91c1c;
-  --warning: #f59e0b;
-  --success: #10b981;
-
-  --btn-primary-text: white;
-  --btn-hover-text: white;
-
-  /* розміри */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-  --bottom-nav-height: 70px;
-
-  /* тіні */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 20px 30px -10px rgba(0, 0, 0, 0.15), 0 8px 15px rgba(0, 0, 0, 0.1);
-
-  /* анімація */
-  --transition: 0.2s ease;
-  --transition-slow: 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
-
-  /* темна тема (буде перевизначено через клас на body) */
-  color-scheme: light dark;
-}
-
-body.dark {
-  --surface: #1e1e2f;
-  --card: #2a2a3c;
-  --text-primary: #f1f5f9;
-  --text-secondary: #cbd5e1;
-  --border: #3a3a4e;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 20px 30px -10px rgba(0, 0, 0, 0.7);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not(body.light) {
-    /* автоматична темна тема, якщо клас light не задано */
-    --surface: #1e1e2f;
-    --card: #2a2a3c;
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --border: #3a3a4e;
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 20px 30px -10px rgba(0, 0, 0, 0.7);
-  }
-}
-
-/* ========== доступність ========== */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
-
-/* ========== компоненти ========== */
-
-/* ---------- фокус (для ручного керування через JS) ---------- */
+/* ========== ФОКУС ========== */
 .focused {
-  outline: 2px solid var(--accent) !important;
-  outline-offset: 2px !important;
-  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.2) !important;
-  transition: outline var(--transition), box-shadow var(--transition);
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.25), 0 0 20px rgba(var(--accent-rgb), 0.15) !important;
+  transform: scale(1.02);
+  transition: all var(--transition);
   z-index: 100;
 }
 .focused-animated {
   animation: gentleGlow 2s ease-out;
 }
 
-@keyframes gentleGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.3); }
-  50% { box-shadow: 0 0 20px 8px rgba(var(--accent-rgb), 0.2); }
-}
-
-/* ---------- картки ---------- */
+/* ========== КАРТКИ ========== */
 .card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -160,33 +22,14 @@ body.dark {
   transition: box-shadow var(--transition-slow), transform var(--transition-slow), border-color var(--transition);
   animation: scaleIn 0.5s ease-out;
   margin-bottom: 20px;
-  contain: content; /* оптимізація */
 }
-
 .card:hover {
   box-shadow: var(--shadow-lg);
-  transform: translateY(-4px) scale(1.01);
+  transform: translateY(-8px) scale(1.01);
   border-color: var(--accent);
 }
 
-@media (hover: hover) {
-  .card:hover {
-    transform: translateY(-8px) scale(1.01);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* ---------- аватари ---------- */
+/* ========== АВАТАРИ ========== */
 .avatar {
   width: 48px;
   height: 48px;
@@ -198,33 +41,27 @@ body.dark {
   cursor: pointer;
   transition: border-color var(--transition), transform 0.3s ease, box-shadow 0.3s;
   flex-shrink: 0;
-  object-fit: cover; /* для img */
 }
-
 .avatar:hover {
   border-color: var(--accent);
   transform: scale(1.1);
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.1);
 }
-
 .avatar.small {
   width: 32px;
   height: 32px;
 }
-
 .avatar.large {
   width: 80px;
   height: 80px;
   border-width: 3px;
 }
-
 @media (max-width: 480px) {
   .avatar.large {
     width: 64px;
     height: 64px;
   }
 }
-
 .online-indicator {
   display: inline-block;
   width: 12px;
@@ -236,12 +73,6 @@ body.dark {
   animation: pulse-soft 1.8s infinite;
   flex-shrink: 0;
 }
-
-@keyframes pulse-soft {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.8; }
-}
-
 .note-badge {
   position: absolute;
   top: -8px;
@@ -261,7 +92,7 @@ body.dark {
   animation: scaleIn 0.3s ease-out;
 }
 
-/* ---------- кнопки ---------- */
+/* ========== КНОПКИ ========== */
 .btn {
   padding: 10px 18px;
   border-radius: var(--radius-md);
@@ -277,95 +108,61 @@ body.dark {
   gap: 6px;
   position: relative;
   overflow: hidden;
-  text-decoration: none; /* для посилань-кнопок */
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
 }
-
 .btn::after {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.3) 10%, transparent 80%);
+  width: 5px;
+  height: 5px;
+  background: rgba(var(--accent-rgb), 0.4);
   opacity: 0;
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  transition: transform 0.4s, opacity 0.3s;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%);
+  transform-origin: 50% 50%;
 }
-
 .btn:active::after {
-  opacity: 0.4;
-  transform: translate(-50%, -50%) scale(2);
-  transition: 0s;
+  animation: ripple 0.4s ease-out;
 }
-
 .btn:hover {
   background: var(--accent);
   color: var(--btn-hover-text);
   border-color: var(--accent);
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-4px) scale(1.02);
   box-shadow: 0 8px 22px rgba(var(--accent-rgb), 0.25);
 }
-
-.btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.btn:active {
-  transform: translateY(0) scale(0.98);
-}
-
 .btn.focused {
   background: var(--accent);
   color: var(--btn-hover-text);
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.25), 0 8px 22px rgba(var(--accent-rgb), 0.25);
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-4px) scale(1.02);
 }
-
-.btn:disabled,
-.btn.disabled {
-  opacity: 0.5;
-  pointer-events: none;
-  filter: grayscale(30%);
-}
-
 .btn-primary {
   background: var(--accent);
   color: var(--btn-primary-text);
   border-color: var(--accent);
 }
-
-.btn-primary:hover,
-.btn-primary.focused {
+.btn-primary:hover, .btn-primary.focused {
   background: var(--accent-hover);
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-4px) scale(1.02);
   box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.3);
 }
-
 .btn-danger {
   background: var(--danger);
   color: white;
   border-color: var(--danger);
 }
-
 .btn-danger:hover {
   background: var(--danger-hover);
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
 }
-
 .btn-icon {
   padding: 10px;
-  aspect-ratio: 1 / 1;
 }
-
-.btn-follow,
-.follow-btn-post {
+.btn-follow, .follow-btn-post {
   background: transparent;
   border: 1.5px solid var(--accent);
   color: var(--accent);
@@ -378,29 +175,19 @@ body.dark {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  -webkit-tap-highlight-color: transparent;
 }
-
-.btn-follow:hover,
-.follow-btn-post:hover {
+.btn-follow:hover, .follow-btn-post:hover {
   background: var(--accent);
   color: var(--btn-hover-text);
   transform: scale(1.08);
   box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.2);
 }
-
-.btn-follow.following,
-.follow-btn-post.following {
+.btn-follow.following, .follow-btn-post.following {
   background: var(--accent);
   color: var(--btn-primary-text);
 }
 
-.btn-follow:active,
-.follow-btn-post:active {
-  transform: scale(0.95);
-}
-
-/* ---------- поля введення ---------- */
+/* ========== ПОЛЯ ВВЕДЕННЯ ========== */
 .input {
   width: 100%;
   padding: 14px 18px;
@@ -412,26 +199,18 @@ body.dark {
   outline: none;
   transition: border-color var(--transition), box-shadow var(--transition), transform 0.2s;
 }
-
-.input:focus,
-.input.focused {
+.input:focus, .input.focused {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15);
   transform: scale(1.01);
 }
 
-.input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ---------- вибір файлу ---------- */
+/* ========== ВИБІР ФАЙЛУ ========== */
 .file-input-wrapper {
   position: relative;
   display: inline-block;
   width: 100%;
 }
-
 .file-input-wrapper input[type="file"] {
   position: absolute;
   top: 0;
@@ -442,7 +221,6 @@ body.dark {
   cursor: pointer;
   z-index: 2;
 }
-
 .file-input-button {
   display: flex;
   align-items: center;
@@ -455,16 +233,13 @@ body.dark {
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   transition: all var(--transition);
-  pointer-events: none; /* кліки йдуть на input */
 }
-
-.file-input-wrapper:hover .file-input-button {
+.file-input-button:hover {
   border-color: var(--accent);
   color: var(--accent);
   transform: scale(1.03);
   background: var(--card);
 }
-
 .file-preview {
   margin-top: 8px;
   max-width: 100%;
@@ -474,17 +249,15 @@ body.dark {
   display: none;
   animation: scaleIn 0.4s ease-out;
 }
-
 .file-preview.show {
   display: block;
 }
 
-/* ---------- емоджі-пікер ---------- */
+/* ========== ЕМОДЖІ-ПІКЕР ========== */
 .emoji-picker-container {
   position: relative;
   display: inline-block;
 }
-
 .emoji-button {
   background: none;
   border: none;
@@ -503,9 +276,7 @@ body.dark {
   min-height: 52px;
   position: relative;
   overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
 }
-
 .emoji-button::before {
   content: '';
   position: absolute;
@@ -516,31 +287,25 @@ body.dark {
   border-radius: 50%;
   transition: all 0.3s ease;
 }
-
 .emoji-button:hover {
   transform: scale(1.15) rotate(10deg);
   color: var(--accent);
 }
-
 .emoji-button:hover::before {
   opacity: 0.1;
   transform: scale(1);
 }
-
 .emoji-button:active {
   transform: scale(0.9) rotate(-5deg);
 }
-
 .emoji-button.active {
   color: var(--accent);
   transform: scale(1.1);
 }
-
 .emoji-button.active::before {
   opacity: 0.15;
   transform: scale(1);
 }
-
 .emoji-picker {
   position: fixed;
   left: 50%;
@@ -548,7 +313,7 @@ body.dark {
   transform: translateX(-50%) translateY(20px) scale(0.95);
   width: 92%;
   max-width: 380px;
-  max-height: min(45vh, 400px);
+  max-height: 45vh;
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--card);
@@ -568,13 +333,11 @@ body.dark {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
-
 .emoji-picker.active {
   opacity: 1;
   pointer-events: auto;
   transform: translateX(-50%) translateY(0) scale(1);
 }
-
 .emoji-picker button,
 .emoji-picker .emoji-item {
   font-size: 32px;
@@ -592,9 +355,7 @@ body.dark {
   align-items: center;
   justify-content: center;
   position: relative;
-  -webkit-tap-highlight-color: transparent;
 }
-
 .emoji-picker button:hover,
 .emoji-picker .emoji-item:hover {
   transform: scale(1.35) translateY(-4px);
@@ -602,12 +363,10 @@ body.dark {
   z-index: 10;
   box-shadow: 0 8px 20px rgba(0,0,0,0.15);
 }
-
 .emoji-picker button:active,
 .emoji-picker .emoji-item:active {
   transform: scale(0.95);
 }
-
 .emoji-picker button::after,
 .emoji-picker .emoji-item::after {
   content: '';
@@ -620,23 +379,19 @@ body.dark {
   transition: all 0.3s ease;
   z-index: -1;
 }
-
 .emoji-picker button:hover::after,
 .emoji-picker .emoji-item:hover::after {
   opacity: 0.08;
   transform: scale(1);
 }
-
 body.dark .emoji-picker {
   background: rgba(26, 26, 26, 0.95);
   border-color: #444;
 }
-
 body.dark .emoji-picker button:hover,
 body.dark .emoji-picker .emoji-item:hover {
   background: rgba(255,255,255,0.1);
 }
-
 @media (max-width: 400px) {
   .emoji-picker {
     grid-template-columns: repeat(5, 1fr);
@@ -653,7 +408,6 @@ body.dark .emoji-picker .emoji-item:hover {
     min-height: 48px;
   }
 }
-
 @media (min-width: 768px) {
   .emoji-picker {
     max-width: 450px;
@@ -661,7 +415,6 @@ body.dark .emoji-picker .emoji-item:hover {
     bottom: calc(var(--bottom-nav-height) + 30px);
   }
 }
-
 @media (min-width: 1024px) {
   .emoji-picker-container {
     position: relative;
@@ -675,14 +428,13 @@ body.dark .emoji-picker .emoji-item:hover {
     width: 350px;
     max-width: none;
     margin-top: 8px;
-    max-height: 350px;
   }
   .emoji-picker.active {
     transform: translateY(0) scale(1);
   }
 }
 
-/* ---------- модалки ---------- */
+/* ========== МОДАЛКИ ========== */
 .modal {
   position: fixed;
   inset: 0;
@@ -695,16 +447,9 @@ body.dark .emoji-picker .emoji-item:hover {
   animation: fadeIn 0.4s ease-out;
   padding: 16px;
 }
-
 .modal.active {
   display: flex;
 }
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 .modal-content {
   background: var(--card);
   border-radius: var(--radius-lg);
@@ -716,14 +461,12 @@ body.dark .emoji-picker .emoji-item:hover {
   animation: scaleIn 0.4s ease-out;
   box-shadow: var(--shadow-lg);
 }
-
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
-
 .modal-close {
   font-size: 2rem;
   line-height: 1;
@@ -735,18 +478,14 @@ body.dark .emoji-picker .emoji-item:hover {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: currentColor;
 }
-
 .modal-close:hover {
   transform: rotate(90deg) scale(1.1);
   color: var(--accent);
   background: var(--surface);
 }
 
-/* ---------- toast ---------- */
+/* ========== TOAST ========== */
 #toast {
   position: fixed;
   bottom: calc(var(--bottom-nav-height) + 40px);
@@ -762,14 +501,14 @@ body.dark .emoji-picker .emoji-item:hover {
   opacity: 0;
   transition: opacity 0.4s, transform 0.4s;
   pointer-events: none;
+  animation: fadeIn 0.4s;
 }
-
 #toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
-/* ---------- скелетон ---------- */
+/* ========== СКЕЛЕТОН ========== */
 .skeleton {
   background: linear-gradient(90deg, var(--surface) 25%, var(--card) 50%, var(--surface) 75%);
   background-size: 220% 100%;
@@ -777,44 +516,27 @@ body.dark .emoji-picker .emoji-item:hover {
   border-radius: var(--radius-md);
 }
 
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* ---------- кольорові допоміжні класи ---------- */
+/* ========== КОЛЬОРОВІ ДОПОМІЖНІ КЛАСИ ========== */
 .text-danger { color: var(--danger); }
 .text-warning { color: var(--warning); }
 .text-success { color: var(--success); }
 .text-accent { color: var(--accent); }
 
-/* ---------- додаткові анімації ---------- */
+/* ========== ДОДАТКОВІ АНІМАЦІЇ ========== */
 .float-animation {
   animation: float 4.5s ease-in-out infinite;
 }
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
 .glow-animation {
   animation: glow 2.5s ease-in-out infinite;
 }
 
-@keyframes glow {
-  0%, 100% { box-shadow: 0 0 5px var(--accent); }
-  50% { box-shadow: 0 0 20px var(--accent), 0 0 30px var(--accent); }
-}
-
-/* ---------- радіокнопки ---------- */
+/* ========== РАДІОКНОПКИ ========== */
 .radio-group {
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-bottom: 20px;
 }
-
 .radio-group label {
   display: flex;
   align-items: center;
@@ -827,12 +549,10 @@ body.dark .emoji-picker .emoji-item:hover {
   border-radius: var(--radius-sm);
   background: var(--surface);
 }
-
 .radio-group label:hover {
   color: var(--accent);
   background: var(--card);
 }
-
 .radio-group input[type="radio"] {
   appearance: none;
   -webkit-appearance: none;
@@ -845,13 +565,11 @@ body.dark .emoji-picker .emoji-item:hover {
   cursor: pointer;
   position: relative;
 }
-
 .radio-group input[type="radio"]:checked {
   border-color: var(--accent);
   background: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
-
 .radio-group input[type="radio"]:checked::before {
   content: '';
   position: absolute;
@@ -863,17 +581,11 @@ body.dark .emoji-picker .emoji-item:hover {
   background: white;
   border-radius: 50%;
 }
-
-.radio-group input[type="radio"]:focus-visible {
+.radio-group input[type="radio"]:focus {
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.3);
 }
 
-.radio-group input[type="radio"]:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ---------- перемикачі (toggle) ---------- */
+/* ========== ПЕРЕМИКАЧІ (TOGGLE) ========== */
 .toggle {
   display: flex;
   align-items: center;
@@ -882,11 +594,9 @@ body.dark .emoji-picker .emoji-item:hover {
   user-select: none;
   padding: 8px 0;
 }
-
 .toggle input {
   display: none;
 }
-
 .toggle-slider {
   position: relative;
   width: 52px;
@@ -895,7 +605,6 @@ body.dark .emoji-picker .emoji-item:hover {
   border-radius: 34px;
   transition: all 0.3s;
 }
-
 .toggle-slider::before {
   content: '';
   position: absolute;
@@ -908,30 +617,21 @@ body.dark .emoji-picker .emoji-item:hover {
   transition: transform 0.3s;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
-
 .toggle input:checked + .toggle-slider {
   background: var(--accent);
 }
-
 .toggle input:checked + .toggle-slider::before {
   transform: translateX(24px);
 }
-
 .toggle-label {
   color: var(--text-secondary);
   font-weight: 500;
 }
-
-.toggle input:focus-visible + .toggle-slider {
+.toggle input:focus + .toggle-slider {
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.3);
 }
 
-.toggle input:disabled + .toggle-slider {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ---------- додаткові утиліти ---------- */
+/* ========== ДОДАТКОВІ УТИЛІТИ ========== */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -942,37 +642,4 @@ body.dark .emoji-picker .emoji-item:hover {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-/* ---------- адаптація для сенсорних пристроїв ---------- */
-@media (hover: none) {
-  .btn:hover,
-  .card:hover,
-  .avatar:hover,
-  .btn-follow:hover {
-    transform: none;
-  }
-
-  .btn:active {
-    transform: scale(0.98);
-  }
-}
-
-/* ---------- підтримка високої контрастності (forced colors) ---------- */
-@media (forced-colors: active) {
-  .btn,
-  .card,
-  .avatar,
-  .input,
-  .toggle-slider {
-    border: 1px solid CanvasText;
-  }
-  .btn-primary,
-  .btn-danger {
-    background: Highlight;
-    color: HighlightText;
-  }
-  .focused {
-    outline: 2px solid Highlight !important;
-  }
 }
