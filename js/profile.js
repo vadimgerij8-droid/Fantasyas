@@ -1,15 +1,26 @@
 import { db } from './config.js';
-import { 
-  doc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion, arrayRemove, 
+import {
+  doc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion, arrayRemove,
   serverTimestamp, writeBatch, setDoc, addDoc
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { 
+import {
   state,
   setCurrentUserData
 } from './state.js';
 import { showToast, uploadToCloudinary, vibrate, debounce } from './utils.js';
 import { renderPosts } from './posts.js';
 import { getChatId, openChat } from './chat.js';
+
+// ================= Допоміжні функції =================
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // ================= Змінна для відстеження поточного профілю =================
 let currentProfileUid = null;
@@ -19,20 +30,17 @@ function updateNewPostBoxVisibility() {
   const newPostBox = document.getElementById('newPostBox');
   if (!newPostBox) return;
 
-  // Перевіряємо, чи активний розділ профілю (для безпеки)
   const profileSection = document.getElementById('profile');
   if (!profileSection || !profileSection.classList.contains('active')) {
     newPostBox.style.display = 'none';
     return;
   }
 
-  // Якщо це не наш профіль – ховаємо
   if (!state.currentUser || currentProfileUid !== state.currentUser.uid) {
     newPostBox.style.display = 'none';
     return;
   }
 
-  // Перевіряємо, чи активна вкладка "posts"
   const postsTab = document.querySelector('.profile-tab[data-tab="posts"]');
   const isPostsActive = postsTab && postsTab.classList.contains('active');
 
@@ -94,49 +102,60 @@ export const toggleFollow = debounce(async (targetUid, buttonElement) => {
 
 // ================= Завантаження профілю =================
 export async function viewProfile(uid) {
-  // Зберігаємо в історію для кнопки "Назад"
-  const currentSection = document.querySelector('.section.active')?.id || 'home';
-  if (currentSection !== 'profile') {
-    state.navigationHistory.push(currentSection);
-    state.previousSection = currentSection;
-  }
+  try {
+    const currentSection = document.querySelector('.section.active')?.id || 'home';
+    if (currentSection !== 'profile') {
+      state.navigationHistory.push(currentSection);
+      state.previousSection = currentSection;
+    }
 
-  // Активуємо розділ profile
-  document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
-  const profileNav = document.querySelector('[data-section="profile"]');
-  if (profileNav) profileNav.classList.add('active');
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  const profileSection = document.getElementById('profile');
-  if (profileSection) profileSection.classList.add('active');
-  document.getElementById('pageTitle').textContent = 'Профіль';
+    document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+    const profileNav = document.querySelector('[data-section="profile"]');
+    if (profileNav) profileNav.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    const profileSection = document.getElementById('profile');
+    if (profileSection) profileSection.classList.add('active');
+    document.getElementById('pageTitle').textContent = 'Профіль';
 
-  // Показуємо кнопку "Назад" тільки для чужих профілів
-  if (uid !== state.currentUser?.uid) {
-    document.querySelector('.back-btn').classList.add('visible');
-  } else {
-    document.querySelector('.back-btn').classList.remove('visible');
-  }
+    if (uid !== state.currentUser?.uid) {
+      document.querySelector('.back-btn').classList.add('visible');
+    } else {
+      document.querySelector('.back-btn').classList.remove('visible');
+    }
 
-  // Запам'ятовуємо, чий профіль зараз відкрито
-  currentProfileUid = uid;
+    currentProfileUid = uid;
 
-  if (uid === state.currentUser?.uid) {
-    await loadMyProfile();
-  } else {
-    await loadUserProfile(uid);
+    if (uid === state.currentUser?.uid) {
+      await loadMyProfile();
+    } else {
+      await loadUserProfile(uid);
+    }
+  } catch (error) {
+    console.error('viewProfile error:', error);
+    showToast('Не вдалося завантажити профіль');
   }
 }
 
 async function loadMyProfile() {
-  if (!state.currentUser) return;
-  const snap = await getDoc(doc(db, "users", state.currentUser.uid));
-  if (snap.exists()) renderProfile(snap.data(), state.currentUser.uid, true);
+  try {
+    if (!state.currentUser) return;
+    const snap = await getDoc(doc(db, "users", state.currentUser.uid));
+    if (snap.exists()) renderProfile(snap.data(), state.currentUser.uid, true);
+  } catch (error) {
+    console.error('loadMyProfile error:', error);
+    showToast('Помилка завантаження вашого профілю');
+  }
 }
 
 async function loadUserProfile(uid) {
-  if (!state.currentUser) return;
-  const snap = await getDoc(doc(db, "users", uid));
-  if (snap.exists()) renderProfile(snap.data(), uid, uid === state.currentUser.uid);
+  try {
+    if (!state.currentUser) return;
+    const snap = await getDoc(doc(db, "users", uid));
+    if (snap.exists()) renderProfile(snap.data(), uid, uid === state.currentUser.uid);
+  } catch (error) {
+    console.error('loadUserProfile error:', error);
+    showToast('Не вдалося завантажити профіль користувача');
+  }
 }
 
 function renderProfile(data, uid, isOwn) {
@@ -148,9 +167,9 @@ function renderProfile(data, uid, isOwn) {
 
   if (isBlockedByTarget || isBlockedByMe) {
     header.innerHTML = `
-      <div class="avatar large" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
+      <div class="avatar large" style="background-image:url(${escapeHTML(data.avatar || '')})" data-uid="${escapeHTML(uid)}" tabindex="0"></div>
       <div>
-        <h2>${data.nickname}</h2>
+        <h2>${escapeHTML(data.nickname)}</h2>
         <p class="text-danger">
           ${isBlockedByTarget ? 'Цей користувач вас заблокував' : 'Ви заблокували цього користувача'}
         </p>
@@ -173,15 +192,15 @@ function renderProfile(data, uid, isOwn) {
   const followingDisplay = canSeeFollowers() ? data.following?.length || 0 : 'Приховано';
 
   header.innerHTML = `
-    <div class="avatar large" style="background-image:url(${data.avatar || ''})" data-uid="${uid}" tabindex="0"></div>
+    <div class="avatar large" style="background-image:url(${escapeHTML(data.avatar || '')})" data-uid="${escapeHTML(uid)}" tabindex="0"></div>
     <div style="flex:1">
-      <h2>${data.nickname}</h2>
-      <div class="user-id">${data.userId}</div>
-      ${data.note ? `<div class="note-badge" style="position:relative; display:inline-block; margin-top:4px;">${data.note}</div>` : ''}
-      <p>${data.bio || ''}</p>
+      <h2>${escapeHTML(data.nickname)}</h2>
+      <div class="user-id">${escapeHTML(data.userId)}</div>
+      ${data.note ? `<div class="note-badge" style="position:relative; display:inline-block; margin-top:4px;">${escapeHTML(data.note)}</div>` : ''}
+      <p>${escapeHTML(data.bio || '')}</p>
       <div class="profile-stats">
-        <span id="followersCount" data-uid="${uid}">${followersDisplay} підписників</span>
-        <span id="followingCount" data-uid="${uid}">${followingDisplay} підписок</span>
+        <span id="followersCount" data-uid="${escapeHTML(uid)}">${escapeHTML(String(followersDisplay))} підписників</span>
+        <span id="followingCount" data-uid="${escapeHTML(uid)}">${escapeHTML(String(followingDisplay))} підписок</span>
         <span>${data.posts?.length || 0} постів</span>
       </div>
       ${!isOwn && state.currentUser ? `
@@ -212,6 +231,12 @@ function renderProfile(data, uid, isOwn) {
       </div>
     ` : ''}
   `;
+
+  // Робимо аватар клікабельним (тільки для візуального підказки)
+  const avatar = header.querySelector('.avatar');
+  if (avatar) {
+    avatar.style.cursor = 'pointer';
+  }
 
   // Обробники для клікабельних статистик
   const followersCount = document.getElementById('followersCount');
@@ -260,11 +285,6 @@ function renderProfile(data, uid, isOwn) {
         e.stopPropagation();
         dropdown.classList.toggle('show');
       };
-      document.addEventListener('click', (e) => {
-        if (!menuBtn.contains(e.target)) {
-          dropdown.classList.remove('show');
-        }
-      });
 
       document.getElementById('reportUserBtn').onclick = async () => {
         dropdown.classList.remove('show');
@@ -274,25 +294,35 @@ function renderProfile(data, uid, isOwn) {
       document.getElementById('muteUserBtn').onclick = async () => {
         dropdown.classList.remove('show');
         const userRef = doc(db, "users", state.currentUser.uid);
-        const snap = await getDoc(userRef);
-        const muted = snap.data().mutedUsers || [];
-        if (muted.includes(uid)) {
-          await unmuteUser(uid);
-        } else {
-          await muteUser(uid);
+        try {
+          const snap = await getDoc(userRef);
+          const muted = snap.data().mutedUsers || [];
+          if (muted.includes(uid)) {
+            await unmuteUser(uid);
+          } else {
+            await muteUser(uid);
+          }
+        } catch (error) {
+          console.error('Error toggling mute:', error);
+          showToast('Помилка при зміні статусу мута');
         }
       };
       document.getElementById('blockUserBtn').onclick = async () => {
         dropdown.classList.remove('show');
         const userRef = doc(db, "users", state.currentUser.uid);
-        const snap = await getDoc(userRef);
-        const blocked = snap.data().blockedUsers || [];
-        if (blocked.includes(uid)) {
-          await unblockUser(uid);
-        } else {
-          await blockUser(uid);
+        try {
+          const snap = await getDoc(userRef);
+          const blocked = snap.data().blockedUsers || [];
+          if (blocked.includes(uid)) {
+            await unblockUser(uid);
+          } else {
+            await blockUser(uid);
+          }
+          loadUserProfile(uid);
+        } catch (error) {
+          console.error('Error toggling block:', error);
+          showToast('Помилка при блокуванні/розблокуванні');
         }
-        loadUserProfile(uid);
       };
     }
   }
@@ -306,8 +336,11 @@ function renderProfile(data, uid, isOwn) {
         document.getElementById('editBio').value = data.bio || '';
         document.getElementById('editNote').value = data.note || '';
         document.getElementById('editAvatar').value = '';
-        document.getElementById('editAvatarLabel').textContent = 'Обрати аватар';
-        document.getElementById('editAvatarPreview').classList.remove('show');
+        const preview = document.getElementById('editAvatarPreview');
+        if (preview) {
+          preview.src = data.avatar || '';
+          preview.classList.add('show'); // показуємо прев'ю
+        }
         document.getElementById('editProfileModal').classList.add('active');
       };
     }
@@ -327,92 +360,107 @@ function renderProfile(data, uid, isOwn) {
         document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         loadProfileFeed(uid, tab.dataset.tab);
-        // Оновлюємо видимість блоку створення поста при зміні вкладки
         updateNewPostBoxVisibility();
       };
     });
   }
   loadProfileFeed(uid, 'posts');
-  // Оновлюємо видимість блоку створення поста після рендеру профілю
   updateNewPostBoxVisibility();
 }
 
-// ================= Завантаження стрічки профілю =================
+// ================= Завантаження стрічки профілю (з покращеннями) =================
 async function loadProfileFeed(uid, tab) {
-  if (!state.currentUser) return;
   const feed = document.getElementById('profileFeed');
   if (!feed) return;
-  feed.innerHTML = '';
-  let posts = [];
-  const userSnap = await getDoc(doc(db, "users", uid));
-  const userData = userSnap.data();
 
-  if (tab === 'posts') {
-    const postIds = userData.posts || [];
-    for (const id of postIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
-      if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
-    }
-  } else if (tab === 'likes') {
-    const likedIds = userData.likedPosts || [];
-    for (const id of likedIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
-      if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
-    }
-  } else if (tab === 'media') {
-    const postIds = userData.posts || [];
-    for (const id of postIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
-      if (postSnap.exists()) {
-        const post = postSnap.data();
-        if ((post.media && post.media.length > 0) || post.mediaUrl) {
-          posts.push({ id, ...post });
-        }
-      }
-    }
-  } else if (tab === 'saved') {
-    const savedIds = userData.savedPosts || [];
-    for (const id of savedIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
-      if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
-    }
+  // Показуємо скелетон
+  feed.innerHTML = `
+    <div class="skeleton" style="height:200px; margin-bottom:10px;"></div>
+    <div class="skeleton" style="height:200px; margin-bottom:10px;"></div>
+    <div class="skeleton" style="height:200px;"></div>
+  `;
+
+  if (!state.currentUser) {
+    feed.innerHTML = '<p style="text-align:center; padding:20px;">Увійдіть, щоб переглянути</p>';
+    return;
   }
 
-  posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-  if (posts.length > 0) {
-    const fakeDocs = posts.map(p => ({ id: p.id, data: () => p }));
-    renderPosts(fakeDocs, 'profileFeed');
-  } else {
-    feed.innerHTML = '<p style="text-align:center; padding:20px;">Немає постів</p>';
+  try {
+    let posts = [];
+    const userSnap = await getDoc(doc(db, "users", uid));
+    const userData = userSnap.data();
+
+    if (tab === 'posts') {
+      const postIds = userData.posts || [];
+      for (const id of postIds.slice(0, 20)) {
+        const postSnap = await getDoc(doc(db, "posts", id));
+        if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
+      }
+    } else if (tab === 'likes') {
+      const likedIds = userData.likedPosts || [];
+      for (const id of likedIds.slice(0, 20)) {
+        const postSnap = await getDoc(doc(db, "posts", id));
+        if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
+      }
+    } else if (tab === 'media') {
+      const postIds = userData.posts || [];
+      for (const id of postIds.slice(0, 20)) {
+        const postSnap = await getDoc(doc(db, "posts", id));
+        if (postSnap.exists()) {
+          const post = postSnap.data();
+          if ((post.media && post.media.length > 0) || post.mediaUrl) {
+            posts.push({ id, ...post });
+          }
+        }
+      }
+    } else if (tab === 'saved') {
+      const savedIds = userData.savedPosts || [];
+      for (const id of savedIds.slice(0, 20)) {
+        const postSnap = await getDoc(doc(db, "posts", id));
+        if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
+      }
+    }
+
+    posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    feed.innerHTML = ''; // очищаємо скелетон
+    if (posts.length > 0) {
+      const fakeDocs = posts.map(p => ({ id: p.id, data: () => p }));
+      renderPosts(fakeDocs, 'profileFeed');
+    } else {
+      feed.innerHTML = '<p style="text-align:center; padding:20px;">Немає постів</p>';
+    }
+  } catch (error) {
+    console.error('loadProfileFeed error:', error);
+    feed.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Помилка завантаження</p>';
   }
 }
 
 // ================= Редагування профілю =================
 export async function saveProfileEdit(nickname, bio, note, avatarFile) {
-  if (!state.currentUser) return;
+  if (!state.currentUser) return false;
   if (!nickname) {
     showToast('Псевдонім обов’язковий');
     return false;
   }
 
   const newUserId = `@${nickname.toLowerCase()}`;
-  const q = query(collection(db, "users"), where("userId", "==", newUserId));
-  const snap = await getDocs(q);
-  if (!snap.empty && snap.docs[0].id !== state.currentUser.uid) {
-    showToast('Цей ID вже зайнятий');
-    return false;
-  }
-
   try {
+    const q = query(collection(db, "users"), where("userId", "==", newUserId));
+    const snap = await getDocs(q);
+    if (!snap.empty && snap.docs[0].id !== state.currentUser.uid) {
+      showToast('Цей ID вже зайнятий');
+      return false;
+    }
+
     let avatarUrl;
     if (avatarFile) {
       avatarUrl = await uploadToCloudinary(avatarFile);
     }
 
-    const updateData = { 
-      nickname, 
-      userId: newUserId, 
-      nickname_lower: nickname.toLowerCase().trim(), 
+    const updateData = {
+      nickname,
+      userId: newUserId,
+      nickname_lower: nickname.toLowerCase().trim(),
       bio,
       note
     };
@@ -424,6 +472,7 @@ export async function saveProfileEdit(nickname, bio, note, avatarFile) {
     showToast('Профіль оновлено');
     return true;
   } catch (e) {
+    console.error('saveProfileEdit error:', e);
     showToast('Помилка: ' + e.message);
     return false;
   }
@@ -434,39 +483,45 @@ export async function openFollowersList(uid) {
   const modal = document.getElementById('followersModal');
   const list = document.getElementById('followersList');
   if (!modal || !list) return;
+
   list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
   modal.classList.add('active');
 
-  const userSnap = await getDoc(doc(db, "users", uid));
-  const followersIds = userSnap.data().followers || [];
-  const followers = [];
-  for (const id of followersIds) {
-    const snap = await getDoc(doc(db, "users", id));
-    if (snap.exists()) followers.push({ id, ...snap.data() });
-  }
+  try {
+    const userSnap = await getDoc(doc(db, "users", uid));
+    const followersIds = userSnap.data().followers || [];
+    const followers = [];
+    for (const id of followersIds) {
+      const snap = await getDoc(doc(db, "users", id));
+      if (snap.exists()) followers.push({ id, ...snap.data() });
+    }
 
-  list.innerHTML = '';
-  if (followers.length === 0) {
-    list.innerHTML = '<p style="text-align:center; padding:20px;">Немає підписників</p>';
-  } else {
-    followers.forEach(user => {
-      const div = document.createElement('div');
-      div.className = 'chat-item';
-      div.tabIndex = 0;
-      div.innerHTML = `
-        <div class="avatar small" style="background-image:url(${user.avatar || ''})" data-uid="${user.id}" tabindex="0"></div>
-        <div class="chat-info">
-          <div class="chat-name">${user.nickname}</div>
-          <div class="chat-last">${user.userId}</div>
-          ${user.note ? `<div class="note-badge" style="position:relative; display:inline-block;">${user.note}</div>` : ''}
-        </div>
-      `;
-      div.onclick = () => {
-        viewProfile(user.id);
-        modal.classList.remove('active');
-      };
-      list.appendChild(div);
-    });
+    list.innerHTML = '';
+    if (followers.length === 0) {
+      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає підписників</p>';
+    } else {
+      followers.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'chat-item';
+        div.tabIndex = 0;
+        div.innerHTML = `
+          <div class="avatar small" style="background-image:url(${escapeHTML(user.avatar || '')})" data-uid="${escapeHTML(user.id)}" tabindex="0"></div>
+          <div class="chat-info">
+            <div class="chat-name">${escapeHTML(user.nickname)}</div>
+            <div class="chat-last">${escapeHTML(user.userId)}</div>
+            ${user.note ? `<div class="note-badge" style="position:relative; display:inline-block;">${escapeHTML(user.note)}</div>` : ''}
+          </div>
+        `;
+        div.onclick = () => {
+          viewProfile(user.id);
+          modal.classList.remove('active');
+        };
+        list.appendChild(div);
+      });
+    }
+  } catch (error) {
+    console.error('openFollowersList error:', error);
+    list.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Помилка завантаження</p>';
   }
 }
 
@@ -474,39 +529,45 @@ export async function openFollowingList(uid) {
   const modal = document.getElementById('followingModal');
   const list = document.getElementById('followingList');
   if (!modal || !list) return;
+
   list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
   modal.classList.add('active');
 
-  const userSnap = await getDoc(doc(db, "users", uid));
-  const followingIds = userSnap.data().following || [];
-  const following = [];
-  for (const id of followingIds) {
-    const snap = await getDoc(doc(db, "users", id));
-    if (snap.exists()) following.push({ id, ...snap.data() });
-  }
+  try {
+    const userSnap = await getDoc(doc(db, "users", uid));
+    const followingIds = userSnap.data().following || [];
+    const following = [];
+    for (const id of followingIds) {
+      const snap = await getDoc(doc(db, "users", id));
+      if (snap.exists()) following.push({ id, ...snap.data() });
+    }
 
-  list.innerHTML = '';
-  if (following.length === 0) {
-    list.innerHTML = '<p style="text-align:center; padding:20px;">Ні на кого не підписаний</p>';
-  } else {
-    following.forEach(user => {
-      const div = document.createElement('div');
-      div.className = 'chat-item';
-      div.tabIndex = 0;
-      div.innerHTML = `
-        <div class="avatar small" style="background-image:url(${user.avatar || ''})" data-uid="${user.id}" tabindex="0"></div>
-        <div class="chat-info">
-          <div class="chat-name">${user.nickname}</div>
-          <div class="chat-last">${user.userId}</div>
-          ${user.note ? `<div class="note-badge" style="position:relative; display:inline-block;">${user.note}</div>` : ''}
-        </div>
-      `;
-      div.onclick = () => {
-        viewProfile(user.id);
-        modal.classList.remove('active');
-      };
-      list.appendChild(div);
-    });
+    list.innerHTML = '';
+    if (following.length === 0) {
+      list.innerHTML = '<p style="text-align:center; padding:20px;">Ні на кого не підписаний</p>';
+    } else {
+      following.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'chat-item';
+        div.tabIndex = 0;
+        div.innerHTML = `
+          <div class="avatar small" style="background-image:url(${escapeHTML(user.avatar || '')})" data-uid="${escapeHTML(user.id)}" tabindex="0"></div>
+          <div class="chat-info">
+            <div class="chat-name">${escapeHTML(user.nickname)}</div>
+            <div class="chat-last">${escapeHTML(user.userId)}</div>
+            ${user.note ? `<div class="note-badge" style="position:relative; display:inline-block;">${escapeHTML(user.note)}</div>` : ''}
+          </div>
+        `;
+        div.onclick = () => {
+          viewProfile(user.id);
+          modal.classList.remove('active');
+        };
+        list.appendChild(div);
+      });
+    }
+  } catch (error) {
+    console.error('openFollowingList error:', error);
+    list.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Помилка завантаження</p>';
   }
 }
 
@@ -522,58 +583,106 @@ export async function reportUser(targetUid, reason = '') {
     });
     showToast('Скаргу надіслано');
   } catch (e) {
+    console.error('reportUser error:', e);
     showToast('Помилка: ' + e.message);
   }
 }
 
 export async function muteUser(targetUid) {
   if (!state.currentUser) return;
-  const userRef = doc(db, "users", state.currentUser.uid);
   try {
+    const userRef = doc(db, "users", state.currentUser.uid);
     await updateDoc(userRef, {
       mutedUsers: arrayUnion(targetUid)
     });
     showToast('Користувача замучено');
   } catch (e) {
+    console.error('muteUser error:', e);
     showToast('Помилка: ' + e.message);
   }
 }
 
 export async function unmuteUser(targetUid) {
   if (!state.currentUser) return;
-  const userRef = doc(db, "users", state.currentUser.uid);
   try {
+    const userRef = doc(db, "users", state.currentUser.uid);
     await updateDoc(userRef, {
       mutedUsers: arrayRemove(targetUid)
     });
     showToast('Користувача розмучено');
   } catch (e) {
+    console.error('unmuteUser error:', e);
     showToast('Помилка: ' + e.message);
   }
 }
 
 export async function blockUser(targetUid) {
   if (!state.currentUser) return;
-  const userRef = doc(db, "users", state.currentUser.uid);
   try {
+    const userRef = doc(db, "users", state.currentUser.uid);
     await updateDoc(userRef, {
       blockedUsers: arrayUnion(targetUid)
     });
     showToast('Користувача заблоковано');
   } catch (e) {
+    console.error('blockUser error:', e);
     showToast('Помилка: ' + e.message);
   }
 }
 
 export async function unblockUser(targetUid) {
   if (!state.currentUser) return;
-  const userRef = doc(db, "users", state.currentUser.uid);
   try {
+    const userRef = doc(db, "users", state.currentUser.uid);
     await updateDoc(userRef, {
       blockedUsers: arrayRemove(targetUid)
     });
     showToast('Користувача розблоковано');
   } catch (e) {
+    console.error('unblockUser error:', e);
     showToast('Помилка: ' + e.message);
   }
+}
+
+// ================= Глобальний обробник для закриття меню профілю =================
+document.addEventListener('click', (e) => {
+  // Закриваємо всі відкриті меню, якщо клік був поза ними
+  document.querySelectorAll('.profile-menu-dropdown.show').forEach(dropdown => {
+    const menuBtn = dropdown.previousElementSibling; // кнопка меню
+    if (!menuBtn || !menuBtn.contains(e.target)) {
+      dropdown.classList.remove('show');
+    }
+  });
+});
+
+// ================= Ініціалізація редагування аватарки =================
+function initAvatarEdit() {
+  const avatarPreview = document.getElementById('editAvatarPreview');
+  const avatarInput = document.getElementById('editAvatar');
+
+  if (avatarPreview && avatarInput) {
+    // Клік на прев'ю відкриває вибір файлу
+    avatarPreview.addEventListener('click', () => {
+      avatarInput.click();
+    });
+
+    // Оновлення прев'ю при виборі файлу
+    avatarInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Відміняємо попередній URL, щоб уникнути витоку пам'яті
+      if (avatarPreview.src && avatarPreview.src.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview.src);
+      }
+      avatarPreview.src = URL.createObjectURL(file);
+    });
+  }
+}
+
+// Запускаємо ініціалізацію після завантаження DOM
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAvatarEdit);
+} else {
+  initAvatarEdit();
 }
