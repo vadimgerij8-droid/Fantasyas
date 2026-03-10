@@ -44,7 +44,22 @@ export async function loadChatList() {
       const time = updatedAt ? new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
       const lastSeen = user.lastSeen?.seconds * 1000 || 0;
-      const isOnline = (Date.now() - lastSeen)  b.updatedAt - a.updatedAt);
+      const isOnline = (Date.now() - lastSeen) < 60000;
+
+      chatItems.push({
+        chatId: docSnap.id,
+        otherUid,
+        user,
+        unread,
+        lastMsg: displayLast,
+        time,
+        isOnline,
+        lastSeen,
+        updatedAt
+      });
+    }
+
+    chatItems.sort((a, b) => b.updatedAt - a.updatedAt);
     renderChatList(chatItems);
   } catch (error) {
     console.error('Помилка завантаження списку чатів:', error);
@@ -58,13 +73,13 @@ function renderChatList(chatItems) {
   listEl.innerHTML = '';
 
   if (chatItems.length === 0) {
-    listEl.innerHTML = 'Немає чатів';
+    listEl.innerHTML = '<p style="text-align:center; padding:20px;">Немає чатів</p>';
     return;
   }
 
   chatItems.forEach(item => {
     const div = document.createElement('div');
-    div.className = chat-item ${item.unread > 0 ? 'unread' : ''};
+    div.className = `chat-item ${item.unread > 0 ? 'unread' : ''}`;
     div.dataset.chatId = item.chatId;
     div.dataset.otherUid = item.otherUid;
     div.dataset.username = item.user.nickname;
@@ -72,20 +87,20 @@ function renderChatList(chatItems) {
     div.tabIndex = 0;
 
     const lastSeenText = item.lastSeen ? formatLastSeen({ seconds: item.lastSeen / 1000 }) : '';
-    div.title = item.isOnline ? 'онлайн' : Останній візит: ${lastSeenText};
+    div.title = item.isOnline ? 'онлайн' : `Останній візит: ${lastSeenText}`;
 
     div.innerHTML = `
-      
-        
-        ${item.isOnline ? '' : ''}
-        ${item.user.note ? ${item.user.note} : ''}
-      
-      
-        ${item.user.nickname}
-        ${item.lastMsg}
-      
-      ${item.time}
-      ${item.unread > 0 ? ${item.unread} : ''}
+      <div class="chat-avatar">
+        <div class="avatar small" style="background-image:url(${item.user.avatar || ''})"></div>
+        ${item.isOnline ? '<span class="online-indicator"></span>' : ''}
+        ${item.user.note ? `<div class="note-badge">${item.user.note}</div>` : ''}
+      </div>
+      <div class="chat-info">
+        <div class="chat-name">${item.user.nickname}</div>
+        <div class="chat-last">${item.lastMsg}</div>
+      </div>
+      <div class="chat-time">${item.time}</div>
+      ${item.unread > 0 ? `<div class="chat-badge">${item.unread}</div>` : ''}
     `;
 
     div.addEventListener('click', (e) => {
@@ -142,14 +157,47 @@ export async function openChat(chatId, otherUid, otherName, otherUserId, otherAv
 
     chatNameEl.textContent = otherName;
     chatStatusEl.textContent = '';
-    chatAvatarEl.style.backgroundImage = otherAvatar ? url(${otherAvatar}) : 'none';
+    chatAvatarEl.style.backgroundImage = otherAvatar ? `url(${otherAvatar})` : 'none';
 
     chatWindowContainer.style.display = 'flex';
-    if (window.innerWidth  {
+    if (window.innerWidth < 768) {
+      chatListSidebar?.classList.add('hide');
+    }
+
+    if (bottomNav) {
+      bottomNav.classList.add('hide-chat-mode');
+    }
+
+    // Скидаємо лічильник непрочитаних
+    const chatRef = doc(db, "chats", chatId);
+    await updateDoc(chatRef, {
+      [`unread.${state.currentUser.uid}`]: 0
+    }).catch(console.error);
+
+    // Підписка на повідомлення
+    subscribeToMessages(chatId);
+
+    // Підписка на статус (lastSeen)
+    if (state.unsubscribeChatPresence) state.unsubscribeChatPresence();
+    const unsubPresence = onSnapshot(doc(db, "users", otherUid), (snap) => {
       const user = snap.data();
       if (!user) return;
       const lastSeen = user.lastSeen;
-      const isOnline = lastSeen ? (Date.now() - (lastSeen.seconds * 1000))  {
+      const isOnline = lastSeen ? (Date.now() - (lastSeen.seconds * 1000)) < 60000 : false;
+      const statusEl = document.getElementById('chatStatus');
+      if (!statusEl) return;
+      if (isOnline) {
+        statusEl.textContent = 'онлайн';
+      } else {
+        statusEl.textContent = `був(ла) ${formatLastSeen(lastSeen)}`;
+      }
+    });
+    setUnsubscribeChatPresence(unsubPresence);
+
+    // Підписка на друк
+    if (state.unsubscribeTyping) state.unsubscribeTyping();
+    const typingRef = doc(db, `chats/${chatId}/typing/${otherUid}`);
+    const unsubTyping = onSnapshot(typingRef, (docSnap) => {
       const indicator = document.getElementById('typingIndicator');
       if (!indicator) return;
       if (docSnap.exists() && docSnap.data().isTyping) {
@@ -180,7 +228,7 @@ function subscribeToMessages(chatId) {
   messagesContainer.innerHTML = '';
 
   try {
-    const q = query(collection(db, chats/${chatId}/messages), orderBy("createdAt", "asc"));
+    const q = query(collection(db, `chats/${chatId}/messages`), orderBy("createdAt", "asc"));
     const unsub = onSnapshot(q, (snapshot) => {
       let lastDate = '';
       messagesContainer.innerHTML = '';
@@ -214,11 +262,11 @@ function subscribeToMessages(chatId) {
 function createMessageElement(msg) {
   const isMine = msg.from === state.currentUser.uid;
   const wrapper = document.createElement('div');
-  wrapper.className = message-wrapper ${isMine ? 'sent' : 'received'};
+  wrapper.className = `message-wrapper ${isMine ? 'sent' : 'received'}`;
   wrapper.dataset.messageId = msg.id;
 
   const bubble = document.createElement('div');
-  bubble.className = message-bubble ${isMine ? 'sent' : 'received'};
+  bubble.className = `message-bubble ${isMine ? 'sent' : 'received'}`;
 
   // ===== Відповідь (reply) =====
   if (msg.replyTo) {
@@ -228,12 +276,12 @@ function createMessageElement(msg) {
     // Обмежуємо текст, щоб не ламав верстку
     const shortText = msg.replyTo.text.length > 50 ? msg.replyTo.text.slice(0, 47) + '…' : msg.replyTo.text;
     replyPreview.innerHTML = `
-      ${msg.replyTo.senderName}
-      ${shortText}
+      <div class="reply-sender">${msg.replyTo.senderName}</div>
+      <div class="reply-text">${shortText}</div>
     `;
     replyPreview.addEventListener('click', (e) => {
       e.stopPropagation();
-      const originalMsg = document.querySelector(.message-wrapper[data-message-id="${msg.replyTo.messageId}"]);
+      const originalMsg = document.querySelector(`.message-wrapper[data-message-id="${msg.replyTo.messageId}"]`);
       if (originalMsg) {
         originalMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
         originalMsg.classList.add('focused-animated');
@@ -250,8 +298,8 @@ function createMessageElement(msg) {
     const senderDiv = document.createElement('div');
     senderDiv.className = 'message-sender';
     senderDiv.innerHTML = `
-      
-      ${state.currentChatPartnerName}
+      <div class="message-sender-avatar" style="background-image:url(${state.currentChatPartnerAvatar || ''})"></div>
+      <span>${state.currentChatPartnerName}</span>
     `;
     bubble.appendChild(senderDiv);
   }
@@ -259,7 +307,7 @@ function createMessageElement(msg) {
   // ===== Текст повідомлення =====
   if (msg.text) {
     const textDiv = document.createElement('div');
-    textDiv.className = message-text ${msg.edited ? 'edited' : ''};
+    textDiv.className = `message-text ${msg.edited ? 'edited' : ''}`;
     textDiv.textContent = msg.text;
     bubble.appendChild(textDiv);
   }
@@ -281,9 +329,9 @@ function createMessageElement(msg) {
     for (const [emoji, users] of Object.entries(msg.reactions)) {
       if (users.length === 0) continue;
       const reactionItem = document.createElement('span');
-      reactionItem.className = reaction-item ${users.includes(state.currentUser.uid) ? 'user-reacted' : ''};
+      reactionItem.className = `reaction-item ${users.includes(state.currentUser.uid) ? 'user-reacted' : ''}`;
       reactionItem.dataset.emoji = emoji;
-      reactionItem.innerHTML = ${emoji}${users.length};
+      reactionItem.innerHTML = `<span class="emoji">${emoji}</span><span class="count">${users.length}</span>`;
       
       // Додаємо підказку з інформацією про тих, хто поставив реакцію
       const userReacted = users.includes(state.currentUser.uid);
@@ -292,9 +340,9 @@ function createMessageElement(msg) {
       } else if (users.length === 1) {
         reactionItem.title = '1 користувач';
       } else if (userReacted) {
-        reactionItem.title = Ви та ${users.length - 1} інших;
+        reactionItem.title = `Ви та ${users.length - 1} інших`;
       } else {
-        reactionItem.title = ${users.length} користувачів;
+        reactionItem.title = `${users.length} користувачів`;
       }
       
       reactionItem.addEventListener('click', (e) => {
@@ -354,9 +402,9 @@ function createMessageElement(msg) {
 
 function getStatusIcon(status) {
   const icons = {
-    sent: '',
-    delivered: '',
-    read: ''
+    sent: '<svg class="status-icon sent" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>',
+    delivered: '<svg class="status-icon delivered" viewBox="0 0 24 24"><path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.68 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12z"/></svg>',
+    read: '<svg class="status-icon read" viewBox="0 0 24 24"><path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.68 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12z"/></svg>'
   };
   return icons[status] || icons.sent;
 }
@@ -416,7 +464,7 @@ export async function sendMessage(text, file) {
       messageData.mediaType = mediaType;
     }
 
-    const messageRef = collection(db, chats/${state.currentChatId}/messages);
+    const messageRef = collection(db, `chats/${state.currentChatId}/messages`);
     await addDoc(messageRef, messageData);
 
     const chatRef = doc(db, "chats", state.currentChatId);
@@ -424,7 +472,7 @@ export async function sendMessage(text, file) {
       lastMessage: text || (mediaType === 'image' ? '📷 Фото' : '🎥 Відео'),
       lastMessageType: mediaType || 'text',
       updatedAt: serverTimestamp(),
-    
+      [`unread.${state.currentChatPartner}`]: increment(1)
     });
 
     clearReplyContext();
@@ -438,7 +486,7 @@ export async function sendMessage(text, file) {
     const attachBtn = document.getElementById('chatAttachBtn');
     if (attachBtn) attachBtn.innerHTML = '📎';
 
-    const typingRef = doc(db, chats/${state.currentChatId}/typing/${state.currentUser.uid});
+    const typingRef = doc(db, `chats/${state.currentChatId}/typing/${state.currentUser.uid}`);
     await setDoc(typingRef, { isTyping: false }, { merge: true });
   } catch (error) {
     console.error('Помилка відправки:', error);
@@ -450,7 +498,7 @@ export async function sendMessage(text, file) {
 export function handleTyping() {
   if (!state.currentUser || !state.currentChatId || !state.currentChatPartner) return;
 
-  const typingRef = doc(db, chats/${state.currentChatId}/typing/${state.currentUser.uid});
+  const typingRef = doc(db, `chats/${state.currentChatId}/typing/${state.currentUser.uid}`);
   setDoc(typingRef, { isTyping: true }, { merge: true }).catch(console.error);
 
   clearTimeout(typingTimeout);
@@ -479,12 +527,12 @@ function showMessageContextMenu(event, msg) {
     reactionsPicker = document.createElement('div');
     reactionsPicker.className = 'reactions-picker';
     reactionsPicker.innerHTML = `
-      👍
-      ❤️
-      😂
-      😮
-      😢
-      👎
+      <span data-emoji="👍">👍</span>
+      <span data-emoji="❤️">❤️</span>
+      <span data-emoji="😂">😂</span>
+      <span data-emoji="😮">😮</span>
+      <span data-emoji="😢">😢</span>
+      <span data-emoji="👎">👎</span>
     `;
     // Вставляємо на початок меню
     menu.prepend(reactionsPicker);
@@ -531,7 +579,7 @@ function showMessageContextMenu(event, msg) {
 export async function handleMessageContextAction(action) {
   if (!action || !selectedMessageId || !state.currentChatId) return;
 
-  const messageRef = doc(db, chats/${state.currentChatId}/messages/${selectedMessageId});
+  const messageRef = doc(db, `chats/${state.currentChatId}/messages/${selectedMessageId}`);
   const messageSnap = await getDoc(messageRef);
   const msgData = messageSnap.data();
 
@@ -569,7 +617,7 @@ export async function handleMessageContextAction(action) {
 // ================= Реакції (оновлено з arrayUnion/arrayRemove) =================
 export async function toggleReaction(messageId, emoji) {
   if (!state.currentUser || !state.currentChatId) return;
-  const messageRef = doc(db, chats/${state.currentChatId}/messages/${messageId});
+  const messageRef = doc(db, `chats/${state.currentChatId}/messages/${messageId}`);
   
   try {
     // Спочатку отримуємо поточні реакції, щоб визначити, чи треба додавати чи видаляти
@@ -583,9 +631,9 @@ export async function toggleReaction(messageId, emoji) {
     // Оновлюємо атомарно
     const update = {};
     if (hasReacted) {
-      update[reactions.${emoji}] = arrayRemove(state.currentUser.uid);
+      update[`reactions.${emoji}`] = arrayRemove(state.currentUser.uid);
     } else {
-      update[reactions.${emoji}] = arrayUnion(state.currentUser.uid);
+      update[`reactions.${emoji}`] = arrayUnion(state.currentUser.uid);
     }
     
     await updateDoc(messageRef, update);
@@ -603,12 +651,19 @@ export async function searchUsersForChat(queryStr) {
   const resultsContainer = document.getElementById('chatSearchResults');
   if (!resultsContainer) return;
 
-  resultsContainer.innerHTML = '';
+  resultsContainer.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
   resultsContainer.style.display = 'block';
 
   try {
-    const searchTerm = qLower.startsWith('@') ? qLower : @${qLower};
-    const q1 = query(collection(db, "users"), where("userId", ">=", searchTerm), where("userId", "=", qLower), where("nickname_lower", " {
+    const searchTerm = qLower.startsWith('@') ? qLower : `@${qLower}`;
+    const q1 = query(collection(db, "users"), where("userId", ">=", searchTerm), where("userId", "<=", searchTerm + '\uf8ff'));
+    const q2 = query(collection(db, "users"), where("nickname_lower", ">=", qLower), where("nickname_lower", "<=", qLower + '\uf8ff'));
+
+    const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+    const usersMap = new Map();
+
+    const blockedByMe = state.currentUserData?.blockedUsers || [];
+    snap1.forEach(d => {
       if (d.id !== state.currentUser.uid && !blockedByMe.includes(d.id)) usersMap.set(d.id, d.data());
     });
     snap2.forEach(d => {
@@ -616,7 +671,7 @@ export async function searchUsersForChat(queryStr) {
     });
 
     if (usersMap.size === 0) {
-      resultsContainer.innerHTML = 'Користувачів не знайдено';
+      resultsContainer.innerHTML = '<p style="text-align:center; padding:20px;">Користувачів не знайдено</p>';
       return;
     }
 
@@ -627,15 +682,15 @@ export async function searchUsersForChat(queryStr) {
       div.style.cursor = 'pointer';
       div.tabIndex = 0;
       div.innerHTML = `
-        
-          
-          ${data.note ? ${data.note} : ''}
-        
-        
-          ${data.nickname}
-          ${data.userId}
-        
-        Написати
+        <div class="chat-avatar">
+          <div class="avatar small" style="background-image:url(${data.avatar || ''})"></div>
+          ${data.note ? `<div class="note-badge">${data.note}</div>` : ''}
+        </div>
+        <div class="chat-info">
+          <div class="chat-name">${data.nickname}</div>
+          <div class="chat-last">${data.userId}</div>
+        </div>
+        <button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem;">Написати</button>
       `;
 
       div.addEventListener('click', (e) => {
@@ -659,7 +714,7 @@ export async function searchUsersForChat(queryStr) {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             lastMessage: '',
-            unread: {
+            unread: { [state.currentUser.uid]: 0, [uid]: 0 }
           });
         }
 
@@ -673,7 +728,7 @@ export async function searchUsersForChat(queryStr) {
     });
   } catch (error) {
     console.error('Помилка пошуку користувачів:', error);
-    resultsContainer.innerHTML = 'Помилка пошуку';
+    resultsContainer.innerHTML = '<p style="text-align:center; padding:20px;">Помилка пошуку</p>';
   }
 }
 
@@ -704,5 +759,3 @@ document.addEventListener('keydown', (e) => {
     closeChat();
   }
 });
-
-
