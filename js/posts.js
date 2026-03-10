@@ -374,12 +374,18 @@ export function renderPosts(docs, containerId = 'feed') {
     postEl.dataset.postId = post.id;
     postEl.tabIndex = 0;
 
-    let actionsHtml = '';
+    // Меню з трьома крапками (тільки для автора)
+    let menuHtml = '';
     if (isAuthor) {
-      actionsHtml = `<div class="post-actions">
-        <button class="edit-post-btn" title="Редагувати пост" data-post-id="${post.id}" tabindex="0">✎</button>
-        <button class="delete-post-btn" title="Видалити пост" data-post-id="${post.id}" tabindex="0">🗑</button>
-      </div>`;
+      menuHtml = `
+        <div class="post-menu-container">
+          <button class="post-menu-btn" aria-label="Меню поста" tabindex="0">⋮</button>
+          <div class="post-menu-dropdown" style="display: none;">
+            <div class="post-menu-item" data-action="edit">Редагувати</div>
+            <div class="post-menu-item" data-action="delete">Видалити</div>
+          </div>
+        </div>
+      `;
     }
 
     let contentHtml = post.text || '';
@@ -390,7 +396,6 @@ export function renderPosts(docs, containerId = 'feed') {
       `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>` : '';
 
     postEl.innerHTML = `
-      ${actionsHtml}
       <div class="post-header">
         <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" data-uid="${post.author}" tabindex="0"></div>
         <div class="post-author-info">
@@ -401,6 +406,7 @@ export function renderPosts(docs, containerId = 'feed') {
           </div>
           <div class="post-time">${postTime}</div>
         </div>
+        ${menuHtml}
       </div>
       <div class="post-content">${contentHtml}</div>
     `;
@@ -469,21 +475,34 @@ export function renderPosts(docs, containerId = 'feed') {
       };
     });
 
-    // Обробник для кнопки редагування
-    const editBtn = postEl.querySelector('.edit-post-btn');
-    if (editBtn) {
-      editBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        editPost(post.id);
-      });
-    }
+    // Обробник для меню поста
+    const menuContainer = postEl.querySelector('.post-menu-container');
+    if (menuContainer) {
+      const menuBtn = menuContainer.querySelector('.post-menu-btn');
+      const menuDropdown = menuContainer.querySelector('.post-menu-dropdown');
 
-    // Обробник для кнопки видалення
-    const deleteBtn = postEl.querySelector('.delete-post-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', (e) => {
+      menuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        deletePost(post.id);
+        // Закриваємо всі інші меню
+        document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+          if (menu !== menuDropdown) menu.style.display = 'none';
+        });
+        // Показуємо/ховаємо поточне
+        menuDropdown.style.display = menuDropdown.style.display === 'block' ? 'none' : 'block';
+      });
+
+      // Обробка пунктів меню
+      menuDropdown.querySelectorAll('.post-menu-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const action = item.dataset.action;
+          if (action === 'edit') {
+            editPost(post.id);
+          } else if (action === 'delete') {
+            deletePost(post.id);
+          }
+          menuDropdown.style.display = 'none';
+        });
       });
     }
 
@@ -559,6 +578,15 @@ export function renderPosts(docs, containerId = 'feed') {
     state.postListeners.set(post.id, unsubscribe);
   });
 }
+
+// Глобальний обробник для закриття меню при кліку поза ним
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.post-menu-container')) {
+    document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+      menu.style.display = 'none';
+    });
+  }
+});
 
 // ================= Коментарі =================
 export async function loadComments(postId, container) {
