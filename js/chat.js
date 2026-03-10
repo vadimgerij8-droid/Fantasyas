@@ -82,8 +82,8 @@ function renderChatList(chatItems) {
     div.className = `chat-item ${item.unread > 0 ? 'unread' : ''}`;
     div.dataset.chatId = item.chatId;
     div.dataset.otherUid = item.otherUid;
-    div.dataset.username = item.user.nickname;      // додано для глобального обробника
-    div.dataset.avatar = item.user.avatar || '';    // додано
+    div.dataset.username = item.user.nickname;
+    div.dataset.avatar = item.user.avatar || '';
     div.tabIndex = 0;
 
     const lastSeenText = item.lastSeen ? formatLastSeen({ seconds: item.lastSeen / 1000 }) : '';
@@ -103,9 +103,7 @@ function renderChatList(chatItems) {
       ${item.unread > 0 ? `<div class="chat-badge">${item.unread}</div>` : ''}
     `;
 
-    // Індивідуальний обробник (залишаємо для сумісності)
     div.addEventListener('click', (e) => {
-      // Запобігаємо спрацьовуванню глобального обробника двічі
       e.stopPropagation();
       openChat(item.chatId, item.otherUid, item.user.nickname, item.user.userId, item.user.avatar);
     });
@@ -114,12 +112,10 @@ function renderChatList(chatItems) {
   });
 }
 
-// ================= Глобальний обробник кліку на .chat-item (страхувальний) =================
+// ================= Глобальний обробник кліку на .chat-item =================
 document.addEventListener('click', (e) => {
   const item = e.target.closest('.chat-item');
   if (!item) return;
-
-  // Якщо подія вже оброблена індивідуальним слухачем – ігноруємо
   if (e.defaultPrevented) return;
 
   const chatId = item.dataset.chatId;
@@ -144,7 +140,6 @@ export async function openChat(chatId, otherUid, otherName, otherUserId, otherAv
 
     setCurrentChat(chatId, otherUid, otherName, otherUserId, otherAvatar);
 
-    // Елементи DOM
     const chatNameEl = document.getElementById('chatName');
     const chatStatusEl = document.getElementById('chatStatus');
     const chatAvatarEl = document.getElementById('chatAvatar');
@@ -273,13 +268,16 @@ function createMessageElement(msg) {
   const bubble = document.createElement('div');
   bubble.className = `message-bubble ${isMine ? 'sent' : 'received'}`;
 
+  // ===== Відповідь (reply) =====
   if (msg.replyTo) {
     const replyPreview = document.createElement('div');
     replyPreview.className = 'message-reply-preview';
     replyPreview.setAttribute('data-reply-to', msg.replyTo.messageId);
+    // Обмежуємо текст, щоб не ламав верстку
+    const shortText = msg.replyTo.text.length > 50 ? msg.replyTo.text.slice(0, 47) + '…' : msg.replyTo.text;
     replyPreview.innerHTML = `
       <div class="reply-sender">${msg.replyTo.senderName}</div>
-      <div class="reply-text">${msg.replyTo.text}</div>
+      <div class="reply-text">${shortText}</div>
     `;
     replyPreview.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -288,11 +286,14 @@ function createMessageElement(msg) {
         originalMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
         originalMsg.classList.add('focused-animated');
         setTimeout(() => originalMsg.classList.remove('focused-animated'), 2000);
+      } else {
+        showToast('Оригінальне повідомлення було видалене');
       }
     });
     bubble.appendChild(replyPreview);
   }
 
+  // ===== Інформація про відправника (для отриманих) =====
   if (!isMine) {
     const senderDiv = document.createElement('div');
     senderDiv.className = 'message-sender';
@@ -303,6 +304,7 @@ function createMessageElement(msg) {
     bubble.appendChild(senderDiv);
   }
 
+  // ===== Текст повідомлення =====
   if (msg.text) {
     const textDiv = document.createElement('div');
     textDiv.className = `message-text ${msg.edited ? 'edited' : ''}`;
@@ -310,6 +312,7 @@ function createMessageElement(msg) {
     bubble.appendChild(textDiv);
   }
 
+  // ===== Медіа =====
   if (msg.mediaUrl) {
     const mediaEl = msg.mediaType === 'image' ? document.createElement('img') : document.createElement('video');
     mediaEl.src = msg.mediaUrl;
@@ -319,6 +322,7 @@ function createMessageElement(msg) {
     bubble.appendChild(mediaEl);
   }
 
+  // ===== Реакції =====
   if (msg.reactions && Object.keys(msg.reactions).length > 0) {
     const reactionsDiv = document.createElement('div');
     reactionsDiv.className = 'message-reactions';
@@ -328,6 +332,19 @@ function createMessageElement(msg) {
       reactionItem.className = `reaction-item ${users.includes(state.currentUser.uid) ? 'user-reacted' : ''}`;
       reactionItem.dataset.emoji = emoji;
       reactionItem.innerHTML = `<span class="emoji">${emoji}</span><span class="count">${users.length}</span>`;
+      
+      // Додаємо підказку з інформацією про тих, хто поставив реакцію
+      const userReacted = users.includes(state.currentUser.uid);
+      if (users.length === 1 && userReacted) {
+        reactionItem.title = 'Ви';
+      } else if (users.length === 1) {
+        reactionItem.title = '1 користувач';
+      } else if (userReacted) {
+        reactionItem.title = `Ви та ${users.length - 1} інших`;
+      } else {
+        reactionItem.title = `${users.length} користувачів`;
+      }
+      
       reactionItem.addEventListener('click', (e) => {
         e.stopPropagation();
         toggleReaction(msg.id, emoji);
@@ -337,12 +354,17 @@ function createMessageElement(msg) {
     bubble.appendChild(reactionsDiv);
   }
 
+  // ===== Нижній колонтитул (час + статус) =====
   const footer = document.createElement('div');
   footer.className = 'message-footer';
 
   const timeSpan = document.createElement('span');
   timeSpan.className = 'message-time';
-  timeSpan.textContent = formatMessageTime(msg.createdAt);
+  let timeText = formatMessageTime(msg.createdAt);
+  if (msg.edited) {
+    timeText += ' (відредаговано)';
+  }
+  timeSpan.textContent = timeText;
   footer.appendChild(timeSpan);
 
   if (isMine) {
@@ -361,7 +383,7 @@ function createMessageElement(msg) {
   bubble.appendChild(footer);
   wrapper.appendChild(bubble);
 
-  // Контекстне меню
+  // ===== Контекстне меню (з новою панеллю реакцій) =====
   wrapper.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     showMessageContextMenu(e, msg);
@@ -494,10 +516,29 @@ function showMessageContextMenu(event, msg) {
 
   const menu = document.getElementById('messageContextMenu');
   if (!menu) return;
-  menu.style.left = event.pageX + 'px';
-  menu.style.top = event.pageY + 'px';
-  menu.classList.add('show');
 
+  // Очищуємо меню (крім базових пунктів, якщо вони є)
+  // Але краще створити меню динамічно. Для простоти припустимо, що в HTML є заготовка.
+  // Ми додамо в меню рядок з емодзі для реакцій.
+  
+  // Знаходимо або створюємо контейнер для реакцій
+  let reactionsPicker = menu.querySelector('.reactions-picker');
+  if (!reactionsPicker) {
+    reactionsPicker = document.createElement('div');
+    reactionsPicker.className = 'reactions-picker';
+    reactionsPicker.innerHTML = `
+      <span data-emoji="👍">👍</span>
+      <span data-emoji="❤️">❤️</span>
+      <span data-emoji="😂">😂</span>
+      <span data-emoji="😮">😮</span>
+      <span data-emoji="😢">😢</span>
+      <span data-emoji="👎">👎</span>
+    `;
+    // Вставляємо на початок меню
+    menu.prepend(reactionsPicker);
+  }
+
+  // Показуємо/ховаємо пункти залежно від автора
   const replyItem = menu.querySelector('[data-action="reply"]');
   const editItem = menu.querySelector('[data-action="edit"]');
   const deleteEveryoneItem = menu.querySelector('[data-action="deleteEveryone"]');
@@ -510,6 +551,21 @@ function showMessageContextMenu(event, msg) {
     if (deleteEveryoneItem) deleteEveryoneItem.style.display = 'none';
   }
   if (replyItem) replyItem.style.display = 'block';
+
+  // Позиціонуємо меню
+  menu.style.left = event.pageX + 'px';
+  menu.style.top = event.pageY + 'px';
+  menu.classList.add('show');
+
+  // Обробник кліку на реакції
+  reactionsPicker.querySelectorAll('span[data-emoji]').forEach(span => {
+    span.onclick = (e) => {
+      e.stopPropagation();
+      const emoji = span.dataset.emoji;
+      toggleReaction(msg.id, emoji);
+      menu.classList.remove('show');
+    };
+  });
 
   const closeMenu = (e) => {
     if (!menu.contains(e.target)) {
@@ -558,30 +614,33 @@ export async function handleMessageContextAction(action) {
   document.getElementById('messageContextMenu')?.classList.remove('show');
 }
 
-// ================= Реакції =================
+// ================= Реакції (оновлено з arrayUnion/arrayRemove) =================
 export async function toggleReaction(messageId, emoji) {
   if (!state.currentUser || !state.currentChatId) return;
   const messageRef = doc(db, `chats/${state.currentChatId}/messages/${messageId}`);
-  const messageSnap = await getDoc(messageRef);
-  if (!messageSnap.exists()) return;
-
-  const reactions = messageSnap.data().reactions || {};
-  const users = reactions[emoji] || [];
-  const userIndex = users.indexOf(state.currentUser.uid);
-
-  if (userIndex === -1) {
-    users.push(state.currentUser.uid);
-  } else {
-    users.splice(userIndex, 1);
+  
+  try {
+    // Спочатку отримуємо поточні реакції, щоб визначити, чи треба додавати чи видаляти
+    const messageSnap = await getDoc(messageRef);
+    if (!messageSnap.exists()) return;
+    
+    const reactions = messageSnap.data().reactions || {};
+    const users = reactions[emoji] || [];
+    const hasReacted = users.includes(state.currentUser.uid);
+    
+    // Оновлюємо атомарно
+    const update = {};
+    if (hasReacted) {
+      update[`reactions.${emoji}`] = arrayRemove(state.currentUser.uid);
+    } else {
+      update[`reactions.${emoji}`] = arrayUnion(state.currentUser.uid);
+    }
+    
+    await updateDoc(messageRef, update);
+  } catch (error) {
+    console.error('Помилка оновлення реакції:', error);
+    showToast('Не вдалося оновити реакцію');
   }
-
-  if (users.length === 0) {
-    delete reactions[emoji];
-  } else {
-    reactions[emoji] = users;
-  }
-
-  await updateDoc(messageRef, { reactions });
 }
 
 // ================= Пошук користувачів для чату =================
@@ -694,7 +753,7 @@ export function closeChat() {
 // ================= Обробник кнопки "Назад" у чаті =================
 document.getElementById('chatBackBtn')?.addEventListener('click', closeChat);
 
-// Також можна додати обробник на клавішу Escape
+// Обробник клавіші Escape
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.getElementById('chatWindowContainer')?.style.display === 'flex') {
     closeChat();
