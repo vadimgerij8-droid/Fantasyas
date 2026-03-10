@@ -1,688 +1,417 @@
-import { db } from './config.js';
-import {
-  doc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion, arrayRemove,
-  serverTimestamp, writeBatch, setDoc, addDoc
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import {
-  state,
-  setCurrentUserData
-} from './state.js';
-import { showToast, uploadToCloudinary, vibrate, debounce } from './utils.js';
-import { renderPosts } from './posts.js';
-import { getChatId, openChat } from './chat.js';
+/* ========== profile.css ========== */
 
-// ================= Допоміжні функції =================
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+/* ========== ПРОФІЛЬ ========== */
+.profile-header {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  animation: fadeIn 0.8s ease-out;
 }
-
-// ================= Змінна для відстеження поточного профілю =================
-let currentProfileUid = null;
-
-// ================= Допоміжна функція для показу/приховування блоку створення поста =================
-function updateNewPostBoxVisibility() {
-  const newPostBox = document.getElementById('newPostBox');
-  if (!newPostBox) return;
-
-  const profileSection = document.getElementById('profile');
-  if (!profileSection || !profileSection.classList.contains('active')) {
-    newPostBox.style.display = 'none';
-    return;
-  }
-
-  if (!state.currentUser || currentProfileUid !== state.currentUser.uid) {
-    newPostBox.style.display = 'none';
-    return;
-  }
-
-  const postsTab = document.querySelector('.profile-tab[data-tab="posts"]');
-  const isPostsActive = postsTab && postsTab.classList.contains('active');
-
-  newPostBox.style.display = isPostsActive ? 'block' : 'none';
+.profile-avatar-section {
+  position: relative;
+  flex-shrink: 0;
+  animation: scaleIn 0.6s ease-out 0.2s both;
 }
-
-// ================= Підписка/відписка =================
-export const toggleFollow = debounce(async (targetUid, buttonElement) => {
-  if (!state.currentUser) return;
-
-  const wasFollowing = state.currentUserFollowing.includes(targetUid);
-  const newFollowingState = !wasFollowing;
-
-  // Оптимістичне оновлення UI
-  if (newFollowingState) {
-    state.currentUserFollowing.push(targetUid);
-  } else {
-    state.currentUserFollowing = state.currentUserFollowing.filter(id => id !== targetUid);
+.profile-avatar-section .avatar.large {
+  width: 120px;
+  height: 120px;
+  border-width: 4px;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-bounce);
+}
+.profile-avatar-section .avatar.large:hover {
+  transform: scale(1.08) rotate(2deg);
+  box-shadow: var(--shadow-lg), 0 0 30px rgba(var(--accent-rgb), 0.2);
+}
+.profile-avatar-edit {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: var(--accent);
+  color: var(--btn-primary-text);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 3px solid var(--card);
+  transition: all var(--transition-bounce);
+  box-shadow: var(--shadow-sm);
+}
+.profile-avatar-edit:hover {
+  transform: scale(1.15) rotate(15deg);
+  box-shadow: var(--shadow-md);
+}
+.profile-info-section {
+  flex: 1;
+  min-width: 0;
+  animation: slideIn 0.6s ease-out 0.3s both;
+}
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.profile-name {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: fadeIn 0.8s ease-out 0.4s both;
+}
+.profile-verified {
+  color: var(--accent);
+  animation: pulse-soft 2s infinite;
+}
+.profile-handle {
+  color: var(--text-tertiary);
+  font-size: 1rem;
+  margin-bottom: 12px;
+  animation: fadeIn 0.8s ease-out 0.5s both;
+}
+.profile-bio {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  max-width: 600px;
+  animation: fadeIn 0.8s ease-out 0.6s both;
+}
+.profile-stats {
+  display: flex;
+  gap: 24px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+  animation: fadeIn 0.8s ease-out 0.7s both;
+}
+.profile-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: all var(--transition);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  min-width: 80px;
+}
+.profile-stat-item:hover {
+  background: var(--surface);
+  transform: translateY(-4px) scale(1.05);
+}
+.profile-stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  transition: color 0.25s;
+}
+.profile-stat-item:hover .profile-stat-value {
+  color: var(--accent);
+}
+.profile-stat-label {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+.profile-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  animation: fadeIn 0.8s ease-out 0.8s both;
+}
+.profile-actions .btn {
+  min-width: 120px;
+  justify-content: center;
+}
+.profile-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  animation: fadeIn 0.8s ease-out 0.9s both;
+}
+.profile-tabs::-webkit-scrollbar {
+  display: none;
+}
+.profile-tab {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+.profile-tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background: var(--accent);
+  transition: all var(--transition);
+  transform: translateX(-50%);
+  border-radius: 3px;
+}
+.profile-tab:hover {
+  background: var(--surface);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+.profile-tab.active {
+  color: var(--accent);
+  background: transparent;
+}
+.profile-tab.active::after {
+  width: 80%;
+}
+.profile-tab.focused {
+  background: var(--surface);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
+}
+.profile-menu {
+  position: relative;
+  display: inline-block;
+  margin-left: auto;
+}
+.profile-menu-btn {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.profile-menu-btn:hover {
+  transform: rotate(90deg) scale(1.1);
+  color: var(--accent);
+  background: var(--surface);
+}
+.profile-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  min-width: 220px;
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  display: none;
+  animation: scaleIn 0.3s ease-out;
+  margin-top: 8px;
+}
+.profile-menu-dropdown.show {
+  display: block;
+}
+.profile-menu-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.25s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+}
+.profile-menu-item:hover {
+  background: var(--surface);
+  transform: translateX(8px);
+  color: var(--accent);
+}
+.profile-menu-item.danger {
+  color: var(--danger);
+}
+.profile-menu-item.danger:hover {
+  color: var(--danger-hover);
+  background: rgba(158, 158, 158, 0.1);
+}
+@media (max-width: 768px) {
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
   }
-
-  if (buttonElement) {
-    buttonElement.textContent = newFollowingState ? 'Відписатися' : 'Підписатися';
-    buttonElement.classList.toggle('following', newFollowingState);
+  .profile-avatar-section .avatar.large {
+    width: 100px;
+    height: 100px;
   }
-
-  try {
-    const myRef = doc(db, "users", state.currentUser.uid);
-    const targetRef = doc(db, "users", targetUid);
-    const batch = writeBatch(db);
-
-    if (wasFollowing) {
-      batch.update(myRef, { following: arrayRemove(targetUid) });
-      batch.update(targetRef, { followers: arrayRemove(state.currentUser.uid) });
-    } else {
-      batch.update(myRef, { following: arrayUnion(targetUid) });
-      batch.update(targetRef, { followers: arrayUnion(state.currentUser.uid) });
-      vibrate(30);
-    }
-    await batch.commit();
-  } catch (error) {
-    console.error('Follow error:', error);
-    // Відкочуємо оптимістичне оновлення
-    if (newFollowingState) {
-      state.currentUserFollowing = state.currentUserFollowing.filter(id => id !== targetUid);
-    } else {
-      state.currentUserFollowing.push(targetUid);
-    }
-    if (buttonElement) {
-      buttonElement.textContent = wasFollowing ? 'Відписатися' : 'Підписатися';
-      buttonElement.classList.toggle('following', wasFollowing);
-    }
-    if (error.code === 'permission-denied') {
-      showToast('Помилка: недостатньо прав. Перевірте правила безпеки Firestore.');
-    } else {
-      showToast('Помилка: ' + (error.message || 'Невідома помилка'));
-    }
+  .profile-name {
+    font-size: 1.5rem;
   }
-}, 300);
-
-// ================= Завантаження профілю =================
-export async function viewProfile(uid) {
-  try {
-    const currentSection = document.querySelector('.section.active')?.id || 'home';
-    if (currentSection !== 'profile') {
-      state.navigationHistory.push(currentSection);
-      state.previousSection = currentSection;
-    }
-
-    document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
-    const profileNav = document.querySelector('[data-section="profile"]');
-    if (profileNav) profileNav.classList.add('active');
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    const profileSection = document.getElementById('profile');
-    if (profileSection) profileSection.classList.add('active');
-    document.getElementById('pageTitle').textContent = 'Профіль';
-
-    if (uid !== state.currentUser?.uid) {
-      document.querySelector('.back-btn').classList.add('visible');
-    } else {
-      document.querySelector('.back-btn').classList.remove('visible');
-    }
-
-    currentProfileUid = uid;
-
-    if (uid === state.currentUser?.uid) {
-      await loadMyProfile();
-    } else {
-      await loadUserProfile(uid);
-    }
-  } catch (error) {
-    console.error('viewProfile error:', error);
-    showToast('Не вдалося завантажити профіль');
+  .profile-stats {
+    justify-content: center;
+    width: 100%;
+    gap: 16px;
+  }
+  .profile-stat-item {
+    align-items: center;
+    flex: 1;
+    min-width: 70px;
+    max-width: 100px;
+  }
+  .profile-actions {
+    justify-content: center;
+    width: 100%;
+  }
+  .profile-actions .btn {
+    flex: 1;
+    max-width: 150px;
+  }
+  .profile-menu {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    margin: 0;
   }
 }
-
-async function loadMyProfile() {
-  try {
-    if (!state.currentUser) return;
-    const snap = await getDoc(doc(db, "users", state.currentUser.uid));
-    if (snap.exists()) renderProfile(snap.data(), state.currentUser.uid, true);
-  } catch (error) {
-    console.error('loadMyProfile error:', error);
-    showToast('Помилка завантаження вашого профілю');
+@media (max-width: 480px) {
+  .profile-avatar-section .avatar.large {
+    width: 80px;
+    height: 80px;
   }
-}
-
-async function loadUserProfile(uid) {
-  try {
-    if (!state.currentUser) return;
-    const snap = await getDoc(doc(db, "users", uid));
-    if (snap.exists()) renderProfile(snap.data(), uid, uid === state.currentUser.uid);
-  } catch (error) {
-    console.error('loadUserProfile error:', error);
-    showToast('Не вдалося завантажити профіль користувача');
+  .profile-avatar-edit {
+    width: 30px;
+    height: 30px;
+    bottom: 4px;
+    right: 4px;
   }
-}
-
-function renderProfile(data, uid, isOwn) {
-  const header = document.getElementById('profileHeader');
-  if (!header) return;
-
-  const isBlockedByTarget = data.blockedUsers?.includes(state.currentUser?.uid) || false;
-  const isBlockedByMe = state.currentUserData?.blockedUsers?.includes(uid) || false;
-
-  if (isBlockedByTarget || isBlockedByMe) {
-    header.innerHTML = `
-      <div class="avatar large" style="background-image:url(${escapeHTML(data.avatar || '')})" data-uid="${escapeHTML(uid)}" tabindex="0"></div>
-      <div>
-        <h2>${escapeHTML(data.nickname)}</h2>
-        <p class="text-danger">
-          ${isBlockedByTarget ? 'Цей користувач вас заблокував' : 'Ви заблокували цього користувача'}
-        </p>
-      </div>
-    `;
-    return;
+  .profile-name {
+    font-size: 1.3rem;
   }
-
-  const isFollowing = !isOwn && state.currentUser ? (data.followers?.includes(state.currentUser.uid) || false) : false;
-
-  const canSeeFollowers = () => {
-    if (isOwn) return true;
-    const privacy = data.settings?.privacy?.whoCanSeeFollowers || 'everyone';
-    if (privacy === 'everyone') return true;
-    if (privacy === 'followers' && isFollowing) return true;
-    return false;
-  };
-
-  const followersDisplay = canSeeFollowers() ? data.followers?.length || 0 : 'Приховано';
-  const followingDisplay = canSeeFollowers() ? data.following?.length || 0 : 'Приховано';
-
-  header.innerHTML = `
-    <div class="avatar large" style="background-image:url(${escapeHTML(data.avatar || '')})" data-uid="${escapeHTML(uid)}" tabindex="0"></div>
-    <div style="flex:1">
-      <h2>${escapeHTML(data.nickname)}</h2>
-      <div class="user-id">${escapeHTML(data.userId)}</div>
-      ${data.note ? `<div class="note-badge" style="position:relative; display:inline-block; margin-top:4px;">${escapeHTML(data.note)}</div>` : ''}
-      <p>${escapeHTML(data.bio || '')}</p>
-      <div class="profile-stats">
-        <span id="followersCount" data-uid="${escapeHTML(uid)}">${escapeHTML(String(followersDisplay))} підписників</span>
-        <span id="followingCount" data-uid="${escapeHTML(uid)}">${escapeHTML(String(followingDisplay))} підписок</span>
-        <span>${data.posts?.length || 0} постів</span>
-      </div>
-      ${!isOwn && state.currentUser ? `
-        <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
-          <button class="btn" id="profileFollowBtn" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>
-          <button class="btn" id="profileMessageBtn" tabindex="0">Написати</button>
-        </div>
-      ` : ''}
-      ${isOwn ? '<button class="btn" id="editProfileBtn" tabindex="0">Редагувати</button>' : ''}
-    </div>
-    ${!isOwn && state.currentUser ? `
-      <div class="profile-menu">
-        <button class="profile-menu-btn" id="profileMenuBtn" tabindex="0">⋯</button>
-        <div class="profile-menu-dropdown" id="profileMenuDropdown">
-          <div class="profile-menu-item" id="reportUserBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.5 6.5L21 9l-5 4 2 7-6-4-6 4 2-7-5-4 6.5-.5L12 2z"/></svg>
-            Поскаржитися
-          </div>
-          <div class="profile-menu-item" id="muteUserBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h3l4-4v12l-4-4H3v-4z"/><line x1="18" y1="7" x2="22" y2="11"/><line x1="18" y1="11" x2="22" y2="7"/></svg>
-            Замутити в чатах
-          </div>
-          <div class="profile-menu-item" id="blockUserBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-            Заблокувати
-          </div>
-        </div>
-      </div>
-    ` : ''}
-  `;
-
-  // Робимо аватар клікабельним (тільки для візуального підказки)
-  const avatar = header.querySelector('.avatar');
-  if (avatar) {
-    avatar.style.cursor = 'pointer';
+  .profile-stat-value {
+    font-size: 1.2rem;
   }
-
-  // Обробники для клікабельних статистик
-  const followersCount = document.getElementById('followersCount');
-  if (followersCount && canSeeFollowers()) {
-    followersCount.style.cursor = 'pointer';
-    followersCount.onclick = () => openFollowersList(uid);
+  .profile-stat-label {
+    font-size: 0.8rem;
   }
-  const followingCount = document.getElementById('followingCount');
-  if (followingCount && canSeeFollowers()) {
-    followingCount.style.cursor = 'pointer';
-    followingCount.onclick = () => openFollowingList(uid);
+  .profile-tabs {
+    gap: 4px;
   }
-
-  // Кнопки дій
-  if (!isOwn && state.currentUser) {
-    const profileFollowBtn = document.getElementById('profileFollowBtn');
-    if (profileFollowBtn) {
-      profileFollowBtn.onclick = async () => {
-        await toggleFollow(uid, profileFollowBtn);
-      };
-    }
-    const profileMessageBtn = document.getElementById('profileMessageBtn');
-    if (profileMessageBtn) {
-      profileMessageBtn.onclick = () => {
-        const chatId = getChatId(state.currentUser.uid, uid);
-        getDoc(doc(db, "chats", chatId)).then(async (docSnap) => {
-          if (!docSnap.exists()) {
-            await setDoc(doc(db, "chats", chatId), {
-              participants: [state.currentUser.uid, uid],
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-              lastMessage: '',
-              unread: { [state.currentUser.uid]: 0, [uid]: 0 }
-            });
-          }
-          openChat(chatId, uid, data.nickname, data.userId, data.avatar);
-        });
-      };
-    }
-
-    // Меню профілю
-    const menuBtn = document.getElementById('profileMenuBtn');
-    const dropdown = document.getElementById('profileMenuDropdown');
-    if (menuBtn && dropdown) {
-      menuBtn.onclick = (e) => {
-        e.stopPropagation();
-        dropdown.classList.toggle('show');
-      };
-
-      document.getElementById('reportUserBtn').onclick = async () => {
-        dropdown.classList.remove('show');
-        const reason = prompt('Опишіть причину скарги (необов\'язково)');
-        await reportUser(uid, reason);
-      };
-      document.getElementById('muteUserBtn').onclick = async () => {
-        dropdown.classList.remove('show');
-        const userRef = doc(db, "users", state.currentUser.uid);
-        try {
-          const snap = await getDoc(userRef);
-          const muted = snap.data().mutedUsers || [];
-          if (muted.includes(uid)) {
-            await unmuteUser(uid);
-          } else {
-            await muteUser(uid);
-          }
-        } catch (error) {
-          console.error('Error toggling mute:', error);
-          showToast('Помилка при зміні статусу мута');
-        }
-      };
-      document.getElementById('blockUserBtn').onclick = async () => {
-        dropdown.classList.remove('show');
-        const userRef = doc(db, "users", state.currentUser.uid);
-        try {
-          const snap = await getDoc(userRef);
-          const blocked = snap.data().blockedUsers || [];
-          if (blocked.includes(uid)) {
-            await unblockUser(uid);
-          } else {
-            await blockUser(uid);
-          }
-          loadUserProfile(uid);
-        } catch (error) {
-          console.error('Error toggling block:', error);
-          showToast('Помилка при блокуванні/розблокуванні');
-        }
-      };
-    }
-  }
-
-  // Редагування власного профілю
-  if (isOwn) {
-    const editProfileBtn = document.getElementById('editProfileBtn');
-    if (editProfileBtn) {
-      editProfileBtn.onclick = () => {
-        document.getElementById('editNickname').value = data.nickname;
-        document.getElementById('editBio').value = data.bio || '';
-        document.getElementById('editNote').value = data.note || '';
-        document.getElementById('editAvatar').value = '';
-        const preview = document.getElementById('editAvatarPreview');
-        if (preview) {
-          preview.src = data.avatar || '';
-          preview.classList.add('show'); // показуємо прев'ю
-        }
-        document.getElementById('editProfileModal').classList.add('active');
-      };
-    }
-  }
-
-  // Вкладки профілю
-  const tabs = document.getElementById('profileTabs');
-  if (tabs) {
-    tabs.innerHTML = `
-      <div class="profile-tab active" data-tab="posts" tabindex="0">Пости</div>
-      <div class="profile-tab" data-tab="likes" tabindex="0">Лайки</div>
-      <div class="profile-tab" data-tab="media" tabindex="0">Медіа</div>
-      <div class="profile-tab" data-tab="saved" tabindex="0">Збережене</div>
-    `;
-    document.querySelectorAll('.profile-tab').forEach(tab => {
-      tab.onclick = () => {
-        document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        loadProfileFeed(uid, tab.dataset.tab);
-        updateNewPostBoxVisibility();
-      };
-    });
-  }
-  loadProfileFeed(uid, 'posts');
-  updateNewPostBoxVisibility();
-}
-
-// ================= Завантаження стрічки профілю (з покращеннями) =================
-async function loadProfileFeed(uid, tab) {
-  const feed = document.getElementById('profileFeed');
-  if (!feed) return;
-
-  // Показуємо скелетон
-  feed.innerHTML = `
-    <div class="skeleton" style="height:200px; margin-bottom:10px;"></div>
-    <div class="skeleton" style="height:200px; margin-bottom:10px;"></div>
-    <div class="skeleton" style="height:200px;"></div>
-  `;
-
-  if (!state.currentUser) {
-    feed.innerHTML = '<p style="text-align:center; padding:20px;">Увійдіть, щоб переглянути</p>';
-    return;
-  }
-
-  try {
-    let posts = [];
-    const userSnap = await getDoc(doc(db, "users", uid));
-    const userData = userSnap.data();
-
-    if (tab === 'posts') {
-      const postIds = userData.posts || [];
-      for (const id of postIds.slice(0, 20)) {
-        const postSnap = await getDoc(doc(db, "posts", id));
-        if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
-      }
-    } else if (tab === 'likes') {
-      const likedIds = userData.likedPosts || [];
-      for (const id of likedIds.slice(0, 20)) {
-        const postSnap = await getDoc(doc(db, "posts", id));
-        if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
-      }
-    } else if (tab === 'media') {
-      const postIds = userData.posts || [];
-      for (const id of postIds.slice(0, 20)) {
-        const postSnap = await getDoc(doc(db, "posts", id));
-        if (postSnap.exists()) {
-          const post = postSnap.data();
-          if ((post.media && post.media.length > 0) || post.mediaUrl) {
-            posts.push({ id, ...post });
-          }
-        }
-      }
-    } else if (tab === 'saved') {
-      const savedIds = userData.savedPosts || [];
-      for (const id of savedIds.slice(0, 20)) {
-        const postSnap = await getDoc(doc(db, "posts", id));
-        if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
-      }
-    }
-
-    posts.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    feed.innerHTML = ''; // очищаємо скелетон
-    if (posts.length > 0) {
-      const fakeDocs = posts.map(p => ({ id: p.id, data: () => p }));
-      renderPosts(fakeDocs, 'profileFeed');
-    } else {
-      feed.innerHTML = '<p style="text-align:center; padding:20px;">Немає постів</p>';
-    }
-  } catch (error) {
-    console.error('loadProfileFeed error:', error);
-    feed.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Помилка завантаження</p>';
+  .profile-tab {
+    padding: 8px 14px;
+    font-size: 0.9rem;
   }
 }
 
-// ================= Редагування профілю =================
-export async function saveProfileEdit(nickname, bio, note, avatarFile) {
-  if (!state.currentUser) return false;
-  if (!nickname) {
-    showToast('Псевдонім обов’язковий');
-    return false;
-  }
-
-  const newUserId = `@${nickname.toLowerCase()}`;
-  try {
-    const q = query(collection(db, "users"), where("userId", "==", newUserId));
-    const snap = await getDocs(q);
-    if (!snap.empty && snap.docs[0].id !== state.currentUser.uid) {
-      showToast('Цей ID вже зайнятий');
-      return false;
-    }
-
-    let avatarUrl;
-    if (avatarFile) {
-      avatarUrl = await uploadToCloudinary(avatarFile);
-    }
-
-    const updateData = {
-      nickname,
-      userId: newUserId,
-      nickname_lower: nickname.toLowerCase().trim(),
-      bio,
-      note
-    };
-    if (avatarUrl) updateData.avatar = avatarUrl;
-
-    await updateDoc(doc(db, "users", state.currentUser.uid), updateData);
-    await loadMyProfile();
-    document.getElementById('editProfileModal').classList.remove('active');
-    showToast('Профіль оновлено');
-    return true;
-  } catch (e) {
-    console.error('saveProfileEdit error:', e);
-    showToast('Помилка: ' + e.message);
-    return false;
-  }
+/* ========== НАЛАШТУВАННЯ ========== */
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.settings-nav-item {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.25s;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.settings-nav-item:hover {
+  background: var(--surface);
+  color: var(--accent);
+  transform: translateX(4px);
+}
+.settings-nav-item.active {
+  background: var(--accent);
+  color: var(--btn-primary-text);
+}
+.settings-tab-content {
+  display: none;
+  animation: fadeIn 0.4s ease-out;
+}
+.settings-tab-content.active {
+  display: block;
+}
+.settings-group {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-group h3,
+.settings-group h4 {
+  margin-bottom: 12px;
+  color: var(--text-primary);
 }
 
-// ================= Списки підписників/підписок =================
-export async function openFollowersList(uid) {
-  const modal = document.getElementById('followersModal');
-  const list = document.getElementById('followersList');
-  if (!modal || !list) return;
-
-  list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
-  modal.classList.add('active');
-
-  try {
-    const userSnap = await getDoc(doc(db, "users", uid));
-    const followersIds = userSnap.data().followers || [];
-    const followers = [];
-    for (const id of followersIds) {
-      const snap = await getDoc(doc(db, "users", id));
-      if (snap.exists()) followers.push({ id, ...snap.data() });
-    }
-
-    list.innerHTML = '';
-    if (followers.length === 0) {
-      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає підписників</p>';
-    } else {
-      followers.forEach(user => {
-        const div = document.createElement('div');
-        div.className = 'chat-item';
-        div.tabIndex = 0;
-        div.innerHTML = `
-          <div class="avatar small" style="background-image:url(${escapeHTML(user.avatar || '')})" data-uid="${escapeHTML(user.id)}" tabindex="0"></div>
-          <div class="chat-info">
-            <div class="chat-name">${escapeHTML(user.nickname)}</div>
-            <div class="chat-last">${escapeHTML(user.userId)}</div>
-            ${user.note ? `<div class="note-badge" style="position:relative; display:inline-block;">${escapeHTML(user.note)}</div>` : ''}
-          </div>
-        `;
-        div.onclick = () => {
-          viewProfile(user.id);
-          modal.classList.remove('active');
-        };
-        list.appendChild(div);
-      });
-    }
-  } catch (error) {
-    console.error('openFollowersList error:', error);
-    list.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Помилка завантаження</p>';
-  }
+/* ========== СПИСОК ЗАБЛОКОВАНИХ ========== */
+.blocked-user-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  animation: slideIn 0.3s ease-out;
+}
+.blocked-user-item:hover {
+  background: var(--card);
+  transform: translateX(4px);
+}
+.blocked-user-info {
+  flex: 1;
+}
+.blocked-user-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.blocked-user-id {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+.unblock-btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
 }
 
-export async function openFollowingList(uid) {
-  const modal = document.getElementById('followingModal');
-  const list = document.getElementById('followingList');
-  if (!modal || !list) return;
-
-  list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
-  modal.classList.add('active');
-
-  try {
-    const userSnap = await getDoc(doc(db, "users", uid));
-    const followingIds = userSnap.data().following || [];
-    const following = [];
-    for (const id of followingIds) {
-      const snap = await getDoc(doc(db, "users", id));
-      if (snap.exists()) following.push({ id, ...snap.data() });
-    }
-
-    list.innerHTML = '';
-    if (following.length === 0) {
-      list.innerHTML = '<p style="text-align:center; padding:20px;">Ні на кого не підписаний</p>';
-    } else {
-      following.forEach(user => {
-        const div = document.createElement('div');
-        div.className = 'chat-item';
-        div.tabIndex = 0;
-        div.innerHTML = `
-          <div class="avatar small" style="background-image:url(${escapeHTML(user.avatar || '')})" data-uid="${escapeHTML(user.id)}" tabindex="0"></div>
-          <div class="chat-info">
-            <div class="chat-name">${escapeHTML(user.nickname)}</div>
-            <div class="chat-last">${escapeHTML(user.userId)}</div>
-            ${user.note ? `<div class="note-badge" style="position:relative; display:inline-block;">${escapeHTML(user.note)}</div>` : ''}
-          </div>
-        `;
-        div.onclick = () => {
-          viewProfile(user.id);
-          modal.classList.remove('active');
-        };
-        list.appendChild(div);
-      });
-    }
-  } catch (error) {
-    console.error('openFollowingList error:', error);
-    list.innerHTML = '<p style="text-align:center; padding:20px; color:red;">Помилка завантаження</p>';
-  }
+/* ========== ІНФОРМАЦІЯ ПРО СХОВИЩЕ ========== */
+#storageInfo {
+  background: var(--surface);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  margin: 12px 0;
+  line-height: 1.8;
 }
-
-// ================= Функції для скарг, мюту, блокування =================
-export async function reportUser(targetUid, reason = '') {
-  if (!state.currentUser) return;
-  try {
-    await addDoc(collection(db, "reports"), {
-      reportedUserId: targetUid,
-      reporterId: state.currentUser.uid,
-      reason: reason || 'Без причини',
-      timestamp: serverTimestamp()
-    });
-    showToast('Скаргу надіслано');
-  } catch (e) {
-    console.error('reportUser error:', e);
-    showToast('Помилка: ' + e.message);
-  }
+#storageInfo p {
+  margin: 6px 0;
 }
-
-export async function muteUser(targetUid) {
-  if (!state.currentUser) return;
-  try {
-    const userRef = doc(db, "users", state.currentUser.uid);
-    await updateDoc(userRef, {
-      mutedUsers: arrayUnion(targetUid)
-    });
-    showToast('Користувача замучено');
-  } catch (e) {
-    console.error('muteUser error:', e);
-    showToast('Помилка: ' + e.message);
-  }
+.stat-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 24px;
 }
-
-export async function unmuteUser(targetUid) {
-  if (!state.currentUser) return;
-  try {
-    const userRef = doc(db, "users", state.currentUser.uid);
-    await updateDoc(userRef, {
-      mutedUsers: arrayRemove(targetUid)
-    });
-    showToast('Користувача розмучено');
-  } catch (e) {
-    console.error('unmuteUser error:', e);
-    showToast('Помилка: ' + e.message);
-  }
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--accent);
 }
-
-export async function blockUser(targetUid) {
-  if (!state.currentUser) return;
-  try {
-    const userRef = doc(db, "users", state.currentUser.uid);
-    await updateDoc(userRef, {
-      blockedUsers: arrayUnion(targetUid)
-    });
-    showToast('Користувача заблоковано');
-  } catch (e) {
-    console.error('blockUser error:', e);
-    showToast('Помилка: ' + e.message);
-  }
-}
-
-export async function unblockUser(targetUid) {
-  if (!state.currentUser) return;
-  try {
-    const userRef = doc(db, "users", state.currentUser.uid);
-    await updateDoc(userRef, {
-      blockedUsers: arrayRemove(targetUid)
-    });
-    showToast('Користувача розблоковано');
-  } catch (e) {
-    console.error('unblockUser error:', e);
-    showToast('Помилка: ' + e.message);
-  }
-}
-
-// ================= Глобальний обробник для закриття меню профілю =================
-document.addEventListener('click', (e) => {
-  // Закриваємо всі відкриті меню, якщо клік був поза ними
-  document.querySelectorAll('.profile-menu-dropdown.show').forEach(dropdown => {
-    const menuBtn = dropdown.previousElementSibling; // кнопка меню
-    if (!menuBtn || !menuBtn.contains(e.target)) {
-      dropdown.classList.remove('show');
-    }
-  });
-});
-
-// ================= Ініціалізація редагування аватарки =================
-function initAvatarEdit() {
-  const avatarPreview = document.getElementById('editAvatarPreview');
-  const avatarInput = document.getElementById('editAvatar');
-
-  if (avatarPreview && avatarInput) {
-    // Клік на прев'ю відкриває вибір файлу
-    avatarPreview.addEventListener('click', () => {
-      avatarInput.click();
-    });
-
-    // Оновлення прев'ю при виборі файлу
-    avatarInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      // Відміняємо попередній URL, щоб уникнути витоку пам'яті
-      if (avatarPreview.src && avatarPreview.src.startsWith('blob:')) {
-        URL.revokeObjectURL(avatarPreview.src);
-      }
-      avatarPreview.src = URL.createObjectURL(file);
-    });
-  }
-}
-
-// Запускаємо ініціалізацію після завантаження DOM
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAvatarEdit);
-} else {
-  initAvatarEdit();
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
 }
