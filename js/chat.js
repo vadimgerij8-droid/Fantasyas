@@ -704,5 +704,3 @@ document.addEventListener('keydown', (e) => {
     closeChat();
   }
 });
-
-зроби код сучаснішим і більш функціональним це js/chat.js
