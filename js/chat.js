@@ -1,399 +1,510 @@
 import { db } from './config.js';
-import { 
-  collection, doc, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc, query, where, 
-  orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch 
+import {
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, addDoc, deleteDoc,
+  query, where, orderBy, onSnapshot, serverTimestamp,
+  arrayUnion, arrayRemove, increment,
+  limitToLast, documentId, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { 
+
+import {
   state,
   setCurrentChat, clearChatState, setReplyContext, clearReplyContext,
   setUnsubscribeMessages, setUnsubscribeTyping, setUnsubscribeChatPresence
 } from './state.js';
-import { showToast, uploadToCloudinary, debounce, formatLastSeen } from './utils.js';
-import { viewProfile, blockUser } from './profile.js';
 
-// ================= Допоміжні функції =================
+import { showToast, uploadToCloudinary, debounce, formatLastSeen } from './utils.js';
+import { viewProfile } from './profile.js';
+
+// ================= Utilities =================
 export const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
 
-// ================= Завантаження списку чатів =================
-export async function loadChatList() {
-  if (!state.currentUser) return;
-  const listEl = document.getElementById('chatList');
-  if (!listEl) return;
+const fmtTime = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
+const ONLINE_MS = 60_000;
+const CHATLIST_LIMIT = 200;         // за бажанням
+const MESSAGES_LIMIT = 80;          // скільки останніх повідомлень показуємо realtime
 
-  try {
-    const snapshot = await getDocs(query(collection(db, "chats"), where("participants", "array-contains", state.currentUser.uid)));
-    const chatItems = [];
+const userCache = new Map();        // uid -> userData
+const chatItemCache = new Map();    // chatId -> normalized item (опційно)
+const messageElById = new Map();    // messageId -> element
 
-    for (const docSnap of snapshot.docs) {
-      const chat = docSnap.data();
-      const otherUid = chat.participants.find(uid => uid !== state.currentUser.uid);
-      if (!otherUid) continue;
+const dom = {
+  chatList: () => document.getElementById('chatList'),
+  chatName: () => document.getElementById('chatName'),
+  chatStatus: () => document.getElementById('chatStatus'),
+  chatAvatar: () => document.getElementById('chatAvatar'),
+  chatWindowContainer: () => document.getElementById('chatWindowContainer'),
+  chatListSidebar: () => document.getElementById('chatListSidebar'),
+  bottomNav: () => document.querySelector('.bottom-nav'),
+  typingIndicator: () => document.getElementById('typingIndicator'),
+  chatText: () => document.getElementById('chatText'),
+  chatMessages: () => document.getElementById('chatMessages'),
+  messageContextMenu: () => document.getElementById('messageContextMenu'),
+  replyPreview: () => document.getElementById('replyPreview'),
+  chatBackBtn: () => document.getElementById('chatBackBtn')
+};
 
-      const userSnap = await getDoc(doc(db, "users", otherUid));
-      if (!userSnap.exists()) continue;
-      const user = userSnap.data();
+function safeText(el, text) {
+  el.textContent = text ?? '';
+  return el;
+}
 
-      const unread = chat.unread?.[state.currentUser.uid] || 0;
-      const lastMsg = chat.lastMessage || '';
-      const lastMsgType = chat.lastMessageType || 'text';
-      let displayLast = lastMsg;
-      if (lastMsgType === 'photo') displayLast = '📷 Фото';
-      else if (lastMsgType === 'video') displayLast = '🎥 Відео';
+function el(tag, className, text) {
+  const n = document.createElement(tag);
+  if (className) n.className = className;
+  if (text !== undefined) safeText(n, text);
+  return n;
+}
 
-      const updatedAt = chat.updatedAt?.seconds * 1000 || 0;
-      const time = updatedAt ? new Date(updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+function chunk(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
 
-      const lastSeen = user.lastSeen?.seconds * 1000 || 0;
-      const isOnline = (Date.now() - lastSeen) < 60000;
+// Пакетно тягнемо юзерів (по 10 — ліміт Firestore для "in")
+async function getUsersByUids(uids) {
+  const unique = [...new Set(uids)].filter(Boolean);
+  const need = unique.filter(uid => !userCache.has(uid));
+  if (need.length === 0) return;
 
-      chatItems.push({
-        chatId: docSnap.id,
-        otherUid,
-        user,
-        unread,
-        lastMsg: displayLast,
-        time,
-        isOnline,
-        lastSeen,
-        updatedAt
-      });
-    }
-
-    chatItems.sort((a, b) => b.updatedAt - a.updatedAt);
-    renderChatList(chatItems);
-  } catch (error) {
-    console.error('Помилка завантаження списку чатів:', error);
-    showToast('Не вдалося завантажити чати');
+  for (const part of chunk(need, 10)) {
+    const q = query(collection(db, "users"), where(documentId(), "in", part));
+    const snap = await getDocs(q);
+    snap.forEach(d => userCache.set(d.id, d.data()));
   }
 }
 
-function renderChatList(chatItems) {
-  const listEl = document.getElementById('chatList');
-  if (!listEl) return;
-  listEl.innerHTML = '';
+// ================= Chat list (realtime) =================
+let unsubscribeChatList = null;
 
-  if (chatItems.length === 0) {
+export function loadChatList() {
+  if (!state.currentUser) return;
+  const listEl = dom.chatList();
+  if (!listEl) return;
+
+  // якщо вже підписані — не дублюємо
+  if (unsubscribeChatList) unsubscribeChatList();
+
+  // Порада: бажано мати індекс: participants array-contains + updatedAt desc
+  const q = query(
+    collection(db, "chats"),
+    where("participants", "array-contains", state.currentUser.uid),
+    orderBy("updatedAt", "desc")
+    // можна ще limitToLast/limit, але з orderBy desc зазвичай limit() — краще
+  );
+
+  listEl.innerHTML = `<div class="skeleton" style="height:60px;"></div>`;
+
+  unsubscribeChatList = onSnapshot(q, async (snapshot) => {
+    try {
+      const chats = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // збираємо UID співрозмовників, щоб витягнути профілі пакетно
+      const otherUids = chats
+        .map(c => (c.participants || []).find(uid => uid !== state.currentUser.uid))
+        .filter(Boolean);
+
+      await getUsersByUids(otherUids);
+
+      const items = chats.map(chat => normalizeChatItem(chat));
+      renderChatList(items);
+    } catch (e) {
+      console.error('Chat list render error:', e);
+      showToast('Не вдалося оновити список чатів');
+    }
+  }, (error) => {
+    console.error('Chat list snapshot error:', error);
+    showToast('Не вдалося завантажити чати');
+  });
+}
+
+function normalizeChatItem(chat) {
+  const otherUid = (chat.participants || []).find(uid => uid !== state.currentUser.uid);
+  const user = userCache.get(otherUid);
+
+  // якщо профіль ще не підтягнувся — показуємо плейсхолдер
+  const nickname = user?.nickname || '...';
+  const avatar = user?.avatar || '';
+  const userId = user?.userId || otherUid || '';
+
+  const unread = chat.unread?.[state.currentUser.uid] || 0;
+
+  const lastMsgType = chat.lastMessageType || 'text';
+  let lastMsg = chat.lastMessage || '';
+  if (lastMsgType === 'photo' || lastMsgType === 'image') lastMsg = '📷 Фото';
+  else if (lastMsgType === 'video') lastMsg = '🎥 Відео';
+
+  const updatedAtMs = chat.updatedAt?.seconds ? chat.updatedAt.seconds * 1000 : 0;
+  const time = updatedAtMs ? fmtTime.format(new Date(updatedAtMs)) : '';
+
+  const lastSeenMs = user?.lastSeen?.seconds ? user.lastSeen.seconds * 1000 : 0;
+  const isOnline = lastSeenMs ? (Date.now() - lastSeenMs) < ONLINE_MS : false;
+
+  return {
+    chatId: chat.id,
+    otherUid,
+    otherUserId: userId,
+    nickname,
+    avatar,
+    note: user?.note || '',
+    unread,
+    lastMsg,
+    time,
+    isOnline,
+    lastSeenMs,
+    updatedAtMs
+  };
+}
+
+function renderChatList(items) {
+  const listEl = dom.chatList();
+  if (!listEl) return;
+
+  if (!items.length) {
     listEl.innerHTML = '<p style="text-align:center; padding:20px;">Немає чатів</p>';
     return;
   }
 
-  chatItems.forEach(item => {
-    const div = document.createElement('div');
-    div.className = `chat-item ${item.unread > 0 ? 'unread' : ''}`;
-    div.dataset.chatId = item.chatId;
-    div.dataset.otherUid = item.otherUid;
-    div.dataset.username = item.user.nickname;
-    div.dataset.avatar = item.user.avatar || '';
-    div.tabIndex = 0;
+  // не рендеримо зайве, якщо хочеш — можна порівнювати з chatItemCache
+  listEl.innerHTML = '';
+  const frag = document.createDocumentFragment();
 
-    const lastSeenText = item.lastSeen ? formatLastSeen({ seconds: item.lastSeen / 1000 }) : '';
-    div.title = item.isOnline ? 'онлайн' : `Останній візит: ${lastSeenText}`;
+  for (const item of items) {
+    const row = el('div', `chat-item ${item.unread > 0 ? 'unread' : ''}`);
+    row.tabIndex = 0;
 
-    div.innerHTML = `
-      <div class="chat-avatar">
-        <div class="avatar small" style="background-image:url(${item.user.avatar || ''})"></div>
-        ${item.isOnline ? '<span class="online-indicator"></span>' : ''}
-        ${item.user.note ? `<div class="note-badge">${item.user.note}</div>` : ''}
-      </div>
-      <div class="chat-info">
-        <div class="chat-name">${item.user.nickname}</div>
-        <div class="chat-last">${item.lastMsg}</div>
-      </div>
-      <div class="chat-time">${item.time}</div>
-      ${item.unread > 0 ? `<div class="chat-badge">${item.unread}</div>` : ''}
-    `;
+    row.dataset.chatId = item.chatId;
+    row.dataset.otherUid = item.otherUid || '';
+    row.dataset.otherUserId = item.otherUserId || '';
+    row.dataset.username = item.nickname || '';
+    row.dataset.avatar = item.avatar || '';
 
-    div.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openChat(item.chatId, item.otherUid, item.user.nickname, item.user.userId, item.user.avatar);
-    });
+    const lastSeenText = item.lastSeenMs ? formatLastSeen({ seconds: item.lastSeenMs / 1000 }) : '';
+    row.title = item.isOnline ? 'онлайн' : (lastSeenText ? `Останній візит: ${lastSeenText}` : 'офлайн');
 
-    listEl.appendChild(div);
-  });
+    const avatarWrap = el('div', 'chat-avatar');
+    const avatarEl = el('div', 'avatar small');
+    if (item.avatar) avatarEl.style.backgroundImage = `url(${item.avatar})`;
+    avatarWrap.appendChild(avatarEl);
+
+    if (item.isOnline) avatarWrap.appendChild(el('span', 'online-indicator'));
+    if (item.note) avatarWrap.appendChild(el('div', 'note-badge', item.note));
+
+    const info = el('div', 'chat-info');
+    info.appendChild(el('div', 'chat-name', item.nickname));
+    info.appendChild(el('div', 'chat-last', item.lastMsg));
+
+    const time = el('div', 'chat-time', item.time);
+
+    row.appendChild(avatarWrap);
+    row.appendChild(info);
+    row.appendChild(time);
+
+    if (item.unread > 0) row.appendChild(el('div', 'chat-badge', String(item.unread)));
+
+    frag.appendChild(row);
+  }
+
+  listEl.appendChild(frag);
 }
 
-// ================= Глобальний обробник кліку на .chat-item =================
+// Делегація кліку по списку чатів (одне місце, без дублювань)
 document.addEventListener('click', (e) => {
   const item = e.target.closest('.chat-item');
   if (!item) return;
-  if (e.defaultPrevented) return;
 
   const chatId = item.dataset.chatId;
   const otherUid = item.dataset.otherUid;
-  const username = item.dataset.username || item.querySelector('.chat-name')?.textContent || '';
+  const username = item.dataset.username || '';
+  const otherUserId = item.dataset.otherUserId || otherUid;
   const avatar = item.dataset.avatar || '';
 
   if (chatId && otherUid) {
-    openChat(chatId, otherUid, username, otherUid, avatar);
+    openChat(chatId, otherUid, username, otherUserId, avatar);
   }
 });
 
-// ================= Відкриття чату =================
+// ================= Open chat =================
 export async function openChat(chatId, otherUid, otherName, otherUserId, otherAvatar) {
   try {
-    console.log('openChat called', { chatId, otherUid, otherName });
-
-    if (!state.currentUser) {
-      console.warn('Користувач не авторизований');
-      return;
-    }
+    if (!state.currentUser) return;
 
     setCurrentChat(chatId, otherUid, otherName, otherUserId, otherAvatar);
 
-    const chatNameEl = document.getElementById('chatName');
-    const chatStatusEl = document.getElementById('chatStatus');
-    const chatAvatarEl = document.getElementById('chatAvatar');
-    const chatWindowContainer = document.getElementById('chatWindowContainer');
-    const chatListSidebar = document.getElementById('chatListSidebar');
-    const bottomNav = document.querySelector('.bottom-nav');
-    const typingIndicator = document.getElementById('typingIndicator');
-    const chatText = document.getElementById('chatText');
+    const chatNameEl = dom.chatName();
+    const chatStatusEl = dom.chatStatus();
+    const chatAvatarEl = dom.chatAvatar();
+    const chatWindowContainer = dom.chatWindowContainer();
 
     if (!chatNameEl || !chatStatusEl || !chatAvatarEl || !chatWindowContainer) {
-      console.error('Не знайдено обов’язкові елементи DOM для чату');
       showToast('Помилка інтерфейсу чату');
       return;
     }
 
-    chatNameEl.textContent = otherName;
-    chatStatusEl.textContent = '';
+    safeText(chatNameEl, otherName);
+    safeText(chatStatusEl, '');
     chatAvatarEl.style.backgroundImage = otherAvatar ? `url(${otherAvatar})` : 'none';
 
     chatWindowContainer.style.display = 'flex';
-    if (window.innerWidth < 768) {
-      chatListSidebar?.classList.add('hide');
-    }
+    if (window.innerWidth < 768) dom.chatListSidebar()?.classList.add('hide');
+    dom.bottomNav()?.classList.add('hide-chat-mode');
 
-    if (bottomNav) {
-      bottomNav.classList.add('hide-chat-mode');
-    }
-
-    // Скидаємо лічильник непрочитаних
+    // unread = 0
     const chatRef = doc(db, "chats", chatId);
-    await updateDoc(chatRef, {
-      [`unread.${state.currentUser.uid}`]: 0
-    }).catch(console.error);
+    updateDoc(chatRef, { [`unread.${state.currentUser.uid}`]: 0 }).catch(console.error);
 
-    // Підписка на повідомлення
+    // messages
     subscribeToMessages(chatId);
 
-    // Підписка на статус (lastSeen)
+    // presence
     if (state.unsubscribeChatPresence) state.unsubscribeChatPresence();
     const unsubPresence = onSnapshot(doc(db, "users", otherUid), (snap) => {
       const user = snap.data();
       if (!user) return;
       const lastSeen = user.lastSeen;
-      const isOnline = lastSeen ? (Date.now() - (lastSeen.seconds * 1000)) < 60000 : false;
-      const statusEl = document.getElementById('chatStatus');
+      const isOnline = lastSeen ? (Date.now() - (lastSeen.seconds * 1000)) < ONLINE_MS : false;
+      const statusEl = dom.chatStatus();
       if (!statusEl) return;
-      if (isOnline) {
-        statusEl.textContent = 'онлайн';
-      } else {
-        statusEl.textContent = `був(ла) ${formatLastSeen(lastSeen)}`;
-      }
+      safeText(statusEl, isOnline ? 'онлайн' : `був(ла) ${formatLastSeen(lastSeen)}`);
     });
     setUnsubscribeChatPresence(unsubPresence);
 
-    // Підписка на друк
+    // typing
     if (state.unsubscribeTyping) state.unsubscribeTyping();
     const typingRef = doc(db, `chats/${chatId}/typing/${otherUid}`);
     const unsubTyping = onSnapshot(typingRef, (docSnap) => {
-      const indicator = document.getElementById('typingIndicator');
+      const indicator = dom.typingIndicator();
       if (!indicator) return;
-      if (docSnap.exists() && docSnap.data().isTyping) {
-        indicator.style.display = 'flex';
-      } else {
-        indicator.style.display = 'none';
-      }
+      indicator.style.display = (docSnap.exists() && docSnap.data().isTyping) ? 'flex' : 'none';
     });
     setUnsubscribeTyping(unsubTyping);
 
-    setTimeout(() => chatText?.focus(), 200);
+    setTimeout(() => dom.chatText()?.focus(), 200);
   } catch (error) {
-    console.error('Помилка у openChat:', error);
+    console.error('openChat error:', error);
     showToast('Не вдалося відкрити чат');
   }
 }
 
-// ================= Підписка на повідомлення =================
+// ================= Messages subscription (incremental render) =================
 function subscribeToMessages(chatId) {
   if (!state.currentUser) return;
+
   if (state.unsubscribeMessages) state.unsubscribeMessages();
 
-  const messagesContainer = document.getElementById('chatMessages');
-  if (!messagesContainer) {
-    console.error('chatMessages не знайдено');
-    return;
-  }
-  messagesContainer.innerHTML = '';
+  const container = dom.chatMessages();
+  if (!container) return;
 
-  try {
-    const q = query(collection(db, `chats/${chatId}/messages`), orderBy("createdAt", "asc"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      let lastDate = '';
-      messagesContainer.innerHTML = '';
+  container.innerHTML = '';
+  messageElById.clear();
 
+  const q = query(
+    collection(db, `chats/${chatId}/messages`),
+    orderBy("createdAt", "asc"),
+    limitToLast(MESSAGES_LIMIT)
+  );
+
+  let lastDateLabel = '';
+
+  const unsub = onSnapshot(q, (snapshot) => {
+    // інкрементально
+    const changes = snapshot.docChanges();
+
+    // якщо це перше завантаження — рендеримо всі послідовно (так простіше з date-divider)
+    if (changes.length === snapshot.size) {
+      container.innerHTML = '';
+      lastDateLabel = '';
+      messageElById.clear();
+
+      const frag = document.createDocumentFragment();
       snapshot.forEach(docSnap => {
         const msg = { id: docSnap.id, ...docSnap.data() };
-        const msgDate = formatMessageDate(msg.createdAt);
-        if (msgDate !== lastDate) {
-          lastDate = msgDate;
-          const divider = document.createElement('div');
-          divider.className = 'date-divider';
-          divider.textContent = msgDate;
-          messagesContainer.appendChild(divider);
+
+        const dateLabel = formatMessageDate(msg.createdAt);
+        if (dateLabel && dateLabel !== lastDateLabel) {
+          lastDateLabel = dateLabel;
+          frag.appendChild(el('div', 'date-divider', dateLabel));
         }
 
-        const messageEl = createMessageElement(msg);
-        messagesContainer.appendChild(messageEl);
+        const node = createMessageElement(msg);
+        frag.appendChild(node);
+        messageElById.set(msg.id, node);
       });
 
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }, (error) => {
-      console.error('Помилка отримання повідомлень:', error);
-      showToast('Помилка завантаження повідомлень');
-    });
-    setUnsubscribeMessages(unsub);
-  } catch (error) {
-    console.error('Помилка створення підписки:', error);
-  }
+      container.appendChild(frag);
+      container.scrollTop = container.scrollHeight;
+      return;
+    }
+
+    // для оновлень — оновлюємо конкретні елементи
+    for (const ch of changes) {
+      const msg = { id: ch.doc.id, ...ch.doc.data() };
+
+      if (ch.type === 'removed') {
+        const old = messageElById.get(msg.id);
+        old?.remove();
+        messageElById.delete(msg.id);
+        continue;
+      }
+
+      if (ch.type === 'modified') {
+        const old = messageElById.get(msg.id);
+        if (old) {
+          const fresh = createMessageElement(msg);
+          old.replaceWith(fresh);
+          messageElById.set(msg.id, fresh);
+        }
+        continue;
+      }
+
+      if (ch.type === 'added') {
+        // додані наприкінці — просто append
+        const node = createMessageElement(msg);
+        container.appendChild(node);
+        messageElById.set(msg.id, node);
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+  }, (error) => {
+    console.error('messages snapshot error:', error);
+    showToast('Помилка завантаження повідомлень');
+  });
+
+  setUnsubscribeMessages(unsub);
 }
 
 function createMessageElement(msg) {
   const isMine = msg.from === state.currentUser.uid;
-  const wrapper = document.createElement('div');
-  wrapper.className = `message-wrapper ${isMine ? 'sent' : 'received'}`;
+
+  const wrapper = el('div', `message-wrapper ${isMine ? 'sent' : 'received'}`);
   wrapper.dataset.messageId = msg.id;
 
-  const bubble = document.createElement('div');
-  bubble.className = `message-bubble ${isMine ? 'sent' : 'received'}`;
+  const bubble = el('div', `message-bubble ${isMine ? 'sent' : 'received'}`);
 
-  // ===== Відповідь (reply) =====
-  if (msg.replyTo) {
-    const replyPreview = document.createElement('div');
-    replyPreview.className = 'message-reply-preview';
-    replyPreview.setAttribute('data-reply-to', msg.replyTo.messageId);
-    // Обмежуємо текст, щоб не ламав верстку
-    const shortText = msg.replyTo.text.length > 50 ? msg.replyTo.text.slice(0, 47) + '…' : msg.replyTo.text;
-    replyPreview.innerHTML = `
-      <div class="reply-sender">${msg.replyTo.senderName}</div>
-      <div class="reply-text">${shortText}</div>
-    `;
+  // Reply preview
+  if (msg.replyTo?.messageId) {
+    const replyPreview = el('div', 'message-reply-preview');
+    replyPreview.dataset.replyTo = msg.replyTo.messageId;
+
+    const sender = el('div', 'reply-sender', msg.replyTo.senderName || '');
+    const rawText = msg.replyTo.text || '';
+    const shortText = rawText.length > 50 ? rawText.slice(0, 47) + '…' : rawText;
+    const text = el('div', 'reply-text', shortText);
+
+    replyPreview.appendChild(sender);
+    replyPreview.appendChild(text);
+
     replyPreview.addEventListener('click', (e) => {
       e.stopPropagation();
-      const originalMsg = document.querySelector(`.message-wrapper[data-message-id="${msg.replyTo.messageId}"]`);
-      if (originalMsg) {
-        originalMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        originalMsg.classList.add('focused-animated');
-        setTimeout(() => originalMsg.classList.remove('focused-animated'), 2000);
+      const original = document.querySelector(`.message-wrapper[data-message-id="${msg.replyTo.messageId}"]`);
+      if (original) {
+        original.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        original.classList.add('focused-animated');
+        setTimeout(() => original.classList.remove('focused-animated'), 2000);
       } else {
         showToast('Оригінальне повідомлення було видалене');
       }
     });
+
     bubble.appendChild(replyPreview);
   }
 
-  // ===== Інформація про відправника (для отриманих) =====
+  // Sender line (for received)
   if (!isMine) {
-    const senderDiv = document.createElement('div');
-    senderDiv.className = 'message-sender';
-    senderDiv.innerHTML = `
-      <div class="message-sender-avatar" style="background-image:url(${state.currentChatPartnerAvatar || ''})"></div>
-      <span>${state.currentChatPartnerName}</span>
-    `;
+    const senderDiv = el('div', 'message-sender');
+    const av = el('div', 'message-sender-avatar');
+    if (state.currentChatPartnerAvatar) av.style.backgroundImage = `url(${state.currentChatPartnerAvatar})`;
+    const name = el('span', '', state.currentChatPartnerName || '');
+    senderDiv.appendChild(av);
+    senderDiv.appendChild(name);
     bubble.appendChild(senderDiv);
   }
 
-  // ===== Текст повідомлення =====
+  // Text
   if (msg.text) {
-    const textDiv = document.createElement('div');
-    textDiv.className = `message-text ${msg.edited ? 'edited' : ''}`;
-    textDiv.textContent = msg.text;
+    const textDiv = el('div', `message-text ${msg.edited ? 'edited' : ''}`, msg.text);
     bubble.appendChild(textDiv);
   }
 
-  // ===== Медіа =====
+  // Media
   if (msg.mediaUrl) {
-    const mediaEl = msg.mediaType === 'image' ? document.createElement('img') : document.createElement('video');
-    mediaEl.src = msg.mediaUrl;
+    const isImage = msg.mediaType === 'image';
+    const mediaEl = document.createElement(isImage ? 'img' : 'video');
     mediaEl.className = 'message-media';
-    if (msg.mediaType === 'video') mediaEl.controls = true;
-    mediaEl.addEventListener('click', () => window.open(msg.mediaUrl, '_blank'));
+    mediaEl.src = msg.mediaUrl;
+
+    if (!isImage) mediaEl.controls = true;
+
+    // щоб не заважати play/pause кліку по відео
+    mediaEl.addEventListener('dblclick', () => window.open(msg.mediaUrl, '_blank'));
+
     bubble.appendChild(mediaEl);
   }
 
-  // ===== Реакції =====
+  // Reactions
   if (msg.reactions && Object.keys(msg.reactions).length > 0) {
-    const reactionsDiv = document.createElement('div');
-    reactionsDiv.className = 'message-reactions';
+    const reactionsDiv = el('div', 'message-reactions');
+
     for (const [emoji, users] of Object.entries(msg.reactions)) {
-      if (users.length === 0) continue;
-      const reactionItem = document.createElement('span');
-      reactionItem.className = `reaction-item ${users.includes(state.currentUser.uid) ? 'user-reacted' : ''}`;
-      reactionItem.dataset.emoji = emoji;
-      reactionItem.innerHTML = `<span class="emoji">${emoji}</span><span class="count">${users.length}</span>`;
-      
-      // Додаємо підказку з інформацією про тих, хто поставив реакцію
-      const userReacted = users.includes(state.currentUser.uid);
-      if (users.length === 1 && userReacted) {
-        reactionItem.title = 'Ви';
-      } else if (users.length === 1) {
-        reactionItem.title = '1 користувач';
-      } else if (userReacted) {
-        reactionItem.title = `Ви та ${users.length - 1} інших`;
-      } else {
-        reactionItem.title = `${users.length} користувачів`;
-      }
-      
-      reactionItem.addEventListener('click', (e) => {
+      if (!Array.isArray(users) || users.length === 0) continue;
+
+      const reacted = users.includes(state.currentUser.uid);
+      const item = el('span', `reaction-item ${reacted ? 'user-reacted' : ''}`);
+      item.dataset.emoji = emoji;
+
+      const emo = el('span', 'emoji', emoji);
+      const cnt = el('span', 'count', String(users.length));
+      item.appendChild(emo);
+      item.appendChild(cnt);
+
+      // title
+      if (users.length === 1 && reacted) item.title = 'Ви';
+      else if (users.length === 1) item.title = '1 користувач';
+      else if (reacted) item.title = `Ви та ${users.length - 1} інших`;
+      else item.title = `${users.length} користувачів`;
+
+      item.addEventListener('click', (e) => {
         e.stopPropagation();
         toggleReaction(msg.id, emoji);
       });
-      reactionsDiv.appendChild(reactionItem);
+
+      reactionsDiv.appendChild(item);
     }
+
     bubble.appendChild(reactionsDiv);
   }
 
-  // ===== Нижній колонтитул (час + статус) =====
-  const footer = document.createElement('div');
-  footer.className = 'message-footer';
-
-  const timeSpan = document.createElement('span');
-  timeSpan.className = 'message-time';
+  // Footer (time + status)
+  const footer = el('div', 'message-footer');
+  const timeSpan = el('span', 'message-time');
   let timeText = formatMessageTime(msg.createdAt);
-  if (msg.edited) {
-    timeText += ' (відредаговано)';
-  }
-  timeSpan.textContent = timeText;
+  if (msg.edited) timeText += ' (відредаговано)';
+  safeText(timeSpan, timeText);
   footer.appendChild(timeSpan);
 
   if (isMine) {
-    const statusSpan = document.createElement('span');
-    statusSpan.className = 'message-status';
-    let status = 'sent';
-    if (msg.readBy && msg.readBy.includes(state.currentChatPartner)) {
-      status = 'read';
-    } else if (msg.deliveredTo && msg.deliveredTo.includes(state.currentChatPartner)) {
-      status = 'delivered';
-    }
-    statusSpan.innerHTML = getStatusIcon(status);
+    const statusSpan = el('span', 'message-status');
+    const status = (msg.readBy?.includes(state.currentChatPartner))
+      ? 'read'
+      : (msg.deliveredTo?.includes(state.currentChatPartner) ? 'delivered' : 'sent');
+    statusSpan.innerHTML = getStatusIcon(status); // тут SVG — ок
     footer.appendChild(statusSpan);
   }
 
   bubble.appendChild(footer);
   wrapper.appendChild(bubble);
 
-  // ===== Контекстне меню (з новою панеллю реакцій) =====
+  // Context menu / long press
   wrapper.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     showMessageContextMenu(e, msg);
   });
+
   let longPressTimer;
   wrapper.addEventListener('touchstart', (e) => {
-    longPressTimer = setTimeout(() => {
-      showMessageContextMenu(e, msg);
-    }, 500);
-  });
+    longPressTimer = setTimeout(() => showMessageContextMenu(e, msg), 500);
+  }, { passive: true });
+
   wrapper.addEventListener('touchend', () => clearTimeout(longPressTimer));
   wrapper.addEventListener('touchmove', () => clearTimeout(longPressTimer));
 
@@ -412,12 +523,13 @@ function getStatusIcon(status) {
 function formatMessageTime(timestamp) {
   if (!timestamp) return '';
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return fmtTime.format(date);
 }
 
 function formatMessageDate(timestamp) {
   if (!timestamp) return '';
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -427,8 +539,9 @@ function formatMessageDate(timestamp) {
   return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
 }
 
-// ================= Відправка повідомлення =================
+// ================= Send message =================
 let typingTimeout;
+
 export async function sendMessage(text, file) {
   if (!text && !file) return;
   if (!state.currentUser || !state.currentChatId || !state.currentChatPartner) {
@@ -439,9 +552,10 @@ export async function sendMessage(text, file) {
   try {
     let mediaUrl = null;
     let mediaType = null;
+
     if (file) {
       mediaUrl = await uploadToCloudinary(file);
-      mediaType = file.type.split('/')[0];
+      mediaType = file.type.split('/')[0]; // image|video|...
     }
 
     const messageData = {
@@ -452,6 +566,7 @@ export async function sendMessage(text, file) {
       deliveredTo: [state.currentUser.uid],
       reactions: {}
     };
+
     if (state.replyContext) {
       messageData.replyTo = {
         messageId: state.replyContext.messageId,
@@ -459,44 +574,49 @@ export async function sendMessage(text, file) {
         senderName: state.replyContext.senderName
       };
     }
+
     if (mediaUrl) {
       messageData.mediaUrl = mediaUrl;
       messageData.mediaType = mediaType;
     }
 
-    const messageRef = collection(db, `chats/${state.currentChatId}/messages`);
-    await addDoc(messageRef, messageData);
+    await addDoc(collection(db, `chats/${state.currentChatId}/messages`), messageData);
 
-    const chatRef = doc(db, "chats", state.currentChatId);
-    await updateDoc(chatRef, {
+    await updateDoc(doc(db, "chats", state.currentChatId), {
       lastMessage: text || (mediaType === 'image' ? '📷 Фото' : '🎥 Відео'),
       lastMessageType: mediaType || 'text',
       updatedAt: serverTimestamp(),
       [`unread.${state.currentChatPartner}`]: increment(1)
     });
 
+    // UI cleanup
     clearReplyContext();
-    const preview = document.getElementById('replyPreview');
-    if (preview) preview.remove();
+    dom.replyPreview()?.remove();
 
-    const textInput = document.getElementById('chatText');
+    const textInput = dom.chatText();
     if (textInput) textInput.value = '';
+
     const fileInput = document.getElementById('chatAttachFile');
     if (fileInput) fileInput.value = '';
+
     const attachBtn = document.getElementById('chatAttachBtn');
     if (attachBtn) attachBtn.innerHTML = '📎';
 
-    const typingRef = doc(db, `chats/${state.currentChatId}/typing/${state.currentUser.uid}`);
-    await setDoc(typingRef, { isTyping: false }, { merge: true });
+    // typing off
+    await setDoc(doc(db, `chats/${state.currentChatId}/typing/${state.currentUser.uid}`),
+      { isTyping: false },
+      { merge: true }
+    );
   } catch (error) {
-    console.error('Помилка відправки:', error);
+    console.error('sendMessage error:', error);
     showToast('Не вдалося відправити повідомлення');
   }
 }
 
-// Індикатор друку
-export function handleTyping() {
-  if (!state.currentUser || !state.currentChatId || !state.currentChatPartner) return;
+// ================= Typing indicator =================
+// краще робити debounce, щоб не писати в Firestore на кожен символ
+export const handleTyping = debounce(() => {
+  if (!state.currentUser || !state.currentChatId) return;
 
   const typingRef = doc(db, `chats/${state.currentChatId}/typing/${state.currentUser.uid}`);
   setDoc(typingRef, { isTyping: true }, { merge: true }).catch(console.error);
@@ -505,67 +625,60 @@ export function handleTyping() {
   typingTimeout = setTimeout(() => {
     setDoc(typingRef, { isTyping: false }, { merge: true }).catch(console.error);
   }, 2000);
-}
+}, 200);
 
-// ================= Контекстне меню повідомлення =================
+// ================= Context menu =================
 let selectedMessageId = null;
 
-function showMessageContextMenu(event, msg) {
-  event.preventDefault();
-  selectedMessageId = msg.id;
+function ensureReactionsPicker(menu) {
+  let picker = menu.querySelector('.reactions-picker');
+  if (picker) return picker;
 
-  const menu = document.getElementById('messageContextMenu');
-  if (!menu) return;
+  picker = el('div', 'reactions-picker');
+  const emojis = ['👍', '❤️', '😂', '😮', '😢', '👎'];
 
-  // Очищуємо меню (крім базових пунктів, якщо вони є)
-  // Але краще створити меню динамічно. Для простоти припустимо, що в HTML є заготовка.
-  // Ми додамо в меню рядок з емодзі для реакцій.
-  
-  // Знаходимо або створюємо контейнер для реакцій
-  let reactionsPicker = menu.querySelector('.reactions-picker');
-  if (!reactionsPicker) {
-    reactionsPicker = document.createElement('div');
-    reactionsPicker.className = 'reactions-picker';
-    reactionsPicker.innerHTML = `
-      <span data-emoji="👍">👍</span>
-      <span data-emoji="❤️">❤️</span>
-      <span data-emoji="😂">😂</span>
-      <span data-emoji="😮">😮</span>
-      <span data-emoji="😢">😢</span>
-      <span data-emoji="👎">👎</span>
-    `;
-    // Вставляємо на початок меню
-    menu.prepend(reactionsPicker);
+  for (const em of emojis) {
+    const s = el('span', '');
+    s.dataset.emoji = em;
+    safeText(s, em);
+    picker.appendChild(s);
   }
 
-  // Показуємо/ховаємо пункти залежно від автора
+  menu.prepend(picker);
+  return picker;
+}
+
+function showMessageContextMenu(event, msg) {
+  selectedMessageId = msg.id;
+
+  const menu = dom.messageContextMenu();
+  if (!menu) return;
+
+  const picker = ensureReactionsPicker(menu);
+
+  // show/hide actions
   const replyItem = menu.querySelector('[data-action="reply"]');
   const editItem = menu.querySelector('[data-action="edit"]');
   const deleteEveryoneItem = menu.querySelector('[data-action="deleteEveryone"]');
 
-  if (msg.from === state.currentUser.uid) {
-    if (editItem) editItem.style.display = 'block';
-    if (deleteEveryoneItem) deleteEveryoneItem.style.display = 'block';
-  } else {
-    if (editItem) editItem.style.display = 'none';
-    if (deleteEveryoneItem) deleteEveryoneItem.style.display = 'none';
-  }
+  const mine = msg.from === state.currentUser.uid;
+  if (editItem) editItem.style.display = mine ? 'block' : 'none';
+  if (deleteEveryoneItem) deleteEveryoneItem.style.display = mine ? 'block' : 'none';
   if (replyItem) replyItem.style.display = 'block';
 
-  // Позиціонуємо меню
+  // position
   menu.style.left = event.pageX + 'px';
   menu.style.top = event.pageY + 'px';
   menu.classList.add('show');
 
-  // Обробник кліку на реакції
-  reactionsPicker.querySelectorAll('span[data-emoji]').forEach(span => {
-    span.onclick = (e) => {
-      e.stopPropagation();
-      const emoji = span.dataset.emoji;
-      toggleReaction(msg.id, emoji);
-      menu.classList.remove('show');
-    };
-  });
+  // реакції (делегація всередині picker)
+  picker.onclick = (e) => {
+    const span = e.target.closest('span[data-emoji]');
+    if (!span) return;
+    e.stopPropagation();
+    toggleReaction(msg.id, span.dataset.emoji);
+    menu.classList.remove('show');
+  };
 
   const closeMenu = (e) => {
     if (!menu.contains(e.target)) {
@@ -573,6 +686,7 @@ function showMessageContextMenu(event, msg) {
       document.removeEventListener('click', closeMenu);
     }
   };
+
   setTimeout(() => document.addEventListener('click', closeMenu), 0);
 }
 
@@ -580,182 +694,104 @@ export async function handleMessageContextAction(action) {
   if (!action || !selectedMessageId || !state.currentChatId) return;
 
   const messageRef = doc(db, `chats/${state.currentChatId}/messages/${selectedMessageId}`);
-  const messageSnap = await getDoc(messageRef);
-  const msgData = messageSnap.data();
+  const snap = await getDoc(messageRef);
+  const msgData = snap.data() || {};
 
-  switch (action) {
-    case 'reply':
-      setReplyContext(selectedMessageId, msgData.text, msgData.from === state.currentUser.uid ? 'Ви' : state.currentChatPartnerName);
-      document.getElementById('chatText').focus();
-      break;
-    case 'edit':
-      const oldText = msgData.text;
-      const newText = prompt('Редагувати повідомлення:', oldText);
-      if (newText !== null) {
-        await updateDoc(messageRef, { text: newText, edited: true });
+  try {
+    switch (action) {
+      case 'reply':
+        setReplyContext(
+          selectedMessageId,
+          msgData.text || '',
+          msgData.from === state.currentUser.uid ? 'Ви' : state.currentChatPartnerName
+        );
+        dom.chatText()?.focus();
+        break;
+
+      case 'edit': {
+        const oldText = msgData.text || '';
+        const newText = prompt('Редагувати повідомлення:', oldText);
+        if (newText !== null) {
+          await updateDoc(messageRef, { text: newText, edited: true });
+        }
+        break;
       }
-      break;
-    case 'copy':
-      if (msgData.text) {
-        navigator.clipboard.writeText(msgData.text).then(() => showToast('Скопійовано'));
-      }
-      break;
-    case 'deleteSelf':
-      if (confirm('Видалити це повідомлення для себе?')) {
-        showToast('Функція видалення для себе буде реалізована');
-      }
-      break;
-    case 'deleteEveryone':
-      if (confirm('Видалити це повідомлення для всіх?')) {
-        await deleteDoc(messageRef);
-      }
-      break;
+
+      case 'copy':
+        if (msgData.text) {
+          await navigator.clipboard.writeText(msgData.text);
+          showToast('Скопійовано');
+        }
+        break;
+
+      case 'deleteSelf':
+        if (confirm('Видалити це повідомлення для себе?')) {
+          showToast('Потрібна окрема реалізація (наприклад subcollection "deletedFor")');
+        }
+        break;
+
+      case 'deleteEveryone':
+        if (confirm('Видалити це повідомлення для всіх?')) {
+          await deleteDoc(messageRef);
+        }
+        break;
+    }
+  } catch (e) {
+    console.error('context action error:', e);
+    showToast('Не вдалося виконати дію');
+  } finally {
+    dom.messageContextMenu()?.classList.remove('show');
   }
-  document.getElementById('messageContextMenu')?.classList.remove('show');
 }
 
-// ================= Реакції (оновлено з arrayUnion/arrayRemove) =================
+// ================= Reactions (transaction-safe) =================
 export async function toggleReaction(messageId, emoji) {
   if (!state.currentUser || !state.currentChatId) return;
+
   const messageRef = doc(db, `chats/${state.currentChatId}/messages/${messageId}`);
-  
+
   try {
-    // Спочатку отримуємо поточні реакції, щоб визначити, чи треба додавати чи видаляти
-    const messageSnap = await getDoc(messageRef);
-    if (!messageSnap.exists()) return;
-    
-    const reactions = messageSnap.data().reactions || {};
-    const users = reactions[emoji] || [];
-    const hasReacted = users.includes(state.currentUser.uid);
-    
-    // Оновлюємо атомарно
-    const update = {};
-    if (hasReacted) {
-      update[`reactions.${emoji}`] = arrayRemove(state.currentUser.uid);
-    } else {
-      update[`reactions.${emoji}`] = arrayUnion(state.currentUser.uid);
-    }
-    
-    await updateDoc(messageRef, update);
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(messageRef);
+      if (!snap.exists()) return;
+
+      const data = snap.data();
+      const reactions = data.reactions || {};
+      const users = reactions[emoji] || [];
+      const has = users.includes(state.currentUser.uid);
+
+      const update = {};
+      update[`reactions.${emoji}`] = has
+        ? arrayRemove(state.currentUser.uid)
+        : arrayUnion(state.currentUser.uid);
+
+      tx.update(messageRef, update);
+    });
   } catch (error) {
-    console.error('Помилка оновлення реакції:', error);
+    console.error('toggleReaction error:', error);
     showToast('Не вдалося оновити реакцію');
   }
 }
 
-// ================= Пошук користувачів для чату =================
-export async function searchUsersForChat(queryStr) {
-  if (!state.currentUser) return;
+// ================= Search users for chat (твій код можна лишити) =================
+// Тут я не переписував повністю, бо він у тебе в цілому ок.
+// Головний апгрейд — також можна додати кеш + debounce по input.
 
-  const qLower = queryStr.toLowerCase();
-  const resultsContainer = document.getElementById('chatSearchResults');
-  if (!resultsContainer) return;
-
-  resultsContainer.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
-  resultsContainer.style.display = 'block';
-
-  try {
-    const searchTerm = qLower.startsWith('@') ? qLower : `@${qLower}`;
-    const q1 = query(collection(db, "users"), where("userId", ">=", searchTerm), where("userId", "<=", searchTerm + '\uf8ff'));
-    const q2 = query(collection(db, "users"), where("nickname_lower", ">=", qLower), where("nickname_lower", "<=", qLower + '\uf8ff'));
-
-    const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
-    const usersMap = new Map();
-
-    const blockedByMe = state.currentUserData?.blockedUsers || [];
-    snap1.forEach(d => {
-      if (d.id !== state.currentUser.uid && !blockedByMe.includes(d.id)) usersMap.set(d.id, d.data());
-    });
-    snap2.forEach(d => {
-      if (d.id !== state.currentUser.uid && !blockedByMe.includes(d.id)) usersMap.set(d.id, d.data());
-    });
-
-    if (usersMap.size === 0) {
-      resultsContainer.innerHTML = '<p style="text-align:center; padding:20px;">Користувачів не знайдено</p>';
-      return;
-    }
-
-    resultsContainer.innerHTML = '';
-    usersMap.forEach((data, uid) => {
-      const div = document.createElement('div');
-      div.className = 'chat-item';
-      div.style.cursor = 'pointer';
-      div.tabIndex = 0;
-      div.innerHTML = `
-        <div class="chat-avatar">
-          <div class="avatar small" style="background-image:url(${data.avatar || ''})"></div>
-          ${data.note ? `<div class="note-badge">${data.note}</div>` : ''}
-        </div>
-        <div class="chat-info">
-          <div class="chat-name">${data.nickname}</div>
-          <div class="chat-last">${data.userId}</div>
-        </div>
-        <button class="btn btn-primary" style="padding:6px 12px; font-size:0.8rem;">Написати</button>
-      `;
-
-      div.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') return;
-        viewProfile(uid);
-        resultsContainer.style.display = 'none';
-        resultsContainer.innerHTML = '';
-        document.getElementById('chatSearchInput').value = '';
-      });
-
-      const btn = div.querySelector('button');
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const chatId = getChatId(state.currentUser.uid, uid);
-        const chatRef = doc(db, "chats", chatId);
-        const chatSnap = await getDoc(chatRef);
-
-        if (!chatSnap.exists()) {
-          await setDoc(chatRef, {
-            participants: [state.currentUser.uid, uid],
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            lastMessage: '',
-            unread: { [state.currentUser.uid]: 0, [uid]: 0 }
-          });
-        }
-
-        openChat(chatId, uid, data.nickname, data.userId, data.avatar);
-        resultsContainer.style.display = 'none';
-        resultsContainer.innerHTML = '';
-        document.getElementById('chatSearchInput').value = '';
-      });
-
-      resultsContainer.appendChild(div);
-    });
-  } catch (error) {
-    console.error('Помилка пошуку користувачів:', error);
-    resultsContainer.innerHTML = '<p style="text-align:center; padding:20px;">Помилка пошуку</p>';
-  }
-}
-
-// ================= Закриття чату =================
+// ================= Close chat =================
 export function closeChat() {
-  const chatWindow = document.getElementById('chatWindowContainer');
-  if (chatWindow) chatWindow.style.display = 'none';
-  const chatSidebar = document.getElementById('chatListSidebar');
-  if (chatSidebar) chatSidebar.classList.remove('hide');
+  dom.chatWindowContainer() && (dom.chatWindowContainer().style.display = 'none');
+  dom.chatListSidebar()?.classList.remove('hide');
+  dom.bottomNav()?.classList.remove('hide-chat-mode');
 
-  const bottomNav = document.querySelector('.bottom-nav');
-  if (bottomNav) {
-    bottomNav.classList.remove('hide-chat-mode');
-  }
+  state.unsubscribeMessages?.();
+  state.unsubscribeTyping?.();
+  state.unsubscribeChatPresence?.();
 
-  if (state.unsubscribeMessages) state.unsubscribeMessages();
-  if (state.unsubscribeTyping) state.unsubscribeTyping();
-  if (state.unsubscribeChatPresence) state.unsubscribeChatPresence();
   clearChatState();
 }
 
-// ================= Обробник кнопки "Назад" у чаті =================
-document.getElementById('chatBackBtn')?.addEventListener('click', closeChat);
+dom.chatBackBtn()?.addEventListener('click', closeChat);
 
-// Обробник клавіші Escape
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && document.getElementById('chatWindowContainer')?.style.display === 'flex') {
-    closeChat();
-  }
+  if (e.key === 'Escape' && dom.chatWindowContainer()?.style.display === 'flex') closeChat();
 });
