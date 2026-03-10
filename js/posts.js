@@ -625,11 +625,10 @@ async function incrementPostView(postId) {
   }
 }
 
-// ================= Галерея =================
+// ================= Галерея (ВИПРАВЛЕНО) =================
 function createGallery(media) {
   const gallery = document.createElement('div');
   gallery.className = 'post-gallery';
-  gallery.setAttribute('data-current', 0);
 
   const inner = document.createElement('div');
   inner.className = 'gallery-inner';
@@ -661,30 +660,22 @@ function createGallery(media) {
   counter.textContent = `1/${media.length}`;
   gallery.appendChild(counter);
 
-  let startX = 0;
-  inner.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].clientX;
-  });
-
-  inner.addEventListener('touchend', (e) => {
-    if (!startX) return;
-    const endX = e.changedTouches[0].clientX;
-    const diff = endX - startX;
-    const current = parseInt(gallery.dataset.current);
-    if (diff > 50 && current > 0) {
-      gallery.dataset.current = current - 1;
-    } else if (diff < -50 && current < media.length - 1) {
-      gallery.dataset.current = current + 1;
-    } else {
-      return;
-    }
-    const newCurrent = parseInt(gallery.dataset.current);
-    inner.style.transform = `translateX(-${newCurrent * 100}%)`;
+  // Оновлюємо індикатори та лічильник під час скролу
+  const updateGallery = () => {
+    const scrollLeft = inner.scrollLeft;
+    const slideWidth = inner.clientWidth;
+    const index = Math.round(scrollLeft / slideWidth);
+    const safeIndex = Math.min(Math.max(index, 0), media.length - 1);
+    
     indicators.querySelectorAll('span').forEach((dot, i) => {
-      dot.className = i === newCurrent ? 'active' : '';
+      dot.className = i === safeIndex ? 'active' : '';
     });
-    counter.textContent = `${newCurrent + 1}/${media.length}`;
-  });
+    counter.textContent = `${safeIndex + 1}/${media.length}`;
+  };
+
+  inner.addEventListener('scroll', updateGallery);
+  // Викликаємо один раз для початкового стану
+  setTimeout(updateGallery, 0);
 
   return gallery;
 }
