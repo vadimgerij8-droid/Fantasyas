@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
@@ -16,6 +16,15 @@
   <!-- Fonts & Styles -->
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/main.css">
+  
+  <!-- Додатковий стиль для приховування елементів під час реєстрації/входу -->
+  <style>
+    /* Коли блок авторизації видимий – ховаємо заголовок стрічки та самі пости */
+    #authBox:not([style*="display: none"]) ~ .feed-header,
+    #authBox:not([style*="display: none"]) ~ .feed {
+        display: none !important;
+    }
+  </style>
 </head>
 <body>
   <div class="app">
