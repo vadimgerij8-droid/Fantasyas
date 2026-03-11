@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
@@ -16,253 +16,6 @@
   <!-- Fonts & Styles -->
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/main.css">
-  <style>
-    /* Додаткові стилі для стану "не авторизовано" */
-    body.logged-out .bottom-nav,
-    body.logged-out .section:not(#home) {
-      display: none !important;
-    }
-    body.logged-out #home .feed-header,
-    body.logged-out #home .feed,
-    body.logged-out #home .feed-end-sentinel,
-    body.logged-out #home #skeletonContainer {
-      display: none !important;
-    }
-    body.logged-out #home .card {
-      display: block !important;
-      max-width: 440px;
-      margin: 40px auto;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
-      border-radius: 32px;
-      background: var(--bg-card, #1e1e2f);
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-    body.logged-out .main {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 16px;
-    }
-    body.logged-out .top-bar {
-      display: none;
-    }
-    body.logged-out .back-btn {
-      display: none !important;
-    }
-
-    /* --- НОВИЙ ДИЗАЙН КАРТКИ АВТОРИЗАЦІЇ --- */
-    .auth-card {
-      background: linear-gradient(145deg, #24243c, #1a1a2e);
-      border-radius: 32px;
-      padding: 32px 28px;
-      color: #fff;
-      font-family: 'Manrope', sans-serif;
-    }
-
-    .auth-header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .auth-header h2 {
-      font-size: 28px;
-      font-weight: 700;
-      margin: 0 0 8px;
-      background: linear-gradient(135deg, #a18cd1, #fbc2eb);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .auth-header p {
-      color: #a0a0c0;
-      font-size: 15px;
-      margin: 0;
-    }
-
-    .input-group {
-      position: relative;
-      margin-bottom: 20px;
-    }
-
-    .input-group i {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #6c6c8c;
-      font-size: 18px;
-      font-style: normal;
-    }
-
-    .input-group input {
-      width: 100%;
-      padding: 16px 16px 16px 48px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px;
-      font-size: 16px;
-      color: #fff;
-      outline: none;
-      transition: 0.2s;
-      box-sizing: border-box;
-      font-family: 'Manrope', sans-serif;
-    }
-
-    .input-group input:focus {
-      border-color: #7b4cff;
-      background: rgba(123, 76, 255, 0.1);
-      box-shadow: 0 0 0 3px rgba(123, 76, 255, 0.2);
-    }
-
-    .input-group input::placeholder {
-      color: #5a5a7a;
-      font-weight: 400;
-    }
-
-    .checkbox-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin: 24px 0 20px;
-      font-size: 14px;
-      color: #b0b0d0;
-    }
-
-    .checkbox-row label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-    }
-
-    .checkbox-row input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      accent-color: #7b4cff;
-      margin: 0;
-    }
-
-    .forgot-link {
-      color: #a18cd1;
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .forgot-link:hover {
-      text-decoration: underline;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #7b4cff, #b36bff);
-      border: none;
-      color: white;
-      font-weight: 700;
-      font-size: 16px;
-      padding: 16px;
-      border-radius: 30px;
-      width: 100%;
-      cursor: pointer;
-      transition: 0.2s;
-      box-shadow: 0 8px 20px rgba(123, 76, 255, 0.4);
-      border: 1px solid rgba(255,255,255,0.1);
-      font-family: 'Manrope', sans-serif;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 28px rgba(123, 76, 255, 0.6);
-    }
-
-    .social-divider {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin: 28px 0 20px;
-      color: #7a7a9e;
-      font-size: 13px;
-    }
-
-    .social-divider::before,
-    .social-divider::after {
-      content: "";
-      flex: 1;
-      height: 1px;
-      background: rgba(255,255,255,0.1);
-    }
-
-    .social-buttons {
-      display: flex;
-      gap: 12px;
-    }
-
-    .social-btn {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 24px;
-      padding: 12px;
-      color: #fff;
-      font-weight: 600;
-      font-size: 15px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .social-btn:hover {
-      background: rgba(255,255,255,0.15);
-      border-color: #7b4cff;
-    }
-
-    .social-btn img {
-      width: 20px;
-      height: 20px;
-    }
-
-    .auth-switch {
-      text-align: center;
-      margin-top: 28px;
-      font-size: 15px;
-      color: #b0b0d0;
-    }
-
-    .auth-switch span {
-      color: #b36bff;
-      font-weight: 700;
-      cursor: pointer;
-      border-bottom: 1px dashed #b36bff;
-      margin-left: 6px;
-    }
-
-    .auth-switch span:hover {
-      color: #d08cff;
-    }
-
-    /* Сховати непотрібні елементи старих форм (але залишаємо ID) */
-    #loginForm, #registerForm {
-      /* всі стилі будуть задані через батьківський .auth-card */
-    }
-
-    /* для прихованої форми */
-    #loginForm[style*="display: none"],
-    #registerForm[style*="display: none"] {
-      display: none !important;
-    }
-
-    /* Адаптація для маленьких екранів */
-    @media (max-width: 480px) {
-      .auth-card {
-        padding: 24px 16px;
-      }
-      .social-buttons {
-        flex-direction: column;
-      }
-    }
-  </style>
 </head>
 <body>
   <div class="app">
@@ -278,102 +31,26 @@
       <div class="content" id="content">
         <!-- ========== СЕКЦІЯ ГОЛОВНА ========== -->
         <section id="home" class="section active">
-          <!-- НОВА КАРТКА АВТОРИЗАЦІЇ (замість старої) -->
+          <!-- Блок авторизації -->
           <div class="card" id="authBox">
-            <div class="auth-card">
-              <!-- ЛОГІН ФОРМА -->
-              <div id="loginForm" style="display: none;"> <!-- прихована спочатку, покажеться при кліку -->
-                <div class="auth-header">
-                  <h2>З поверненням!</h2>
-                  <p>Увійдіть, щоб продовжити</p>
-                </div>
-
-                <div class="input-group">
-                  <i>👤</i>
-                  <input type="text" id="loginNickname" placeholder="Псевдонім" autocomplete="off" tabindex="0">
-                </div>
-
-                <div class="input-group">
-                  <i>🔒</i>
-                  <input type="password" id="loginPassword" placeholder="Пароль" tabindex="0">
-                </div>
-
-                <div class="checkbox-row">
-                  <label>
-                    <input type="checkbox" id="rememberMe"> Запам'ятати мене
-                  </label>
-                  <a href="#" id="forgotPassword" class="forgot-link">Забули пароль?</a>
-                </div>
-
-                <button class="btn-primary" id="loginBtn" tabindex="0">Увійти</button>
-
-                <div class="social-divider">або</div>
-
-                <div class="social-buttons">
-                  <button class="social-btn" id="googleLoginBtn" tabindex="0">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20'%3E%3Cpath fill='%23FFFFFF' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/%3E%3Cpath fill='%2334A853' d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'/%3E%3Cpath fill='%23FBBC05' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z'/%3E%3Cpath fill='%23EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/%3E%3C/svg%3E" alt="Google">
-                    Google
-                  </button>
-                  <button class="social-btn" id="appleLoginBtn" tabindex="0">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20'%3E%3Cpath fill='%23FFFFFF' d='M17.05 20.28c-.98.95-2.05.83-3.08.37-1.09-.48-2.09-.5-3.24 0-1.44.62-2.2.44-3.06-.37C3.79 15.26 4.51 8.93 8.86 8.61c1.34.1 2.28.74 3.07.74.77 0 2-.74 3.41-.63 1.33.11 2.55.74 3.23 1.88-2.94 1.77-2.44 5.64.48 6.68-.57 1.48-1.34 2.94-2 4zM14.06 4.3c-.76.89-1.96 1.57-2.94 1.48-.16-1.07.39-2.24 1.06-2.96.78-.86 2.03-1.5 2.93-1.42.19 1.08-.36 2.19-1.05 2.9z'/%3E%3C/svg%3E" alt="Apple">
-                    Apple
-                  </button>
-                </div>
-
-                <div class="auth-switch">
-                  Немає акаунта? <span id="toRegister" tabindex="0">Зареєструватися</span>
-                </div>
-              </div> <!-- #loginForm -->
-
-              <!-- РЕЄСТРАЦІЯ ФОРМА -->
-              <div id="registerForm" style="display: block;"> <!-- видима спочатку -->
-                <div class="auth-header">
-                  <h2>Приєднуйся!</h2>
-                  <p>Створіть обліковий запис</p>
-                </div>
-
-                <div class="input-group">
-                  <i>👤</i>
-                  <input type="text" id="registerNickname" placeholder="Псевдонім (без @)" tabindex="0">
-                </div>
-
-                <div class="input-group">
-                  <i>🔒</i>
-                  <input type="password" id="registerPassword" placeholder="Пароль" tabindex="0">
-                </div>
-
-                <div class="input-group">
-                  <i>✉️</i>
-                  <input type="email" id="registerEmail" placeholder="Email (необов'язково)" tabindex="0">
-                </div>
-
-                <div class="checkbox-row">
-                  <label>
-                    <input type="checkbox" id="agreeTerms" checked> Я погоджуюсь з <a href="#" style="color:#b36bff;">умовами</a>
-                  </label>
-                </div>
-
-                <button class="btn-primary" id="registerBtn" tabindex="0">Зареєструватися</button>
-
-                <div class="social-divider">або через соцмережі</div>
-
-                <div class="social-buttons">
-                  <button class="social-btn" id="googleRegisterBtn" tabindex="0">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20'%3E%3Cpath fill='%23FFFFFF' d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z'/%3E%3Cpath fill='%2334A853' d='M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z'/%3E%3Cpath fill='%23FBBC05' d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z'/%3E%3Cpath fill='%23EA4335' d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z'/%3E%3C/svg%3E" alt="Google">
-                    Google
-                  </button>
-                  <button class="social-btn" id="appleRegisterBtn" tabindex="0">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20'%3E%3Cpath fill='%23FFFFFF' d='M17.05 20.28c-.98.95-2.05.83-3.08.37-1.09-.48-2.09-.5-3.24 0-1.44.62-2.2.44-3.06-.37C3.79 15.26 4.51 8.93 8.86 8.61c1.34.1 2.28.74 3.07.74.77 0 2-.74 3.41-.63 1.33.11 2.55.74 3.23 1.88-2.94 1.77-2.44 5.64.48 6.68-.57 1.48-1.34 2.94-2 4zM14.06 4.3c-.76.89-1.96 1.57-2.94 1.48-.16-1.07.39-2.24 1.06-2.96.78-.86 2.03-1.5 2.93-1.42.19 1.08-.36 2.19-1.05 2.9z'/%3E%3C/svg%3E" alt="Apple">
-                    Apple
-                  </button>
-                </div>
-
-                <div class="auth-switch">
-                  Вже є акаунт? <span id="toLogin" tabindex="0">Увійти</span>
-                </div>
-              </div> <!-- #registerForm -->
-            </div> <!-- .auth-card -->
-          </div> <!-- #authBox -->
+            <div id="loginForm">
+              <input type="text" id="loginNickname" class="input" placeholder="Псевдонім (без @)" autocomplete="off" tabindex="0"/>
+              <input type="password" id="loginPassword" class="input" placeholder="Пароль" tabindex="0"/>
+              <button class="btn btn-primary" id="loginBtn" style="width:100%; margin-top:12px;" tabindex="0">Увійти</button>
+              <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn" id="googleLoginBtn" style="flex:1;" tabindex="0">Google</button>
+                <button class="btn" id="appleLoginBtn" style="flex:1;" tabindex="0">Apple</button>
+              </div>
+              <p style="margin-top:18px;">Немає акаунта? <span id="toRegister" style="color:var(--accent);cursor:pointer;" tabindex="0">Зареєструватися</span></p>
+              <p><a href="#" id="forgotPassword" style="color:var(--accent);" tabindex="0">Забули пароль?</a></p>
+            </div>
+            <div id="registerForm" style="display:none;">
+              <input type="text" id="registerNickname" class="input" placeholder="Псевдонім (без @)" tabindex="0"/>
+              <input type="password" id="registerPassword" class="input" placeholder="Пароль" tabindex="0"/>
+              <button class="btn btn-primary" id="registerBtn" style="width:100%; margin-top:12px;" tabindex="0">Зареєструватися</button>
+              <p style="margin-top:18px;">Вже є акаунт? <span id="toLogin" style="color:var(--accent);cursor:pointer;" tabindex="0">Увійти</span></p>
+            </div>
+          </div>
 
           <!-- Фільтри стрічки -->
           <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
@@ -385,7 +62,7 @@
 
           <!-- Стрічка постів -->
           <div class="feed" id="feed">
-            <!-- Приклад поста з новою шапкою -->
+            <!-- Приклад поста з новою шапкою, переробленою за вимогою -->
             <div class="post">
               <div class="post-header">
                 <div class="user-info">
@@ -424,29 +101,12 @@
 
         <!-- ========== СЕКЦІЯ ПРОФІЛЬ ========== -->
         <section id="profile" class="section">
-          <div class="profile-header" id="profileHeader">
-            <img src="https://via.placeholder.com/80" alt="Avatar" class="profile-avatar">
-            <div class="profile-info">
-              <div class="profile-name">Ім'я Користувача</div>
-              <div class="profile-username">@username</div>
-              <div class="profile-bio">Біографія користувача</div>
-              <div class="profile-stats">
-                <span><strong>123</strong> публікацій</span>
-                <span><strong>456</strong> підписників</span>
-                <span><strong>789</strong> підписок</span>
-              </div>
-              <button class="btn btn-primary" id="editProfileBtn">Редагувати профіль</button>
-            </div>
-          </div>
-          <div class="profile-tabs" id="profileTabs">
-            <button class="tab-btn active" data-tab="posts">Пости</button>
-            <button class="tab-btn" data-tab="replies">Відповіді</button>
-            <button class="tab-btn" data-tab="media">Медіа</button>
-            <button class="tab-btn" data-tab="likes">Вподобайки</button>
-          </div>
+          <div class="profile-header" id="profileHeader"></div>
+          <div class="profile-tabs" id="profileTabs"></div>
 
-          <!-- МЕНЮ СТВОРЕННЯ ПОСТА (ЕМОДЗІ ВИДАЛЕНО) -->
+          <!-- === МЕНЮ СТВОРЕННЯ ПОСТА (ЕМОДЗІ ВИДАЛЕНО) === -->
           <div class="card" id="newPostBox" style="display:none;">
+            <!-- Видалено контейнер з емодзі -->
             <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="margin-bottom:10px;" tabindex="0"></textarea>
             <div class="file-input-wrapper" style="margin-bottom:8px;">
               <input type="file" id="postMedia" accept="image/*,video/*" multiple>
@@ -523,6 +183,7 @@
                   <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
                   <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
                   <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
+                  <!-- Видалено кнопку та меню емодзі -->
                   <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -543,7 +204,7 @@
             <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
           </div>
 
-          <!-- Панель реакцій -->
+          <!-- Панель реакцій (залишається без змін) -->
           <div class="reaction-picker" id="reactionPicker">
             <button class="reaction-btn" data-emoji="👍">👍</button>
             <button class="reaction-btn" data-emoji="❤️">❤️</button>
@@ -875,161 +536,6 @@
 
   <!-- Глобальний Toast -->
   <div id="toast"></div>
-
-  <script>
-    (function() {
-      // Функція для перемикання стану авторизації
-      function setLoggedIn(isLoggedIn) {
-        if (isLoggedIn) {
-          document.body.classList.remove('logged-out');
-          localStorage.setItem('auth', 'true');
-        } else {
-          document.body.classList.add('logged-out');
-          localStorage.removeItem('auth');
-          // Повертаємось на головну та показуємо форму реєстрації
-          document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-          document.querySelector('[data-section="home"]').classList.add('active');
-          document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-          document.getElementById('home').classList.add('active');
-          document.getElementById('pageTitle').innerText = 'Головна';
-          // Показуємо форму реєстрації
-          document.getElementById('loginForm').style.display = 'none';
-          document.getElementById('registerForm').style.display = 'block';
-        }
-      }
-
-      // Перевіряємо при завантаженні
-      if (localStorage.getItem('auth') === 'true') {
-        document.body.classList.remove('logged-out');
-      } else {
-        document.body.classList.add('logged-out');
-      }
-
-      // Елементи форми
-      const loginForm = document.getElementById('loginForm');
-      const registerForm = document.getElementById('registerForm');
-      const toRegister = document.getElementById('toRegister');
-      const toLogin = document.getElementById('toLogin');
-      const loginBtn = document.getElementById('loginBtn');
-      const registerBtn = document.getElementById('registerBtn');
-      const logoutBtn = document.getElementById('logoutBtn'); // кнопка виходу в налаштуваннях
-
-      // Перемикання між формами
-      if (toRegister) {
-        toRegister.addEventListener('click', (e) => {
-          e.preventDefault();
-          loginForm.style.display = 'none';
-          registerForm.style.display = 'block';
-        });
-      }
-
-      if (toLogin) {
-        toLogin.addEventListener('click', (e) => {
-          e.preventDefault();
-          registerForm.style.display = 'none';
-          loginForm.style.display = 'block';
-        });
-      }
-
-      // Імітація логіну
-      function login() {
-        const nick = document.getElementById('loginNickname').value.trim();
-        const pwd = document.getElementById('loginPassword').value.trim();
-        if (nick && pwd) {
-          setLoggedIn(true);
-          // Активуємо головну секцію
-          document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-          document.querySelector('[data-section="home"]').classList.add('active');
-          document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-          document.getElementById('home').classList.add('active');
-          document.getElementById('pageTitle').innerText = 'Головна';
-        } else {
-          alert('Введіть псевдонім і пароль');
-        }
-      }
-
-      // Імітація реєстрації
-      function register() {
-        const nick = document.getElementById('registerNickname').value.trim();
-        const pwd = document.getElementById('registerPassword').value.trim();
-        if (nick && pwd) {
-          setLoggedIn(true);
-          document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-          document.querySelector('[data-section="home"]').classList.add('active');
-          document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-          document.getElementById('home').classList.add('active');
-          document.getElementById('pageTitle').innerText = 'Головна';
-        } else {
-          alert('Введіть псевдонім і пароль');
-        }
-      }
-
-      if (loginBtn) loginBtn.addEventListener('click', login);
-      if (registerBtn) registerBtn.addEventListener('click', register);
-
-      // Вихід
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-          setLoggedIn(false);
-        });
-      }
-
-      // Додатково: обробка клавіш Enter у полях
-      const loginPassword = document.getElementById('loginPassword');
-      if (loginPassword) {
-        loginPassword.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') login();
-        });
-      }
-      const registerPassword = document.getElementById('registerPassword');
-      if (registerPassword) {
-        registerPassword.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') register();
-        });
-      }
-
-      // Обробка Google/Apple (демо-режим)
-      const googleLoginBtn = document.getElementById('googleLoginBtn');
-      if (googleLoginBtn) {
-        googleLoginBtn.addEventListener('click', () => {
-          alert('Google login (демо)');
-          setLoggedIn(true);
-        });
-      }
-      const appleLoginBtn = document.getElementById('appleLoginBtn');
-      if (appleLoginBtn) {
-        appleLoginBtn.addEventListener('click', () => {
-          alert('Apple login (демо)');
-          setLoggedIn(true);
-        });
-      }
-
-      // Нові кнопки для реєстрації через соцмережі
-      const googleRegisterBtn = document.getElementById('googleRegisterBtn');
-      if (googleRegisterBtn) {
-        googleRegisterBtn.addEventListener('click', () => {
-          alert('Google register (демо)');
-          setLoggedIn(true);
-        });
-      }
-      const appleRegisterBtn = document.getElementById('appleRegisterBtn');
-      if (appleRegisterBtn) {
-        appleRegisterBtn.addEventListener('click', () => {
-          alert('Apple register (демо)');
-          setLoggedIn(true);
-        });
-      }
-
-      // Забули пароль (демо)
-      const forgotPassword = document.getElementById('forgotPassword');
-      if (forgotPassword) {
-        forgotPassword.addEventListener('click', (e) => {
-          e.preventDefault();
-          alert('Функція відновлення пароля (демо)');
-        });
-      }
-    })();
-  </script>
 
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
