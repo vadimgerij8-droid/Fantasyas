@@ -16,6 +16,35 @@
   <!-- Fonts & Styles -->
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/main.css">
+  <style>
+    /* Додаткові стилі для стану "не авторизовано" */
+    body.logged-out .bottom-nav,
+    body.logged-out .section:not(#home) {
+      display: none !important;
+    }
+    body.logged-out #home .feed-header,
+    body.logged-out #home .feed,
+    body.logged-out #home .feed-end-sentinel,
+    body.logged-out #home #skeletonContainer {
+      display: none !important;
+    }
+    body.logged-out #home .card {
+      display: block !important;
+      max-width: 400px;
+      margin: 40px auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    /* Центрування картки по вертикалі (опціонально) */
+    body.logged-out .main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    body.logged-out .top-bar {
+      display: none; /* ховаємо верхню панель у стані logout */
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -33,7 +62,7 @@
         <section id="home" class="section active">
           <!-- Блок авторизації -->
           <div class="card" id="authBox">
-            <div id="loginForm">
+            <div id="loginForm" style="display: none;"> <!-- Спочатку прихована форма входу -->
               <input type="text" id="loginNickname" class="input" placeholder="Псевдонім (без @)" autocomplete="off" tabindex="0"/>
               <input type="password" id="loginPassword" class="input" placeholder="Пароль" tabindex="0"/>
               <button class="btn btn-primary" id="loginBtn" style="width:100%; margin-top:12px;" tabindex="0">Увійти</button>
@@ -44,7 +73,7 @@
               <p style="margin-top:18px;">Немає акаунта? <span id="toRegister" style="color:var(--accent);cursor:pointer;" tabindex="0">Зареєструватися</span></p>
               <p><a href="#" id="forgotPassword" style="color:var(--accent);" tabindex="0">Забули пароль?</a></p>
             </div>
-            <div id="registerForm" style="display:none;">
+            <div id="registerForm" style="display: block;"> <!-- Спочатку видима форма реєстрації -->
               <input type="text" id="registerNickname" class="input" placeholder="Псевдонім (без @)" tabindex="0"/>
               <input type="password" id="registerPassword" class="input" placeholder="Пароль" tabindex="0"/>
               <button class="btn btn-primary" id="registerBtn" style="width:100%; margin-top:12px;" tabindex="0">Зареєструватися</button>
@@ -537,7 +566,112 @@
   <!-- Глобальний Toast -->
   <div id="toast"></div>
 
-  <!-- Підключення основного скрипта (модуль) -->
+  <script>
+    (function() {
+      // Функція для перемикання стану авторизації
+      function setLoggedIn(isLoggedIn) {
+        if (isLoggedIn) {
+          document.body.classList.remove('logged-out');
+          localStorage.setItem('auth', 'true');
+        } else {
+          document.body.classList.add('logged-out');
+          localStorage.removeItem('auth');
+        }
+      }
+
+      // Перевіряємо при завантаженні
+      if (localStorage.getItem('auth') === 'true') {
+        document.body.classList.remove('logged-out');
+      } else {
+        document.body.classList.add('logged-out');
+      }
+
+      // Елементи форми
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const toRegister = document.getElementById('toRegister');
+      const toLogin = document.getElementById('toLogin');
+      const loginBtn = document.getElementById('loginBtn');
+      const registerBtn = document.getElementById('registerBtn');
+      const logoutBtn = document.getElementById('logoutBtn'); // кнопка виходу в налаштуваннях
+
+      // Перемикання між формами
+      toRegister.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+      });
+
+      toLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerForm.style.display = 'none';
+        loginForm.style.display = 'block';
+      });
+
+      // Імітація логіну
+      function login() {
+        const nick = document.getElementById('loginNickname').value.trim();
+        const pwd = document.getElementById('loginPassword').value.trim();
+        if (nick && pwd) {
+          setLoggedIn(true);
+          // Активуємо головну секцію (можна довантажити контент)
+          document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+          document.querySelector('[data-section="home"]').classList.add('active');
+          document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+          document.getElementById('home').classList.add('active');
+          document.getElementById('pageTitle').innerText = 'Головна';
+        } else {
+          alert('Введіть псевдонім і пароль');
+        }
+      }
+
+      // Імітація реєстрації
+      function register() {
+        const nick = document.getElementById('registerNickname').value.trim();
+        const pwd = document.getElementById('registerPassword').value.trim();
+        if (nick && pwd) {
+          setLoggedIn(true);
+          document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+          document.querySelector('[data-section="home"]').classList.add('active');
+          document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+          document.getElementById('home').classList.add('active');
+          document.getElementById('pageTitle').innerText = 'Головна';
+        } else {
+          alert('Введіть псевдонім і пароль');
+        }
+      }
+
+      loginBtn.addEventListener('click', login);
+      registerBtn.addEventListener('click', register);
+
+      // Вихід
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          setLoggedIn(false);
+        });
+      }
+
+      // Додатково: обробка клавіш Enter у полях
+      document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') login();
+      });
+      document.getElementById('registerPassword').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') register();
+      });
+
+      // За потреби можна додати обробку Google/Apple (поки що просто вхід)
+      document.getElementById('googleLoginBtn').addEventListener('click', () => {
+        alert('Google login (демо)');
+        setLoggedIn(true);
+      });
+      document.getElementById('appleLoginBtn').addEventListener('click', () => {
+        alert('Apple login (демо)');
+        setLoggedIn(true);
+      });
+    })();
+  </script>
+
+  <!-- Підключення основного скрипта (модуль) – завантажується після нашого скрипта -->
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
