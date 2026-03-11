@@ -273,7 +273,6 @@ function createMessageElement(msg) {
     const replyPreview = document.createElement('div');
     replyPreview.className = 'message-reply-preview';
     replyPreview.setAttribute('data-reply-to', msg.replyTo.messageId);
-    // Обмежуємо текст, щоб не ламав верстку
     const shortText = msg.replyTo.text.length > 50 ? msg.replyTo.text.slice(0, 47) + '…' : msg.replyTo.text;
     replyPreview.innerHTML = `
       <div class="reply-sender">${msg.replyTo.senderName}</div>
@@ -333,7 +332,6 @@ function createMessageElement(msg) {
       reactionItem.dataset.emoji = emoji;
       reactionItem.innerHTML = `<span class="emoji">${emoji}</span><span class="count">${users.length}</span>`;
       
-      // Додаємо підказку з інформацією про тих, хто поставив реакцію
       const userReacted = users.includes(state.currentUser.uid);
       if (users.length === 1 && userReacted) {
         reactionItem.title = 'Ви';
@@ -383,7 +381,7 @@ function createMessageElement(msg) {
   bubble.appendChild(footer);
   wrapper.appendChild(bubble);
 
-  // ===== Контекстне меню (з новою панеллю реакцій) =====
+  // ===== Контекстне меню (оновлене: Instagram-стиль) =====
   wrapper.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     showMessageContextMenu(e, msg);
@@ -507,7 +505,7 @@ export function handleTyping() {
   }, 2000);
 }
 
-// ================= Контекстне меню повідомлення =================
+// ================= Контекстне меню повідомлення (Instagram-стиль) =================
 let selectedMessageId = null;
 
 function showMessageContextMenu(event, msg) {
@@ -517,56 +515,81 @@ function showMessageContextMenu(event, msg) {
   const menu = document.getElementById('messageContextMenu');
   if (!menu) return;
 
-  // Очищуємо меню (крім базових пунктів, якщо вони є)
-  // Але краще створити меню динамічно. Для простоти припустимо, що в HTML є заготовка.
-  // Ми додамо в меню рядок з емодзі для реакцій.
-  
-  // Знаходимо або створюємо контейнер для реакцій
-  let reactionsPicker = menu.querySelector('.reactions-picker');
-  if (!reactionsPicker) {
-    reactionsPicker = document.createElement('div');
-    reactionsPicker.className = 'reactions-picker';
-    reactionsPicker.innerHTML = `
-      <span data-emoji="👍">👍</span>
-      <span data-emoji="❤️">❤️</span>
-      <span data-emoji="😂">😂</span>
-      <span data-emoji="😮">😮</span>
-      <span data-emoji="😢">😢</span>
-      <span data-emoji="👎">👎</span>
-    `;
-    // Вставляємо на початок меню
-    menu.prepend(reactionsPicker);
-  }
+  // Додаємо клас Instagram-меню та стилі
+  menu.classList.add('message-actions-menu');
+  menu.classList.remove('context-menu'); // якщо потрібно, але можна залишити обидва
 
-  // Показуємо/ховаємо пункти залежно від автора
-  const replyItem = menu.querySelector('[data-action="reply"]');
-  const editItem = menu.querySelector('[data-action="edit"]');
-  const deleteEveryoneItem = menu.querySelector('[data-action="deleteEveryone"]');
+  // Очищуємо меню та створюємо сучасну структуру
+  menu.innerHTML = '';
 
-  if (msg.from === state.currentUser.uid) {
-    if (editItem) editItem.style.display = 'block';
-    if (deleteEveryoneItem) deleteEveryoneItem.style.display = 'block';
-  } else {
-    if (editItem) editItem.style.display = 'none';
-    if (deleteEveryoneItem) deleteEveryoneItem.style.display = 'none';
-  }
-  if (replyItem) replyItem.style.display = 'block';
+  // Додаємо пікер реакцій (як в Instagram)
+  const reactionsPicker = document.createElement('div');
+  reactionsPicker.className = 'reaction-picker';
+  reactionsPicker.style.position = 'static'; // всередині меню
+  reactionsPicker.style.boxShadow = 'none';
+  reactionsPicker.style.margin = '0 0 8px 0';
+  reactionsPicker.style.padding = '8px';
+  reactionsPicker.style.background = 'transparent';
+  reactionsPicker.style.backdropFilter = 'none';
+  reactionsPicker.innerHTML = `
+    <button class="reaction-btn" data-emoji="👍">👍</button>
+    <button class="reaction-btn" data-emoji="❤️">❤️</button>
+    <button class="reaction-btn" data-emoji="😂">😂</button>
+    <button class="reaction-btn" data-emoji="😮">😮</button>
+    <button class="reaction-btn" data-emoji="😢">😢</button>
+    <button class="reaction-btn" data-emoji="👎">👎</button>
+    <button class="reaction-btn more">⋯</button>
+  `;
+  menu.appendChild(reactionsPicker);
 
-  // Позиціонуємо меню
-  menu.style.left = event.pageX + 'px';
-  menu.style.top = event.pageY + 'px';
+  // Додаємо пункти меню з іконками (SVG)
+  const menuItems = [
+    { action: 'reply', label: 'Відповісти', icon: 'reply', danger: false },
+    { action: 'copy', label: 'Копіювати', icon: 'copy', danger: false },
+    { action: 'edit', label: 'Редагувати', icon: 'edit', danger: false },
+    { action: 'deleteEveryone', label: 'Видалити для всіх', icon: 'delete', danger: true }
+  ];
+
+  menuItems.forEach(item => {
+    // Показуємо тільки якщо це дозволено
+    if (item.action === 'edit' && msg.from !== state.currentUser.uid) return;
+    if (item.action === 'deleteEveryone' && msg.from !== state.currentUser.uid) return;
+
+    const menuItem = document.createElement('div');
+    menuItem.className = `menu-item ${item.danger ? 'danger' : ''}`;
+    menuItem.dataset.action = item.action;
+
+    // SVG іконки (чорно-білі)
+    const svg = getActionIcon(item.icon);
+    menuItem.innerHTML = `${svg} ${item.label}`;
+
+    menuItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleMessageContextAction(item.action);
+      menu.classList.remove('show');
+    });
+
+    menu.appendChild(menuItem);
+  });
+
+  // Позиціонування
+  const x = event.pageX;
+  const y = event.pageY;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
   menu.classList.add('show');
 
   // Обробник кліку на реакції
-  reactionsPicker.querySelectorAll('span[data-emoji]').forEach(span => {
-    span.onclick = (e) => {
+  reactionsPicker.querySelectorAll('.reaction-btn[data-emoji]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const emoji = span.dataset.emoji;
+      const emoji = btn.dataset.emoji;
       toggleReaction(msg.id, emoji);
       menu.classList.remove('show');
-    };
+    });
   });
 
+  // Закриття по кліку поза меню
   const closeMenu = (e) => {
     if (!menu.contains(e.target)) {
       menu.classList.remove('show');
@@ -574,6 +597,17 @@ function showMessageContextMenu(event, msg) {
     }
   };
   setTimeout(() => document.addEventListener('click', closeMenu), 0);
+}
+
+// Допоміжна функція для отримання SVG іконок
+function getActionIcon(type) {
+  const icons = {
+    reply: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    copy: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    edit: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/></svg>',
+    delete: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>'
+  };
+  return icons[type] || '';
 }
 
 export async function handleMessageContextAction(action) {
@@ -620,7 +654,6 @@ export async function toggleReaction(messageId, emoji) {
   const messageRef = doc(db, `chats/${state.currentChatId}/messages/${messageId}`);
   
   try {
-    // Спочатку отримуємо поточні реакції, щоб визначити, чи треба додавати чи видаляти
     const messageSnap = await getDoc(messageRef);
     if (!messageSnap.exists()) return;
     
@@ -628,7 +661,6 @@ export async function toggleReaction(messageId, emoji) {
     const users = reactions[emoji] || [];
     const hasReacted = users.includes(state.currentUser.uid);
     
-    // Оновлюємо атомарно
     const update = {};
     if (hasReacted) {
       update[`reactions.${emoji}`] = arrayRemove(state.currentUser.uid);
