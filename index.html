@@ -34,7 +34,7 @@
       margin: 40px auto;
       box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     }
-    /* Центрування картки по вертикалі (опціонально) */
+    /* Центрування картки по вертикалі */
     body.logged-out .main {
       display: flex;
       align-items: center;
@@ -43,6 +43,10 @@
     }
     body.logged-out .top-bar {
       display: none; /* ховаємо верхню панель у стані logout */
+    }
+    /* Приховуємо кнопку "Назад" та інші елементи, які не повинні бути видні */
+    body.logged-out .back-btn {
+      display: none !important;
     }
   </style>
 </head>
@@ -130,8 +134,26 @@
 
         <!-- ========== СЕКЦІЯ ПРОФІЛЬ ========== -->
         <section id="profile" class="section">
-          <div class="profile-header" id="profileHeader"></div>
-          <div class="profile-tabs" id="profileTabs"></div>
+          <div class="profile-header" id="profileHeader">
+            <img src="https://via.placeholder.com/80" alt="Avatar" class="profile-avatar">
+            <div class="profile-info">
+              <div class="profile-name">Ім'я Користувача</div>
+              <div class="profile-username">@username</div>
+              <div class="profile-bio">Біографія користувача</div>
+              <div class="profile-stats">
+                <span><strong>123</strong> публікацій</span>
+                <span><strong>456</strong> підписників</span>
+                <span><strong>789</strong> підписок</span>
+              </div>
+              <button class="btn btn-primary" id="editProfileBtn">Редагувати профіль</button>
+            </div>
+          </div>
+          <div class="profile-tabs" id="profileTabs">
+            <button class="tab-btn active" data-tab="posts">Пости</button>
+            <button class="tab-btn" data-tab="replies">Відповіді</button>
+            <button class="tab-btn" data-tab="media">Медіа</button>
+            <button class="tab-btn" data-tab="likes">Вподобайки</button>
+          </div>
 
           <!-- === МЕНЮ СТВОРЕННЯ ПОСТА (ЕМОДЗІ ВИДАЛЕНО) === -->
           <div class="card" id="newPostBox" style="display:none;">
@@ -576,6 +598,15 @@
         } else {
           document.body.classList.add('logged-out');
           localStorage.removeItem('auth');
+          // Повертаємось на головну та показуємо форму реєстрації
+          document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+          document.querySelector('[data-section="home"]').classList.add('active');
+          document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+          document.getElementById('home').classList.add('active');
+          document.getElementById('pageTitle').innerText = 'Головна';
+          // Показуємо форму реєстрації
+          document.getElementById('loginForm').style.display = 'none';
+          document.getElementById('registerForm').style.display = 'block';
         }
       }
 
@@ -614,7 +645,7 @@
         const pwd = document.getElementById('loginPassword').value.trim();
         if (nick && pwd) {
           setLoggedIn(true);
-          // Активуємо головну секцію (можна довантажити контент)
+          // Активуємо головну секцію
           document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
           document.querySelector('[data-section="home"]').classList.add('active');
           document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -659,7 +690,7 @@
         if (e.key === 'Enter') register();
       });
 
-      // За потреби можна додати обробку Google/Apple (поки що просто вхід)
+      // Обробка Google/Apple (демо-режим)
       document.getElementById('googleLoginBtn').addEventListener('click', () => {
         alert('Google login (демо)');
         setLoggedIn(true);
@@ -668,10 +699,16 @@
         alert('Apple login (демо)');
         setLoggedIn(true);
       });
+
+      // Забули пароль (демо)
+      document.getElementById('forgotPassword').addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('Функція відновлення пароля (демо)');
+      });
     })();
   </script>
 
-  <!-- Підключення основного скрипта (модуль) – завантажується після нашого скрипта -->
+  <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
