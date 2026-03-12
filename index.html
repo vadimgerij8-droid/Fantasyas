@@ -17,25 +17,22 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/main.css">
   
+  <!-- Додатковий стиль для приховування елементів під час реєстрації/входу -->
   <style>
     /* Коли блок авторизації видимий – ховаємо заголовок стрічки та самі пости */
     #authBox:not([style*="display: none"]) ~ .feed-header,
     #authBox:not([style*="display: none"]) ~ .feed {
         display: none !important;
     }
-    /* Додатковий стиль для фокусу (опціонально) */
-    [data-tv]:focus {
-      outline: 2px solid var(--accent, #007bff);
-      outline-offset: 2px;
-    }
   </style>
 </head>
 <body>
   <div class="app">
+    <!-- Головний контейнер -->
     <main class="main">
       <!-- Верхня панель -->
       <header class="top-bar">
-        <button class="back-btn" id="backBtn" aria-label="Назад" style="display: none;" data-tv>←</button>
+        <button class="back-btn" id="backBtn" aria-label="Назад" style="display: none;">←</button>
         <div class="top-bar-title" id="pageTitle">Головна</div>
       </header>
 
@@ -46,37 +43,36 @@
           <!-- Блок авторизації -->
           <div class="card" id="authBox">
             <div id="loginForm">
-              <!-- Поля введення тепер readonly, активуються лише після натискання OK -->
-              <input type="text" id="loginNickname" class="input" placeholder="Псевдонім (без @)" autocomplete="off" tabindex="0" data-tv readonly>
-              <input type="password" id="loginPassword" class="input" placeholder="Пароль" tabindex="0" data-tv readonly>
-              <button class="btn btn-primary" id="loginBtn" style="width:100%; margin-top:12px;" tabindex="0" data-tv>Увійти</button>
+              <input type="text" id="loginNickname" class="input" placeholder="Псевдонім (без @)" autocomplete="off" tabindex="0"/>
+              <input type="password" id="loginPassword" class="input" placeholder="Пароль" tabindex="0"/>
+              <button class="btn btn-primary" id="loginBtn" style="width:100%; margin-top:12px;" tabindex="0">Увійти</button>
               <div style="display:flex; gap:10px; margin-top:15px;">
-                <button class="btn" id="googleLoginBtn" style="flex:1;" tabindex="0" data-tv>Google</button>
-                <button class="btn" id="appleLoginBtn" style="flex:1;" tabindex="0" data-tv>Apple</button>
+                <button class="btn" id="googleLoginBtn" style="flex:1;" tabindex="0">Google</button>
+                <button class="btn" id="appleLoginBtn" style="flex:1;" tabindex="0">Apple</button>
               </div>
-              <p style="margin-top:18px;">Немає акаунта? <span id="toRegister" style="color:var(--accent);cursor:pointer;" tabindex="0" data-tv>Зареєструватися</span></p>
-              <p><a href="#" id="forgotPassword" style="color:var(--accent);" tabindex="0" data-tv>Забули пароль?</a></p>
+              <p style="margin-top:18px;">Немає акаунта? <span id="toRegister" style="color:var(--accent);cursor:pointer;" tabindex="0">Зареєструватися</span></p>
+              <p><a href="#" id="forgotPassword" style="color:var(--accent);" tabindex="0">Забули пароль?</a></p>
             </div>
             <div id="registerForm" style="display:none;">
-              <input type="text" id="registerNickname" class="input" placeholder="Псевдонім (без @)" tabindex="0" data-tv readonly>
-              <input type="password" id="registerPassword" class="input" placeholder="Пароль" tabindex="0" data-tv readonly>
-              <button class="btn btn-primary" id="registerBtn" style="width:100%; margin-top:12px;" tabindex="0" data-tv>Зареєструватися</button>
-              <p style="margin-top:18px;">Вже є акаунт? <span id="toLogin" style="color:var(--accent);cursor:pointer;" tabindex="0" data-tv>Увійти</span></p>
+              <input type="text" id="registerNickname" class="input" placeholder="Псевдонім (без @)" tabindex="0"/>
+              <input type="password" id="registerPassword" class="input" placeholder="Пароль" tabindex="0"/>
+              <button class="btn btn-primary" id="registerBtn" style="width:100%; margin-top:12px;" tabindex="0">Зареєструватися</button>
+              <p style="margin-top:18px;">Вже є акаунт? <span id="toLogin" style="color:var(--accent);cursor:pointer;" tabindex="0">Увійти</span></p>
             </div>
           </div>
 
-          <!-- Фільтри стрічки (додано data-tv) -->
+          <!-- Фільтри стрічки -->
           <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
-            <button class="btn" id="feedNewBtn" tabindex="0" data-tv>Нові</button>
-            <button class="btn" id="feedPopularBtn" tabindex="0" data-tv>Популярні</button>
-            <button class="btn" id="filterBtn" tabindex="0" data-tv>Фільтри</button>
+            <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
+            <button class="btn" id="feedPopularBtn" tabindex="0">Популярні</button>
+            <button class="btn" id="filterBtn" tabindex="0">Фільтри</button>
             <div id="activeFilter" class="active-filter"></div>
           </div>
 
           <!-- Стрічка постів -->
           <div class="feed" id="feed">
-            <!-- Приклад поста з новою шапкою + кнопки лайк/коментар/поділитися (додано data-tv) -->
-            <div class="post" tabindex="0" data-tv>
+            <!-- Приклад поста з новою шапкою, переробленою за вимогою -->
+            <div class="post">
               <div class="post-header">
                 <div class="user-info">
                   <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
@@ -85,19 +81,13 @@
                     <div class="user-username">@username</div>
                   </div>
                 </div>
-                <button class="follow-btn" data-tv>Підписатися</button>
+                <button class="follow-btn">Підписатися</button>
               </div>
               <div class="post-content">
                 <p>Текст поста. Тут може бути будь-який вміст, але головне — шапка оформлена згідно з завданням.</p>
               </div>
-              <!-- Панель дій поста (лайк, коментар, поділитися) -->
-              <div class="post-actions" style="display:flex; gap:16px; margin-top:12px;">
-                <button class="post-action like-btn" data-tv>❤️ Лайк</button>
-                <button class="post-action comment-btn" data-tv>💬 Коментувати</button>
-                <button class="post-action share-btn" data-tv>↗️ Поділитися</button>
-              </div>
             </div>
-            <!-- Решта постів додаються динамічно (вони мають містити data-tv на всіх клікабельних елементах) -->
+            <!-- Решта постів будуть додаватися динамічно -->
           </div>
           <div class="feed-end-sentinel" id="feedSentinel"></div>
           <div id="skeletonContainer" style="display:none;">
@@ -108,7 +98,7 @@
 
         <!-- ========== СЕКЦІЯ ПОШУК ========== -->
         <section id="search" class="section">
-          <input type="text" id="searchInput" class="input" placeholder="Пошук за @id, ім'ям або #хештегом..." tabindex="0" data-tv readonly>
+          <input type="text" id="searchInput" class="input" placeholder="Пошук за @id, ім'ям або #хештегом..." tabindex="0"/>
           <div class="user-list" id="userList" style="margin-top:20px;"></div>
         </section>
 
@@ -123,18 +113,19 @@
           <div class="profile-header" id="profileHeader"></div>
           <div class="profile-tabs" id="profileTabs"></div>
 
-          <!-- МЕНЮ СТВОРЕННЯ ПОСТА -->
+          <!-- === МЕНЮ СТВОРЕННЯ ПОСТА (ЕМОДЗІ ВИДАЛЕНО) === -->
           <div class="card" id="newPostBox" style="display:none;">
-            <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="margin-bottom:10px;" tabindex="0" data-tv readonly></textarea>
+            <!-- Видалено контейнер з емодзі -->
+            <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="margin-bottom:10px;" tabindex="0"></textarea>
             <div class="file-input-wrapper" style="margin-bottom:8px;">
-              <input type="file" id="postMedia" accept="image/*,video/*" multiple data-tv>
-              <div class="file-input-button" data-tv>
+              <input type="file" id="postMedia" accept="image/*,video/*" multiple>
+              <div class="file-input-button">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18"/><circle cx="7.5" cy="7.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                 <span id="postMediaLabel"> Фото/Відео </span>
               </div>
             </div>
             <div id="postMediaPreviews" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;"></div>
-            <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0" data-tv>Опублікувати</button>
+            <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
           </div>
 
           <!-- Стрічка постів профілю -->
@@ -144,59 +135,65 @@
         <!-- ========== СЕКЦІЯ ЧАТИ ========== -->
         <section id="chats" class="section">
           <div class="chats-container">
+            <!-- Бічна панель зі списком чатів -->
             <aside class="chat-list-sidebar" id="chatListSidebar">
               <div class="chat-search">
-                <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів..." data-tv readonly>
+                <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
                 <div id="chatSearchResults" class="user-list" style="display: none;"></div>
               </div>
               <div id="chatList" class="chat-list"></div>
             </aside>
 
+            <!-- Вікно чату -->
             <div class="chat-window-container" id="chatWindowContainer" style="display: none;">
               <div class="chat-window">
+                <!-- Заголовок чату -->
                 <div class="chat-header">
-                  <button class="chat-back-btn" id="chatBackBtn" aria-label="Назад" data-tv>
+                  <button class="chat-back-btn" id="chatBackBtn" aria-label="Назад">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>
                   </button>
                   <div class="chat-header-info" id="chatHeaderInfo">
-                    <div class="avatar" id="chatAvatar" tabindex="0" role="button" data-tv></div>
+                    <div class="avatar" id="chatAvatar" tabindex="0" role="button"></div>
                     <div class="chat-header-text">
                       <div id="chatName" class="chat-name"></div>
                       <div id="chatStatus" class="chat-status"></div>
                     </div>
                   </div>
                   <div class="chat-header-menu">
-                    <button class="chat-menu-btn" id="chatMenuBtn" tabindex="0" data-tv>⋯</button>
+                    <button class="chat-menu-btn" id="chatMenuBtn" tabindex="0">⋯</button>
                     <div class="chat-menu-dropdown" id="chatMenuDropdown">
-                      <div class="chat-menu-item" data-action="viewProfile" data-tv>Переглянути профіль</div>
-                      <div class="chat-menu-item" data-action="mute" data-tv>Замутити</div>
-                      <div class="chat-menu-item" data-action="report" data-tv>Поскаржитися</div>
-                      <div class="chat-menu-item" data-action="block" data-tv>Заблокувати</div>
-                      <div class="chat-menu-item" data-action="clearHistory" data-tv>Очистити історію</div>
+                      <div class="chat-menu-item" data-action="viewProfile">Переглянути профіль</div>
+                      <div class="chat-menu-item" data-action="mute">Замутити</div>
+                      <div class="chat-menu-item" data-action="report">Поскаржитися</div>
+                      <div class="chat-menu-item" data-action="block">Заблокувати</div>
+                      <div class="chat-menu-item" data-action="clearHistory">Очистити історію</div>
                     </div>
                   </div>
                 </div>
 
+                <!-- Область повідомлень -->
                 <div class="chat-messages" id="chatMessages"></div>
                 <div class="typing-indicator" id="typingIndicator" style="display: none;">
                   <span>друкує</span>
                   <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
                 </div>
 
+                <!-- Прев'ю відповіді -->
                 <div id="replyPreview" class="reply-preview" style="display: none;">
                   <span class="reply-sender" id="replySender"></span>
                   <span class="reply-text" id="replyText"></span>
-                  <button class="close-reply" id="closeReply" data-tv>✕</button>
+                  <button class="close-reply" id="closeReply">✕</button>
                 </div>
 
-                <!-- Панель введення чату (поле readonly) -->
+                <!-- Панель введення (емодзі видалено) -->
                 <div class="chat-input-area">
-                  <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0" data-tv>📎</button>
-                  <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;" data-tv>
-                  <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off" data-tv readonly>
-                  <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0" data-tv>
+                  <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
+                  <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
+                  <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
+                  <!-- Видалено кнопку та меню емодзі -->
+                  <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="22" y1="2" x2="11" y2="13"></line>
                       <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -209,22 +206,22 @@
 
           <!-- Контекстне меню для повідомлень -->
           <div class="context-menu" id="messageContextMenu">
-            <div class="context-menu-item" data-action="reply" data-tv>Відповісти</div>
-            <div class="context-menu-item" data-action="edit" data-tv>Редагувати</div>
-            <div class="context-menu-item" data-action="copy" data-tv>Копіювати текст</div>
-            <div class="context-menu-item" data-action="deleteSelf" data-tv>Видалити для себе</div>
-            <div class="context-menu-item" data-action="deleteEveryone" data-tv>Видалити для всіх</div>
+            <div class="context-menu-item" data-action="reply">Відповісти</div>
+            <div class="context-menu-item" data-action="edit">Редагувати</div>
+            <div class="context-menu-item" data-action="copy">Копіювати текст</div>
+            <div class="context-menu-item" data-action="deleteSelf">Видалити для себе</div>
+            <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
           </div>
 
-          <!-- Панель реакцій -->
+          <!-- Панель реакцій (залишається без змін) -->
           <div class="reaction-picker" id="reactionPicker">
-            <button class="reaction-btn" data-emoji="👍" data-tv>👍</button>
-            <button class="reaction-btn" data-emoji="❤️" data-tv>❤️</button>
-            <button class="reaction-btn" data-emoji="😂" data-tv>😂</button>
-            <button class="reaction-btn" data-emoji="😮" data-tv>😮</button>
-            <button class="reaction-btn" data-emoji="😢" data-tv>😢</button>
-            <button class="reaction-btn" data-emoji="👎" data-tv>👎</button>
-            <button class="reaction-btn more" data-emoji="more" data-tv>➕</button>
+            <button class="reaction-btn" data-emoji="👍">👍</button>
+            <button class="reaction-btn" data-emoji="❤️">❤️</button>
+            <button class="reaction-btn" data-emoji="😂">😂</button>
+            <button class="reaction-btn" data-emoji="😮">😮</button>
+            <button class="reaction-btn" data-emoji="😢">😢</button>
+            <button class="reaction-btn" data-emoji="👎">👎</button>
+            <button class="reaction-btn more" data-emoji="more">➕</button>
           </div>
         </section>
 
@@ -233,17 +230,17 @@
           <div class="settings-container" style="display: flex; gap: 24px; flex-wrap: wrap;">
             <!-- Навігація по вкладках налаштувань -->
             <nav class="settings-nav" style="flex: 0 0 200px; border-right: 1px solid var(--border); padding-right: 16px;">
-              <div class="settings-nav-item active" data-tab="account" data-tv>Обліковий запис</div>
-              <div class="settings-nav-item" data-tab="privacy" data-tv>Конфіденційність</div>
-              <div class="settings-nav-item" data-tab="notifications" data-tv>Сповіщення</div>
-              <div class="settings-nav-item" data-tab="appearance" data-tv>Зовнішній вигляд</div>
-              <div class="settings-nav-item" data-tab="data-storage" data-tv>Дані та сховище</div>
-              <div class="settings-nav-item" data-tab="security" data-tv>Безпека</div>
-              <div class="settings-nav-item" data-tab="privacy-policy" data-tv>Політика конфіденційності</div>
-              <div class="settings-nav-item" data-tab="logout" style="color: var(--danger);" data-tv>Вийти</div>
+              <div class="settings-nav-item active" data-tab="account">Обліковий запис</div>
+              <div class="settings-nav-item" data-tab="privacy">Конфіденційність</div>
+              <div class="settings-nav-item" data-tab="notifications">Сповіщення</div>
+              <div class="settings-nav-item" data-tab="appearance">Зовнішній вигляд</div>
+              <div class="settings-nav-item" data-tab="data-storage">Дані та сховище</div>
+              <div class="settings-nav-item" data-tab="security">Безпека</div>
+              <div class="settings-nav-item" data-tab="privacy-policy">Політика конфіденційності</div>
+              <div class="settings-nav-item" data-tab="logout" style="color: var(--danger);">Вийти</div>
             </nav>
 
-            <!-- Контент вкладок (всі поля введення readonly) -->
+            <!-- Контент вкладок -->
             <div class="settings-content" style="flex:1;">
               <!-- Обліковий запис -->
               <div class="settings-tab-content active" id="settings-account">
@@ -252,7 +249,7 @@
                 <div class="settings-group" id="accountInfo"></div>
                 <div class="settings-group">
                   <h4>Мова</h4>
-                  <select id="settingLanguage" class="input" data-tv>
+                  <select id="settingLanguage" class="input">
                     <option value="uk">Українська</option>
                     <option value="en">English</option>
                     <option value="ru">Русский</option>
@@ -265,7 +262,7 @@
                 <h3>Конфіденційність</h3>
                 <div class="settings-group">
                   <h4>Приватний акаунт</h4>
-                  <label class="toggle" data-tv>
+                  <label class="toggle">
                     <input type="checkbox" id="settingPrivateAccount">
                     <span class="toggle-slider"></span>
                     <span class="toggle-label">Приховати профіль від незнайомців</span>
@@ -273,7 +270,7 @@
                 </div>
                 <div class="settings-group">
                   <h4>Статус активності</h4>
-                  <label class="toggle" data-tv>
+                  <label class="toggle">
                     <input type="checkbox" id="settingActivityStatus">
                     <span class="toggle-slider"></span>
                     <span class="toggle-label">Показувати, коли я онлайн</span>
@@ -282,14 +279,127 @@
                 <div class="settings-group">
                   <h4>Хто може писати мені</h4>
                   <div class="radio-group">
-                    <label data-tv><input type="radio" name="whoCanMessage" value="everyone"> Всі</label>
-                    <label data-tv><input type="radio" name="whoCanMessage" value="followers"> Тільки підписники</label>
-                    <label data-tv><input type="radio" name="whoCanMessage" value="nobody"> Ніхто</label>
+                    <label><input type="radio" name="whoCanMessage" value="everyone"> Всі</label>
+                    <label><input type="radio" name="whoCanMessage" value="followers"> Тільки підписники</label>
+                    <label><input type="radio" name="whoCanMessage" value="nobody"> Ніхто</label>
                   </div>
                 </div>
-                <!-- інші групи налаштувань (пропущені для компактності, але принцип той самий) -->
+                <div class="settings-group">
+                  <h4>Хто бачить мій онлайн</h4>
+                  <div class="radio-group">
+                    <label><input type="radio" name="whoCanSeeOnline" value="everyone"> Всі</label>
+                    <label><input type="radio" name="whoCanSeeOnline" value="followers"> Тільки підписники</label>
+                    <label><input type="radio" name="whoCanSeeOnline" value="nobody"> Ніхто</label>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <h4>Хто бачить моїх підписників</h4>
+                  <div class="radio-group">
+                    <label><input type="radio" name="whoCanSeeFollowers" value="everyone"> Всі</label>
+                    <label><input type="radio" name="whoCanSeeFollowers" value="followers"> Тільки підписники</label>
+                    <label><input type="radio" name="whoCanSeeFollowers" value="nobody"> Ніхто</label>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <h4>Дозволити згадування</h4>
+                  <div class="radio-group">
+                    <label><input type="radio" name="allowMentions" value="everyone"> Всі</label>
+                    <label><input type="radio" name="allowMentions" value="followers"> Тільки підписники</label>
+                    <label><input type="radio" name="allowMentions" value="nobody"> Ніхто</label>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <h4>Дозволити теги</h4>
+                  <div class="radio-group">
+                    <label><input type="radio" name="allowTags" value="everyone"> Всі</label>
+                    <label><input type="radio" name="allowTags" value="followers"> Тільки підписники</label>
+                    <label><input type="radio" name="allowTags" value="nobody"> Ніхто</label>
+                  </div>
+                </div>
+                <div class="settings-group">
+                  <h4>Заблоковані користувачі</h4>
+                  <div id="blockedUsersList"></div>
+                </div>
               </div>
-              <!-- Решта вкладок аналогічно (тут не дублюю для економії місця) -->
+
+              <!-- Сповіщення -->
+              <div class="settings-tab-content" id="settings-notifications">
+                <h3>Сповіщення</h3>
+                <div class="settings-group">
+                  <label class="toggle"><input type="checkbox" id="settingPushNotifications"><span class="toggle-slider"></span><span class="toggle-label">Push-сповіщення</span></label>
+                  <label class="toggle"><input type="checkbox" id="settingEmailNotifications"><span class="toggle-slider"></span><span class="toggle-label">Email-сповіщення</span></label>
+                  <label class="toggle"><input type="checkbox" id="settingSmsNotifications"><span class="toggle-slider"></span><span class="toggle-label">SMS-сповіщення</span></label>
+                  <label class="toggle"><input type="checkbox" id="settingLikes"><span class="toggle-slider"></span><span class="toggle-label">Лайки</span></label>
+                  <label class="toggle"><input type="checkbox" id="settingComments"><span class="toggle-slider"></span><span class="toggle-label">Коментарі</span></label>
+                  <label class="toggle"><input type="checkbox" id="settingNewFollowers"><span class="toggle-slider"></span><span class="toggle-label">Нові підписники</span></label>
+                  <label class="toggle"><input type="checkbox" id="settingMentions"><span class="toggle-slider"></span><span class="toggle-label">Згадування</span></label>
+                  <label class="toggle"><input type="checkbox" id="settingDirectMessages"><span class="toggle-slider"></span><span class="toggle-label">Особисті повідомлення</span></label>
+                  <label class="toggle"><input type="checkbox" id="settingStoryReplies"><span class="toggle-slider"></span><span class="toggle-label">Відповіді на історії</span></label>
+                  <label class="toggle"><input type="checkbox" id="settingPrivateChats"><span class="toggle-slider"></span><span class="toggle-label">Приватні чати</span></label>
+                </div>
+              </div>
+
+              <!-- Зовнішній вигляд -->
+              <div class="settings-tab-content" id="settings-appearance">
+                <h3>Зовнішній вигляд</h3>
+                <div class="settings-group">
+                  <h4>Тема</h4>
+                  <label class="toggle"><input type="checkbox" id="settingDarkMode"><span class="toggle-slider"></span><span class="toggle-label">Темна тема</span></label>
+                </div>
+                <div class="settings-group">
+                  <h4>Зменшення руху</h4>
+                  <label class="toggle"><input type="checkbox" id="settingReduceMotion"><span class="toggle-slider"></span><span class="toggle-label">Вимкнути анімації</span></label>
+                </div>
+                <div class="settings-group">
+                  <h4>Високий контраст</h4>
+                  <label class="toggle"><input type="checkbox" id="settingHighContrast"><span class="toggle-slider"></span><span class="toggle-label">Підвищений контраст</span></label>
+                </div>
+                <div class="settings-group">
+                  <h4>Автовідтворення відео</h4>
+                  <label class="toggle"><input type="checkbox" id="settingAutoplayVideos"><span class="toggle-slider"></span><span class="toggle-label">Автоматично відтворювати відео</span></label>
+                </div>
+                <div class="settings-group">
+                  <h4>Звукові ефекти</h4>
+                  <label class="toggle"><input type="checkbox" id="settingSoundEffects"><span class="toggle-slider"></span><span class="toggle-label">Увімкнути звуки інтерфейсу</span></label>
+                </div>
+              </div>
+
+              <!-- Дані та сховище -->
+              <div class="settings-tab-content" id="settings-data-storage">
+                <h3>Дані та сховище</h3>
+                <div class="settings-group">
+                  <button class="btn" id="clearCacheBtn">Очистити кеш</button>
+                  <button class="btn" id="clearSavedMediaBtn" style="margin-left:8px;">Очистити збережені медіа</button>
+                </div>
+                <div class="settings-group">
+                  <h4>Використане сховище</h4>
+                  <div id="storageInfo">Обчислення...</div>
+                </div>
+              </div>
+
+              <!-- Безпека -->
+              <div class="settings-tab-content" id="settings-security">
+                <h3>Безпека</h3>
+                <div class="settings-group">
+                  <h4>Двофакторна аутентифікація</h4>
+                  <label class="toggle"><input type="checkbox" id="settingTwoFactor"><span class="toggle-slider"></span><span class="toggle-label">Увімкнути 2FA</span></label>
+                </div>
+                <div class="settings-group">
+                  <h4>Сповіщення про вхід</h4>
+                  <label class="toggle"><input type="checkbox" id="settingLoginAlerts"><span class="toggle-slider"></span><span class="toggle-label">Отримувати сповіщення про новий вхід</span></label>
+                </div>
+              </div>
+
+              <!-- Політика конфіденційності -->
+              <div class="settings-tab-content" id="settings-privacy-policy">
+                <h3>Політика конфіденційності</h3>
+                <button class="btn" id="privacyPolicyBtn">Ознайомитися</button>
+              </div>
+
+              <!-- Вихід -->
+              <div class="settings-tab-content" id="settings-logout">
+                <button class="btn btn-danger" id="logoutBtn" style="width:100%;">Вийти</button>
+              </div>
             </div>
           </div>
         </section>
@@ -298,248 +408,145 @@
 
     <!-- Нижня навігація (меню) -->
     <nav class="bottom-nav" id="bottomNav">
-      <div class="nav-item active" data-section="home" tabindex="0" data-tv>
+      <div class="nav-item active" data-section="home" tabindex="0">
         <svg class="icon" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Головна</span>
       </div>
-      <div class="nav-item" data-section="search" tabindex="0" data-tv>
+      <div class="nav-item" data-section="search" tabindex="0">
         <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <span>Пошук</span>
       </div>
-      <div class="nav-item" data-section="hashtags" tabindex="0" data-tv>
+      <div class="nav-item" data-section="hashtags" tabindex="0">
         <svg class="icon" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg>
         <span>Хештеги</span>
       </div>
-      <div class="nav-item" data-section="profile" tabindex="0" data-tv>
+      <div class="nav-item" data-section="profile" tabindex="0">
         <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span>Профіль</span>
       </div>
-      <div class="nav-item" data-section="chats" tabindex="0" data-tv>
+      <div class="nav-item" data-section="chats" tabindex="0">
         <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span>Чати</span>
         <span class="badge" id="unreadBadge" style="display:none;">0</span>
       </div>
-      <div class="nav-item" data-section="settings" tabindex="0" data-tv>
+      <div class="nav-item" data-section="settings" tabindex="0">
         <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.07.07A10 10 0 0 0 12 17.66a10 10 0 0 0 6.26-2.26z"/></svg>
         <span>Налаштування</span>
       </div>
     </nav>
   </div>
 
-  <!-- Модальні вікна (поля введення також readonly) -->
+  <!-- ========== ВСІ МОДАЛЬНІ ВІКНА ========== -->
   <div class="modal" id="editProfileModal">
     <div class="modal-content">
       <div class="modal-header">
         <h3>Редагувати профіль</h3>
-        <button class="modal-close" id="closeModal" data-tv>✕</button>
+        <button class="modal-close" id="closeModal">✕</button>
       </div>
       <div class="modal-body">
         <div class="file-input-wrapper">
-          <input type="file" id="editAvatar" accept="image/*" data-tv>
-          <div class="file-input-button" id="editAvatarLabel" data-tv>Обрати аватар</div>
+          <input type="file" id="editAvatar" accept="image/*">
+          <div class="file-input-button" id="editAvatarLabel">Обрати аватар</div>
         </div>
         <img id="editAvatarPreview" class="avatar-preview" style="display:none;">
-        <input type="text" id="editNickname" class="input" placeholder="Псевдонім" data-tv readonly>
-        <textarea id="editBio" class="input" placeholder="Біографія" rows="3" data-tv readonly></textarea>
-        <input type="text" id="editNote" class="input" placeholder="Нотатка (відображається поруч)" data-tv readonly>
+        <input type="text" id="editNickname" class="input" placeholder="Псевдонім">
+        <textarea id="editBio" class="input" placeholder="Біографія" rows="3"></textarea>
+        <input type="text" id="editNote" class="input" placeholder="Нотатка (відображається поруч)">
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" id="saveProfileEdit" data-tv>Зберегти</button>
+        <button class="btn btn-primary" id="saveProfileEdit">Зберегти</button>
       </div>
     </div>
   </div>
 
-  <!-- Інші модальні вікна аналогічно... (пропущено для стислості, але принцип такий самий) -->
+  <div class="modal" id="editPostModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Редагувати пост</h3>
+        <button class="modal-close" id="closeEditPostModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="editPostText" class="input" placeholder="Текст поста" rows="4"></textarea>
+        <div id="editPostMediaPreview"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="savePostEdit">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="followersModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Підписники</h3>
+        <button class="modal-close" id="closeFollowersModal">✕</button>
+      </div>
+      <div class="modal-body" id="followersList"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="followingModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Підписки</h3>
+        <button class="modal-close" id="closeFollowingModal">✕</button>
+      </div>
+      <div class="modal-body" id="followingList"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="privacyPolicyModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Політика конфіденційності</h3>
+        <button class="modal-close" id="closePrivacyModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Текст політики конфіденційності... (тут можна вставити згенерований текст)</p>
+      </div>
+    </div>
+  </div>
 
   <div class="modal" id="filterModal">
     <div class="modal-content">
       <div class="modal-header">
         <h3>Фільтр за хештегом</h3>
-        <button class="modal-close" id="closeFilterModal" data-tv>✕</button>
+        <button class="modal-close" id="closeFilterModal">✕</button>
       </div>
       <div class="modal-body">
         <div class="filter-list" id="filterList"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn" id="clearFilterBtn" data-tv>Скинути</button>
+        <button class="btn" id="clearFilterBtn">Скинути</button>
       </div>
     </div>
   </div>
 
-  <!-- Toast -->
+  <div class="modal" id="muteModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Замутити користувача</h3>
+        <button class="modal-close" id="closeMuteModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Виберіть, на який час замутити:</p>
+        <div class="radio-group">
+          <label><input type="radio" name="muteDuration" value="1"> 1 година</label>
+          <label><input type="radio" name="muteDuration" value="24"> 24 години</label>
+          <label><input type="radio" name="muteDuration" value="168"> Тиждень</label>
+          <label><input type="radio" name="muteDuration" value="forever"> Назавжди</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="saveMuteBtn">Застосувати</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Глобальний Toast -->
   <div id="toast"></div>
 
-  <!-- Основний скрипт (має бути модуль) -->
+  <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
-
-  <!-- ========== ПОКРАЩЕНА СИСТЕМА НАВІГАЦІЇ ДЛЯ SMART TV ========== -->
-  <script>
-    (function() {
-      // Функція отримання всіх видимих елементів з атрибутом data-tv
-      function getTVFocusableElements() {
-        const all = document.querySelectorAll('[data-tv]');
-        return Array.from(all).filter(el => {
-          const style = window.getComputedStyle(el);
-          return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
-        });
-      }
-
-      // Пошук найближчого елемента в заданому напрямку
-      function findNearestInDirection(elements, currentRect, direction) {
-        let best = null;
-        let bestDistance = Infinity;
-
-        elements.forEach(el => {
-          if (el === document.activeElement) return;
-          const rect = el.getBoundingClientRect();
-
-          let inDirection = false;
-          switch (direction) {
-            case 'ArrowUp':
-              inDirection = rect.bottom <= currentRect.top;
-              break;
-            case 'ArrowDown':
-              inDirection = rect.top >= currentRect.bottom;
-              break;
-            case 'ArrowLeft':
-              inDirection = rect.right <= currentRect.left;
-              break;
-            case 'ArrowRight':
-              inDirection = rect.left >= currentRect.right;
-              break;
-          }
-          if (!inDirection) return;
-
-          const currentCenterX = (currentRect.left + currentRect.right) / 2;
-          const currentCenterY = (currentRect.top + currentRect.bottom) / 2;
-          const elCenterX = (rect.left + rect.right) / 2;
-          const elCenterY = (rect.top + rect.bottom) / 2;
-          const dx = elCenterX - currentCenterX;
-          const dy = elCenterY - currentCenterY;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < bestDistance) {
-            bestDistance = distance;
-            best = el;
-          }
-        });
-
-        return best;
-      }
-
-      // Активувати поле введення (зняти readonly і фокус)
-      function activateInput(inputEl) {
-        if (!inputEl || inputEl.tagName !== 'INPUT' && inputEl.tagName !== 'TEXTAREA') return;
-        inputEl.removeAttribute('readonly');
-        inputEl.focus();
-        // Можна додати клас для стилізації активного поля
-        inputEl.classList.add('tv-input-active');
-      }
-
-      // Деактивувати поле (повернути readonly) при втраті фокусу
-      function deactivateInput(inputEl) {
-        if (!inputEl || (inputEl.tagName !== 'INPUT' && inputEl.tagName !== 'TEXTAREA')) return;
-        // Не робимо readonly, якщо поле вже має фокус (запобігаємо зацикленню)
-        if (document.activeElement === inputEl) return;
-        inputEl.setAttribute('readonly', 'readonly');
-        inputEl.classList.remove('tv-input-active');
-      }
-
-      // Додати обробники blur для всіх полів введення
-      function setupInputBlurHandlers() {
-        document.querySelectorAll('input[data-tv], textarea[data-tv]').forEach(input => {
-          // Видаляємо попередній обробник, щоб уникнути дублів
-          input.removeEventListener('blur', blurHandler);
-          input.addEventListener('blur', blurHandler);
-        });
-      }
-
-      function blurHandler(e) {
-        deactivateInput(e.target);
-      }
-
-      // Глобальний обробник натискань клавіш
-      function onKeyDown(e) {
-        const key = e.key;
-        const handledKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Backspace'];
-
-        if (!handledKeys.includes(key)) return;
-
-        e.preventDefault();
-
-        if (key === 'Backspace') {
-          history.back();
-          return;
-        }
-
-        const active = document.activeElement;
-
-        // Обробка Enter: якщо активний елемент - поле введення з readonly, активуємо його
-        if (key === 'Enter' && active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active.hasAttribute('readonly')) {
-          activateInput(active);
-          return;
-        }
-
-        // Для решти елементів - імітація кліку (якщо це не поле введення або поле без readonly)
-        if (key === 'Enter' && active && typeof active.click === 'function') {
-          // Для полів введення без readonly не викликаємо click (щоб не заважати вводу)
-          if (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA') {
-            active.click();
-          }
-          return;
-        }
-
-        // Навігація стрілками
-        const elements = getTVFocusableElements();
-        if (elements.length === 0) return;
-
-        const current = active;
-        let nextElement = null;
-
-        if (current && elements.includes(current)) {
-          const currentRect = current.getBoundingClientRect();
-          nextElement = findNearestInDirection(elements, currentRect, key);
-        }
-
-        if (!nextElement) {
-          nextElement = elements[0];
-        }
-
-        if (nextElement) {
-          nextElement.focus();
-        }
-      }
-
-      // Ініціалізація: встановити readonly для всіх полів введення (крім type=file, які не підтримують readonly)
-      function makeAllInputsReadonly() {
-        document.querySelectorAll('input[data-tv], textarea[data-tv]').forEach(el => {
-          if (el.type !== 'file') {
-            el.setAttribute('readonly', 'readonly');
-          }
-        });
-      }
-
-      // Спостерігач за появою нових елементів (наприклад, доданих динамічно)
-      const observer = new MutationObserver(() => {
-        makeAllInputsReadonly();
-        setupInputBlurHandlers();
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-
-      // Запуск після завантаження DOM
-      document.addEventListener('DOMContentLoaded', () => {
-        makeAllInputsReadonly();
-        setupInputBlurHandlers();
-        document.addEventListener('keydown', onKeyDown);
-      });
-
-      // Також при зміні секцій (наприклад, при перемиканні вкладок) оновлюємо обробники
-      window.addEventListener('sectionchange', () => {
-        makeAllInputsReadonly();
-        setupInputBlurHandlers();
-      });
-    })();
-  </script>
-  <!-- Важливо: при динамічному додаванні постів через JS обов'язково додавайте data-tv до всіх інтерактивних елементів (кнопки, сам пост, тощо) -->
 </body>
 </html>
