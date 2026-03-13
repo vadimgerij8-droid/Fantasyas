@@ -473,7 +473,7 @@ export async function sendMessage(text, file) {
       [`unread.${state.currentChatPartner}`]: increment(1)
     });
 
-    // Замість видалення просто ховаємо прев'ю
+    // Очищаємо контекст відповіді та ховаємо прев'ю
     clearReplyContext();
     const preview = document.getElementById('replyPreview');
     if (preview) preview.style.display = 'none';
@@ -516,17 +516,14 @@ function showMessageContextMenu(event, msg) {
   const menu = document.getElementById('messageContextMenu');
   if (!menu) return;
 
-  // Додаємо клас Instagram-меню та стилі
   menu.classList.add('message-actions-menu');
-  menu.classList.remove('context-menu'); // якщо потрібно, але можна залишити обидва
+  menu.classList.remove('context-menu');
 
-  // Очищуємо меню та створюємо сучасну структуру
   menu.innerHTML = '';
 
-  // Додаємо пікер реакцій (як в Instagram)
   const reactionsPicker = document.createElement('div');
   reactionsPicker.className = 'reaction-picker';
-  reactionsPicker.style.position = 'static'; // всередині меню
+  reactionsPicker.style.position = 'static';
   reactionsPicker.style.boxShadow = 'none';
   reactionsPicker.style.margin = '0 0 8px 0';
   reactionsPicker.style.padding = '8px';
@@ -543,7 +540,6 @@ function showMessageContextMenu(event, msg) {
   `;
   menu.appendChild(reactionsPicker);
 
-  // Додаємо пункти меню з іконками (SVG)
   const menuItems = [
     { action: 'reply', label: 'Відповісти', icon: 'reply', danger: false },
     { action: 'copy', label: 'Копіювати', icon: 'copy', danger: false },
@@ -552,7 +548,6 @@ function showMessageContextMenu(event, msg) {
   ];
 
   menuItems.forEach(item => {
-    // Показуємо тільки якщо це дозволено
     if (item.action === 'edit' && msg.from !== state.currentUser.uid) return;
     if (item.action === 'deleteEveryone' && msg.from !== state.currentUser.uid) return;
 
@@ -560,7 +555,6 @@ function showMessageContextMenu(event, msg) {
     menuItem.className = `menu-item ${item.danger ? 'danger' : ''}`;
     menuItem.dataset.action = item.action;
 
-    // SVG іконки (чорно-білі)
     const svg = getActionIcon(item.icon);
     menuItem.innerHTML = `${svg} ${item.label}`;
 
@@ -573,14 +567,12 @@ function showMessageContextMenu(event, msg) {
     menu.appendChild(menuItem);
   });
 
-  // Позиціонування
   const x = event.pageX;
   const y = event.pageY;
   menu.style.left = x + 'px';
   menu.style.top = y + 'px';
   menu.classList.add('show');
 
-  // Обробник кліку на реакції
   reactionsPicker.querySelectorAll('.reaction-btn[data-emoji]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -590,7 +582,6 @@ function showMessageContextMenu(event, msg) {
     });
   });
 
-  // Закриття по кліку поза меню
   const closeMenu = (e) => {
     if (!menu.contains(e.target)) {
       menu.classList.remove('show');
@@ -600,7 +591,6 @@ function showMessageContextMenu(event, msg) {
   setTimeout(() => document.addEventListener('click', closeMenu), 0);
 }
 
-// Допоміжна функція для отримання SVG іконок
 function getActionIcon(type) {
   const icons = {
     reply: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
@@ -620,8 +610,24 @@ export async function handleMessageContextAction(action) {
 
   switch (action) {
     case 'reply':
-      setReplyContext(selectedMessageId, msgData.text, msgData.from === state.currentUser.uid ? 'Ви' : state.currentChatPartnerName);
-      document.getElementById('chatText').focus();
+      // FIX: Показуємо прев'ю, встановлюємо ім'я та текст
+      const senderName = msgData.from === state.currentUser.uid ? 'Ви' : state.currentChatPartnerName;
+      const previewText = msgData.text && msgData.text.trim() !== '' ? msgData.text : 'Медіа';
+      
+      setReplyContext(selectedMessageId, msgData.text, senderName);
+      
+      const replyPreview = document.getElementById('replyPreview');
+      const replySender = document.getElementById('replySender');
+      const replyText = document.getElementById('replyText');
+      const chatText = document.getElementById('chatText');
+      
+      if (replyPreview && replySender && replyText) {
+        replySender.textContent = senderName;
+        replyText.textContent = previewText;
+        replyPreview.style.display = 'flex'; // або 'block' залежно від CSS
+      }
+      
+      if (chatText) chatText.focus();
       break;
     case 'edit':
       const oldText = msgData.text;
@@ -785,6 +791,15 @@ export function closeChat() {
 
 // ================= Обробник кнопки "Назад" у чаті =================
 document.getElementById('chatBackBtn')?.addEventListener('click', closeChat);
+
+// FIX: Обробник для кнопки скасування відповіді
+document.getElementById('replyCancel')?.addEventListener('click', () => {
+  clearReplyContext();
+  const preview = document.getElementById('replyPreview');
+  if (preview) preview.style.display = 'none';
+  // Необов'язково: повернути фокус у поле вводу
+  document.getElementById('chatText')?.focus();
+});
 
 // Обробник клавіші Escape
 document.addEventListener('keydown', (e) => {
