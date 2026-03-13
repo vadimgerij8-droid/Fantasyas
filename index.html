@@ -17,14 +17,106 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/main.css">
   
-  <!-- Додатковий стиль для приховування елементів під час реєстрації/входу -->
   <style>
-    /* Коли блок авторизації видимий – ховаємо заголовок стрічки та самі пости */
+    /* ===== АДАПТАЦІЯ НИЖНЬОГО МЕНЮ (ВИПРАВЛЕНО) ===== */
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      width: 100%;
+      height: 60px;                /* фіксована висота, щоб елементи не вилазили */
+      background: var(--bg, #ffffff);
+      border-top: 1px solid var(--border, #eaeaea);
+      box-sizing: border-box;
+      overflow: hidden;            /* прибираємо можливий скрол, все має вміститись */
+      flex-wrap: nowrap;
+      gap: 2px;
+      padding: 0 4px;
+    }
+
+    .nav-item {
+      flex: 0 1 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;                /* дозволяє стискатися */
+      height: 100%;                /* займає всю висоту батька */
+      padding: 0 2px;
+      color: var(--text, #333);
+      font-size: 12px;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+      box-sizing: border-box;
+      overflow: hidden;            /* нічого не виходить за межі пункту */
+    }
+
+    .nav-item .icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      margin-bottom: 2px;
+    }
+
+    .nav-item span {
+      font-size: 12px;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      font-weight: 500;
+    }
+
+    /* Бейдж непрочитаних – не виходить за межі панелі */
+    .badge {
+      position: absolute;
+      top: 4px;                    /* трохи відступаємо зверху, щоб було видно */
+      right: 50%;
+      transform: translateX(12px);  /* зсуваємо праворуч від центру */
+      background: #ff3b30;
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      min-width: 16px;
+      height: 16px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      box-sizing: border-box;
+      border: 1px solid white;
+      pointer-events: none;         /* не заважає клікам */
+    }
+
+    /* Адаптація для маленьких екранів */
+    @media (max-width: 480px) {
+      .nav-item span {
+        font-size: 10px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .nav-item span {
+        display: none;   /* на дуже вузьких екранах залишаємо лише іконки */
+      }
+      .bottom-nav {
+        height: 56px;    /* трохи зменшуємо висоту, коли немає тексту */
+      }
+    }
+
+    /* Решта стилів (тимчасове приховування елементів при авторизації) */
     #authBox:not([style*="display: none"]) ~ .feed-header,
     #authBox:not([style*="display: none"]) ~ .feed {
         display: none !important;
     }
-    /* Сховати верхню панель (топ бар) */
     header.top-bar {
         display: none !important;
     }
@@ -32,15 +124,12 @@
 </head>
 <body>
   <div class="app">
-    <!-- Головний контейнер -->
     <main class="main">
-      <!-- Верхня панель (тепер прихована) -->
       <header class="top-bar">
         <button class="back-btn" id="backBtn" aria-label="Назад" style="display: none;">←</button>
         <div class="top-bar-title" id="pageTitle">Головна</div>
       </header>
 
-      <!-- Контент (секції) -->
       <div class="content" id="content">
         <!-- ========== СЕКЦІЯ ГОЛОВНА ========== -->
         <section id="home" class="section active">
@@ -412,7 +501,7 @@
       </div>
     </main>
 
-    <!-- Нижня навігація (меню) -->
+    <!-- НИЖНЄ МЕНЮ (повністю вміщується в рамку) -->
     <nav class="bottom-nav" id="bottomNav">
       <div class="nav-item active" data-section="home" tabindex="0">
         <svg class="icon" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
