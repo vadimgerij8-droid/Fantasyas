@@ -4,6 +4,8 @@
 @import "chat.css";
 @import "feed.css";
 @import "profile.css";
-.top-bar {
+header.top-bar {
   display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
 }
