@@ -473,9 +473,10 @@ export async function sendMessage(text, file) {
       [`unread.${state.currentChatPartner}`]: increment(1)
     });
 
+    // Замість видалення просто ховаємо прев'ю
     clearReplyContext();
     const preview = document.getElementById('replyPreview');
-    if (preview) preview.remove();
+    if (preview) preview.style.display = 'none';
 
     const textInput = document.getElementById('chatText');
     if (textInput) textInput.value = '';
