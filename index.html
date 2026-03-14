@@ -632,48 +632,47 @@
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
   
-  <!-- Додатковий скрипт для роботи меню редагування постів з урахуванням авторства -->
+  <!-- Виправлений скрипт для роботи меню постів з динамічним визначенням автора -->
   <script>
     (function() {
-      // Визначаємо поточного користувача (наприклад, після входу)
-      // У демо-режимі встановлюємо user1 як поточного
-      let currentUserId = localStorage.getItem('currentUserId') || 'user1'; // можна змінити на 'user2', щоб побачити інший варіант
+      // Функція для отримання поточного ID користувача
+      function getCurrentUserId() {
+        return localStorage.getItem('currentUserId') || 'user1'; // Якщо немає – демо-режим
+      }
 
-      // Функція для додавання відповідних дій до поста залежно від автора
+      // Функція для оновлення меню всіх постів
+      function refreshAllPosts() {
+        document.querySelectorAll('.post').forEach(post => enhancePost(post));
+      }
+
+      // Функція для додавання відповідних дій до поста
       function enhancePost(post) {
         const authorId = post.dataset.authorId;
+        const currentUserId = getCurrentUserId();
         const isOwn = (authorId === currentUserId);
 
         const header = post.querySelector('.post-header');
         if (!header) return;
 
-        // Знаходимо або створюємо контейнер дій
+        // Шукаємо або створюємо контейнер дій
         let actionsDiv = post.querySelector('.post-actions');
         if (!actionsDiv) {
           actionsDiv = document.createElement('div');
           actionsDiv.className = 'post-actions';
           header.appendChild(actionsDiv);
         } else {
-          // Очищаємо контейнер, щоб додати актуальні елементи (видаляємо зайве)
-          actionsDiv.innerHTML = '';
+          actionsDiv.innerHTML = ''; // Очищаємо
         }
 
         // Створюємо контейнер меню (три крапки)
         const menuContainer = document.createElement('div');
         menuContainer.className = 'post-menu-container';
-        
-        // Формуємо пункти меню залежно від авторства
-        let menuItemsHtml = '';
-        if (isOwn) {
-          menuItemsHtml = `
-            <div class="post-menu-item" data-action="edit">Редагувати</div>
-            <div class="post-menu-item" data-action="delete">Видалити</div>
-          `;
-        } else {
-          menuItemsHtml = `
-            <div class="post-menu-item" data-action="report">Поскаржитися</div>
-          `;
-        }
+
+        // Формуємо пункти меню
+        let menuItemsHtml = isOwn
+          ? `<div class="post-menu-item" data-action="edit">Редагувати</div>
+             <div class="post-menu-item" data-action="delete">Видалити</div>`
+          : `<div class="post-menu-item" data-action="report">Поскаржитися</div>`;
 
         menuContainer.innerHTML = `
           <button class="post-menu-btn" aria-label="Меню поста">⋯</button>
@@ -681,18 +680,17 @@
             ${menuItemsHtml}
           </div>
         `;
-        
+
         actionsDiv.appendChild(menuContainer);
       }
 
-      // Обробник кліків для відкриття/закриття меню та дій
+      // Обробник кліків для меню
       document.addEventListener('click', function(e) {
-        // Відкриття меню поста
+        // Відкриття/закриття меню
         if (e.target.closest('.post-menu-btn')) {
           e.preventDefault();
           const btn = e.target.closest('.post-menu-btn');
           const dropdown = btn.nextElementSibling;
-          // Закриваємо всі інші меню
           document.querySelectorAll('.post-menu-dropdown.show').forEach(menu => {
             if (menu !== dropdown) menu.classList.remove('show');
           });
@@ -707,7 +705,7 @@
           });
         }
 
-        // Обробка вибору пункту меню
+        // Обробка пунктів меню
         if (e.target.closest('.post-menu-item')) {
           const item = e.target.closest('.post-menu-item');
           const action = item.dataset.action;
@@ -722,39 +720,20 @@
             alert('Скарга відправлена');
           }
 
-          // Закриваємо меню після вибору
           item.closest('.post-menu-dropdown').classList.remove('show');
         }
       });
 
-      // Функція редагування поста
+      // Функції редагування/видалення
       function editPost(postElement) {
         const postContent = postElement.querySelector('.post-content p').innerText;
         const editModal = document.getElementById('editPostModal');
         const editText = document.getElementById('editPostText');
         editText.value = postContent;
-        // Зберігаємо id поста для подальшого збереження
         editModal.dataset.editingPost = postElement.dataset.postId;
         editModal.style.display = 'block';
       }
 
-      // Збереження змін
-      document.getElementById('savePostEdit')?.addEventListener('click', function() {
-        const modal = document.getElementById('editPostModal');
-        const postId = modal.dataset.editingPost;
-        const newText = document.getElementById('editPostText').value;
-
-        // Знаходимо пост за data-post-id
-        const post = document.querySelector(`.post[data-post-id="${postId}"]`);
-        if (post) {
-          post.querySelector('.post-content p').innerText = newText;
-        }
-
-        modal.style.display = 'none';
-        delete modal.dataset.editingPost;
-      });
-
-      // Видалення поста
       function deletePost(postElement) {
         if (confirm('Видалити цей пост?')) {
           postElement.remove();
@@ -766,27 +745,47 @@
         document.getElementById('editPostModal').style.display = 'none';
       });
 
-      // Обробка нових постів, які додаються динамічно (наприклад, через main.js)
-      const feed = document.getElementById('feed');
-      const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-          mutation.addedNodes.forEach(function(node) {
-            if (node.nodeType === 1 && node.classList.contains('post')) {
-              enhancePost(node);
-            } else if (node.nodeType === 1) {
-              // Можливо, додано контейнер з кількома постами
-              node.querySelectorAll('.post').forEach(post => enhancePost(post));
-            }
-          });
-        });
+      // Збереження змін
+      document.getElementById('savePostEdit')?.addEventListener('click', function() {
+        const modal = document.getElementById('editPostModal');
+        const postId = modal.dataset.editingPost;
+        const newText = document.getElementById('editPostText').value;
+        const post = document.querySelector(`.post[data-post-id="${postId}"]`);
+        if (post) {
+          post.querySelector('.post-content p').innerText = newText;
+        }
+        modal.style.display = 'none';
+        delete modal.dataset.editingPost;
       });
 
+      // Спостерігач за новими постами (динамічне додавання)
+      const feed = document.getElementById('feed');
       if (feed) {
+        const observer = new MutationObserver(mutations => {
+          mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+              if (node.nodeType === 1) {
+                if (node.classList.contains('post')) {
+                  enhancePost(node);
+                } else {
+                  node.querySelectorAll('.post').forEach(post => enhancePost(post));
+                }
+              }
+            });
+          });
+        });
         observer.observe(feed, { childList: true, subtree: true });
       }
 
-      // Обробка вже існуючих постів при завантаженні
-      document.querySelectorAll('.post').forEach(post => enhancePost(post));
+      // Оновлення при зміні користувача (наприклад, вхід/вихід)
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'currentUserId') {
+          refreshAllPosts();
+        }
+      });
+
+      // Початкове застосування до вже існуючих постів
+      refreshAllPosts();
     })();
   </script>
 </body>
