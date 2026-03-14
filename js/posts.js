@@ -213,22 +213,97 @@ export async function editPost(postId) {
     return;
   }
   
-  const newText = prompt('Редагувати текст поста:', post.text || '');
-  if (newText === null) return;
-  
-  try {
-    const hashtags = extractHashtags(newText);
-    await updateDoc(postRef, {
-      text: newText,
-      hashtags,
-      edited: true,
-      updatedAt: serverTimestamp()
-    });
-    showToast('Пост оновлено');
-  } catch (error) {
-    console.error('Помилка редагування поста:', error);
-    showToast('Не вдалося оновити пост');
-  }
+  // Викликаємо нове модальне вікно замість prompt
+  createEditModal(post.text || '', async (newText) => {
+    try {
+      const hashtags = extractHashtags(newText);
+      await updateDoc(postRef, {
+        text: newText,
+        hashtags,
+        edited: true,
+        updatedAt: serverTimestamp()
+      });
+      showToast('Пост оновлено');
+
+      // Миттєве оновлення тексту поста в DOM без перезавантаження
+      const postEl = document.querySelector(`.post[data-post-id="${postId}"]`);
+      if (postEl) {
+        const contentContainer = postEl.querySelector('.post-content');
+        if (contentContainer) {
+          let contentHtml = newText;
+          const hashtagRegex = /#(\w+)/g;
+          contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
+          contentContainer.innerHTML = contentHtml;
+          
+          // Відновлюємо кліки по нових хештегах
+          contentContainer.querySelectorAll('.hashtag').forEach(span => {
+            span.onclick = (e) => {
+              e.stopPropagation();
+              const tag = span.dataset.tag;
+              searchHashtag(tag);
+            };
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Помилка редагування поста:', error);
+      showToast('Не вдалося оновити пост');
+    }
+  });
+}
+
+// Функція для створення UI модального вікна редагування
+function createEditModal(currentText, onSave) {
+  // Видаляємо попереднє вікно, якщо раптом залишилося
+  const existingModal = document.getElementById('customEditModal');
+  if (existingModal) existingModal.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'customEditModal';
+  // Базові стилі інлайн, щоб гарантовано працювало поверх будь-якого CSS
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+    z-index: 9999; backdrop-filter: blur(2px);
+  `;
+
+  modal.innerHTML = `
+    <div style="background: var(--bg-color, #ffffff); padding: 20px; border-radius: 16px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 15px;">
+      <h3 style="margin: 0; font-size: 18px; color: var(--text-color, #333);">Редагувати пост</h3>
+      <textarea id="editModalTextarea" style="width: 100%; height: 150px; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: 8px; resize: none; font-family: inherit; font-size: 15px; outline: none; box-sizing: border-box; background: var(--input-bg, #fff); color: var(--text-color, #333);">${currentText}</textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="closeEditModal" style="padding: 10px 16px; border: none; border-radius: 8px; background: var(--btn-secondary-bg, #e0e0e0); color: var(--text-color, #333); font-weight: 600; cursor: pointer;">Скасувати</button>
+        <button id="saveEditModal" style="padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary-color, #007bff); color: white; font-weight: 600; cursor: pointer;">Зберегти</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const textarea = document.getElementById('editModalTextarea');
+  // Ставимо курсор в кінець тексту
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+  const closeModal = () => modal.remove();
+
+  document.getElementById('closeEditModal').onclick = closeModal;
+  document.getElementById('saveEditModal').onclick = () => {
+    const newText = textarea.value.trim();
+    if (newText && newText !== currentText) {
+      onSave(newText);
+      closeModal();
+    } else if (newText === currentText) {
+      closeModal(); // Якщо нічого не змінено, просто закриваємо
+    } else {
+      showToast('Текст поста не може бути порожнім');
+    }
+  };
+
+  // Закриття по кліку на темний фон
+  modal.onclick = (e) => {
+    if (e.target === modal) closeModal();
+  };
 }
 
 // ================= Видалення поста =================
@@ -325,7 +400,6 @@ export async function loadMorePosts(containerId = 'feed') {
     renderPosts(snapshot.docs, containerId);
   } catch (e) {
     console.error("Помилка завантаження постів:", e);
-    // Покращена обробка помилки
     if (e.code === 'failed-precondition' || e.message.includes('index')) {
       const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
       if (match) {
@@ -357,7 +431,6 @@ export function renderPosts(docs, containerId = 'feed') {
     const post = { id: docSnap.id, ...docSnap.data() };
     const liked = post.likes?.includes(state.currentUser?.uid) || false;
     const saved = post.saves?.includes(state.currentUser?.uid) || false;
-    // Формат: день.місяць.рік години:хвилини
     const postTime = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString('uk-UA', {
       day: '2-digit',
       month: '2-digit',
@@ -374,7 +447,6 @@ export function renderPosts(docs, containerId = 'feed') {
     postEl.dataset.postId = post.id;
     postEl.tabIndex = 0;
 
-    // Меню з трьома крапками (тільки для автора)
     let menuHtml = '';
     if (isAuthor) {
       menuHtml = `
@@ -411,7 +483,6 @@ export function renderPosts(docs, containerId = 'feed') {
       <div class="post-content">${contentHtml}</div>
     `;
 
-    // Галерея
     if (post.media && post.media.length > 0) {
       const gallery = createGallery(post.media);
       postEl.appendChild(gallery);
@@ -466,7 +537,6 @@ export function renderPosts(docs, containerId = 'feed') {
 
     incrementPostView(post.id);
 
-    // Обробники для хештегів
     postEl.querySelectorAll('.hashtag').forEach(span => {
       span.onclick = (e) => {
         e.stopPropagation();
@@ -475,7 +545,6 @@ export function renderPosts(docs, containerId = 'feed') {
       };
     });
 
-    // Обробники для коментарів
     const commentInput = document.getElementById(`comment-input-${post.id}`);
     if (commentInput) {
       setupEmojiPicker(`comment-emoji-${post.id}`, `comment-picker-${post.id}`, `comment-input-${post.id}`);
@@ -512,7 +581,6 @@ export function renderPosts(docs, containerId = 'feed') {
       };
     }
 
-    // Підписка на оновлення поста
     const postRef = doc(db, "posts", post.id);
     const unsubscribe = onSnapshot(postRef, (snap) => {
       if (snap.exists()) {
@@ -551,7 +619,6 @@ export function renderPosts(docs, containerId = 'feed') {
 
 // ================= Глобальне делегування для меню постів =================
 document.addEventListener('click', (e) => {
-  // Відкриття/закриття меню по кнопці з трьома крапками
   const menuBtn = e.target.closest('.post-menu-btn');
   if (menuBtn) {
     e.preventDefault();
@@ -559,17 +626,14 @@ document.addEventListener('click', (e) => {
     const menuContainer = menuBtn.closest('.post-menu-container');
     const dropdown = menuContainer.querySelector('.post-menu-dropdown');
     if (dropdown) {
-      // Закриваємо всі інші меню
       document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
         if (menu !== dropdown) menu.style.display = 'none';
       });
-      // Перемикаємо поточне
       dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
     }
     return;
   }
 
-  // Клік на пункт меню (Редагувати / Видалити)
   const menuItem = e.target.closest('.post-menu-item');
   if (menuItem) {
     e.preventDefault();
@@ -585,13 +649,11 @@ document.addEventListener('click', (e) => {
       deletePost(postId);
     }
     
-    // Закриваємо меню після дії
     const dropdown = menuContainer.querySelector('.post-menu-dropdown');
     if (dropdown) dropdown.style.display = 'none';
     return;
   }
 
-  // Клік поза будь-яким меню – закриваємо всі
   if (!e.target.closest('.post-menu-container')) {
     document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
       menu.style.display = 'none';
@@ -608,7 +670,6 @@ export async function loadComments(postId, container) {
     const comment = doc.data();
     const commentEl = document.createElement('div');
     commentEl.className = 'comment';
-    // Формат для коментарів: день.місяць.рік години:хвилини
     const commentTime = comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleString('uk-UA', {
       day: '2-digit',
       month: '2-digit',
@@ -699,7 +760,6 @@ function createGallery(media) {
   counter.textContent = `1/${media.length}`;
   gallery.appendChild(counter);
 
-  // Оновлюємо індикатори та лічильник під час скролу
   const updateGallery = () => {
     const scrollLeft = inner.scrollLeft;
     const slideWidth = inner.clientWidth;
@@ -713,7 +773,6 @@ function createGallery(media) {
   };
 
   inner.addEventListener('scroll', updateGallery);
-  // Викликаємо один раз для початкового стану
   setTimeout(updateGallery, 0);
 
   return gallery;
@@ -813,7 +872,6 @@ export function applyFilter(tag) {
   setFilterHashtag(tag);
   document.getElementById('filterModal').classList.remove('active');
 
-  // При застосуванні фільтра автоматично перемикаємо на "Нові", щоб уникнути помилки індексу
   if (state.currentFeedType === 'popular') {
     setCurrentFeedType('new');
     document.getElementById('feedNewBtn').classList.add('active');
