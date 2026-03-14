@@ -466,7 +466,7 @@ export function renderPosts(docs, containerId = 'feed') {
 
     incrementPostView(post.id);
 
-    // Обробники
+    // Обробники для хештегів
     postEl.querySelectorAll('.hashtag').forEach(span => {
       span.onclick = (e) => {
         e.stopPropagation();
@@ -475,37 +475,7 @@ export function renderPosts(docs, containerId = 'feed') {
       };
     });
 
-    // Обробник для меню поста
-    const menuContainer = postEl.querySelector('.post-menu-container');
-    if (menuContainer) {
-      const menuBtn = menuContainer.querySelector('.post-menu-btn');
-      const menuDropdown = menuContainer.querySelector('.post-menu-dropdown');
-
-      menuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Закриваємо всі інші меню
-        document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-          if (menu !== menuDropdown) menu.style.display = 'none';
-        });
-        // Показуємо/ховаємо поточне
-        menuDropdown.style.display = menuDropdown.style.display === 'block' ? 'none' : 'block';
-      });
-
-      // Обробка пунктів меню
-      menuDropdown.querySelectorAll('.post-menu-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const action = item.dataset.action;
-          if (action === 'edit') {
-            editPost(post.id);
-          } else if (action === 'delete') {
-            deletePost(post.id);
-          }
-          menuDropdown.style.display = 'none';
-        });
-      });
-    }
-
+    // Обробники для коментарів
     const commentInput = document.getElementById(`comment-input-${post.id}`);
     if (commentInput) {
       setupEmojiPicker(`comment-emoji-${post.id}`, `comment-picker-${post.id}`, `comment-input-${post.id}`);
@@ -579,8 +549,49 @@ export function renderPosts(docs, containerId = 'feed') {
   });
 }
 
-// Глобальний обробник для закриття меню при кліку поза ним
+// ================= Глобальне делегування для меню постів =================
 document.addEventListener('click', (e) => {
+  // Відкриття/закриття меню по кнопці з трьома крапками
+  const menuBtn = e.target.closest('.post-menu-btn');
+  if (menuBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const menuContainer = menuBtn.closest('.post-menu-container');
+    const dropdown = menuContainer.querySelector('.post-menu-dropdown');
+    if (dropdown) {
+      // Закриваємо всі інші меню
+      document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+        if (menu !== dropdown) menu.style.display = 'none';
+      });
+      // Перемикаємо поточне
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+    return;
+  }
+
+  // Клік на пункт меню (Редагувати / Видалити)
+  const menuItem = e.target.closest('.post-menu-item');
+  if (menuItem) {
+    e.preventDefault();
+    e.stopPropagation();
+    const menuContainer = menuItem.closest('.post-menu-container');
+    const postEl = menuContainer.closest('.post');
+    const postId = postEl.dataset.postId;
+    const action = menuItem.dataset.action;
+    
+    if (action === 'edit') {
+      editPost(postId);
+    } else if (action === 'delete') {
+      deletePost(postId);
+    }
+    
+    // Закриваємо меню після дії
+    const dropdown = menuContainer.querySelector('.post-menu-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+    return;
+  }
+
+  // Клік поза будь-яким меню – закриваємо всі
   if (!e.target.closest('.post-menu-container')) {
     document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
       menu.style.display = 'none';
@@ -653,7 +664,7 @@ async function incrementPostView(postId) {
   }
 }
 
-// ================= Галерея (ВИПРАВЛЕНО) =================
+// ================= Галерея =================
 function createGallery(media) {
   const gallery = document.createElement('div');
   gallery.className = 'post-gallery';
