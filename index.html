@@ -28,6 +28,68 @@
     header.top-bar {
         display: none !important;
     }
+
+    /* ===== Стилі для меню поста ===== */
+    .post-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .post-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .post-menu-container {
+      position: relative;
+    }
+
+    .post-menu-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      color: var(--text-color, #333);
+    }
+
+    .post-menu-btn:hover {
+      background: var(--hover-bg, #f0f0f0);
+    }
+
+    .post-menu-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      background: var(--card-bg, #fff);
+      border: 1px solid var(--border, #ddd);
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      min-width: 150px;
+      z-index: 10;
+      display: none;
+    }
+
+    .post-menu-dropdown.show {
+      display: block;
+    }
+
+    .post-menu-item {
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .post-menu-item:hover {
+      background: var(--hover-bg, #f5f5f5);
+    }
+
+    .post-menu-item[data-action="delete"] {
+      color: var(--danger, #e53935);
+    }
   </style>
 </head>
 <body>
@@ -75,8 +137,8 @@
 
           <!-- Стрічка постів -->
           <div class="feed" id="feed">
-            <!-- Приклад поста з новою шапкою, переробленою за вимогою -->
-            <div class="post">
+            <!-- Приклад поста з новою шапкою, переробленою за вимогою (тепер з меню) -->
+            <div class="post" data-post-id="1">
               <div class="post-header">
                 <div class="user-info">
                   <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
@@ -85,7 +147,17 @@
                     <div class="user-username">@username</div>
                   </div>
                 </div>
-                <button class="follow-btn">Підписатися</button>
+                <div class="post-actions">
+                  <button class="follow-btn">Підписатися</button>
+                  <div class="post-menu-container">
+                    <button class="post-menu-btn" aria-label="Меню поста">⋯</button>
+                    <div class="post-menu-dropdown">
+                      <div class="post-menu-item" data-action="edit">Редагувати</div>
+                      <div class="post-menu-item" data-action="delete">Видалити</div>
+                      <div class="post-menu-item" data-action="report">Поскаржитися</div>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="post-content">
                 <p>Текст поста. Тут може бути будь-який вміст, але головне — шапка оформлена згідно з завданням.</p>
@@ -554,5 +626,151 @@
 
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
+  
+  <!-- Додатковий скрипт для роботи меню редагування постів -->
+  <script>
+    (function() {
+      // Функція для додавання меню до поста, якщо його ще немає
+      function enhancePost(post) {
+        if (post.querySelector('.post-menu-container')) return; // вже є меню
+
+        const header = post.querySelector('.post-header');
+        if (!header) return;
+
+        // Знаходимо існуючу кнопку підписки (якщо є)
+        const followBtn = post.querySelector('.follow-btn');
+        
+        // Створюємо контейнер для дій
+        let actionsDiv = post.querySelector('.post-actions');
+        if (!actionsDiv) {
+          actionsDiv = document.createElement('div');
+          actionsDiv.className = 'post-actions';
+          // Переміщуємо кнопку підписки в actionsDiv
+          if (followBtn) {
+            actionsDiv.appendChild(followBtn.cloneNode(true));
+            followBtn.remove();
+          }
+          header.appendChild(actionsDiv);
+        }
+
+        // Додаємо меню (три крапки)
+        const menuContainer = document.createElement('div');
+        menuContainer.className = 'post-menu-container';
+        menuContainer.innerHTML = `
+          <button class="post-menu-btn" aria-label="Меню поста">⋯</button>
+          <div class="post-menu-dropdown">
+            <div class="post-menu-item" data-action="edit">Редагувати</div>
+            <div class="post-menu-item" data-action="delete">Видалити</div>
+            <div class="post-menu-item" data-action="report">Поскаржитися</div>
+          </div>
+        `;
+        actionsDiv.appendChild(menuContainer);
+      }
+
+      // Обробник кліків для відкриття/закриття меню та дій
+      document.addEventListener('click', function(e) {
+        // Відкриття меню поста
+        if (e.target.closest('.post-menu-btn')) {
+          e.preventDefault();
+          const btn = e.target.closest('.post-menu-btn');
+          const dropdown = btn.nextElementSibling;
+          // Закриваємо всі інші меню
+          document.querySelectorAll('.post-menu-dropdown.show').forEach(menu => {
+            if (menu !== dropdown) menu.classList.remove('show');
+          });
+          dropdown.classList.toggle('show');
+          e.stopPropagation();
+        }
+
+        // Закриття меню при кліку поза ним
+        if (!e.target.closest('.post-menu-container')) {
+          document.querySelectorAll('.post-menu-dropdown.show').forEach(menu => {
+            menu.classList.remove('show');
+          });
+        }
+
+        // Обробка вибору пункту меню
+        if (e.target.closest('.post-menu-item')) {
+          const item = e.target.closest('.post-menu-item');
+          const action = item.dataset.action;
+          const post = item.closest('.post');
+          const postId = post.dataset.postId;
+
+          if (action === 'edit') {
+            editPost(post);
+          } else if (action === 'delete') {
+            deletePost(post);
+          } else if (action === 'report') {
+            alert('Скарга відправлена');
+          }
+
+          // Закриваємо меню після вибору
+          item.closest('.post-menu-dropdown').classList.remove('show');
+        }
+      });
+
+      // Функція редагування поста
+      function editPost(postElement) {
+        const postContent = postElement.querySelector('.post-content p').innerText;
+        const editModal = document.getElementById('editPostModal');
+        const editText = document.getElementById('editPostText');
+        editText.value = postContent;
+        // Зберігаємо посилання на пост для оновлення після збереження
+        editModal.dataset.editingPost = postElement.dataset.postId;
+        // Можна зберегти сам елемент, але dataset приймає лише рядки. Використаємо data-атрибут для id, а сам елемент знайдемо за id
+        editModal.style.display = 'block';
+      }
+
+      // Збереження змін
+      document.getElementById('savePostEdit')?.addEventListener('click', function() {
+        const modal = document.getElementById('editPostModal');
+        const postId = modal.dataset.editingPost;
+        const newText = document.getElementById('editPostText').value;
+
+        // Знаходимо пост за data-post-id
+        const post = document.querySelector(`.post[data-post-id="${postId}"]`);
+        if (post) {
+          post.querySelector('.post-content p').innerText = newText;
+        }
+
+        modal.style.display = 'none';
+        delete modal.dataset.editingPost;
+      });
+
+      // Видалення поста
+      function deletePost(postElement) {
+        if (confirm('Видалити цей пост?')) {
+          postElement.remove();
+        }
+      }
+
+      // Закриття модалки редагування
+      document.getElementById('closeEditPostModal')?.addEventListener('click', function() {
+        document.getElementById('editPostModal').style.display = 'none';
+      });
+
+      // Обробка нових постів, які додаються динамічно (наприклад, через main.js)
+      const feed = document.getElementById('feed');
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1 && node.classList.contains('post')) {
+              enhancePost(node);
+            } else if (node.nodeType === 1) {
+              // Можливо, додано контейнер з кількома постами
+              node.querySelectorAll('.post').forEach(post => enhancePost(post));
+            }
+          });
+        });
+      });
+
+      if (feed) {
+        observer.observe(feed, { childList: true, subtree: true });
+      }
+
+      // Обробка вже існуючих постів при завантаженні
+      document.querySelectorAll('.post').forEach(post => enhancePost(post));
+    })();
+  </script>
 </body>
 </html>
