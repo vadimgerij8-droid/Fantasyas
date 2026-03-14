@@ -137,33 +137,38 @@
 
           <!-- Стрічка постів -->
           <div class="feed" id="feed">
-            <!-- Приклад поста з новою шапкою, переробленою за вимогою (тепер з меню) -->
-            <div class="post" data-post-id="1">
+            <!-- Приклад поста з новою шапкою, переробленою за вимогою (тепер з атрибутом автора) -->
+            <div class="post" data-post-id="1" data-author-id="user2">
               <div class="post-header">
                 <div class="user-info">
                   <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
                   <div class="user-text">
-                    <div class="user-name">Ім'я Користувача</div>
-                    <div class="user-username">@username</div>
+                    <div class="user-name">Ім'я Користувача (чужий)</div>
+                    <div class="user-username">@user2</div>
                   </div>
                 </div>
-                <div class="post-actions">
-                  <button class="follow-btn">Підписатися</button>
-                  <div class="post-menu-container">
-                    <button class="post-menu-btn" aria-label="Меню поста">⋯</button>
-                    <div class="post-menu-dropdown">
-                      <div class="post-menu-item" data-action="edit">Редагувати</div>
-                      <div class="post-menu-item" data-action="delete">Видалити</div>
-                      <div class="post-menu-item" data-action="report">Поскаржитися</div>
-                    </div>
-                  </div>
-                </div>
+                <!-- Контейнер для дій буде заповнено динамічно скриптом -->
               </div>
               <div class="post-content">
-                <p>Текст поста. Тут може бути будь-який вміст, але головне — шапка оформлена згідно з завданням.</p>
+                <p>Це пост іншого користувача. Тут не повинно бути меню редагування/видалення, тільки кнопка підписки.</p>
               </div>
             </div>
-            <!-- Решта постів будуть додаватися динамічно -->
+            <!-- Приклад власного поста (для демонстрації) -->
+            <div class="post" data-post-id="2" data-author-id="user1">
+              <div class="post-header">
+                <div class="user-info">
+                  <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
+                  <div class="user-text">
+                    <div class="user-name">Мій профіль</div>
+                    <div class="user-username">@user1</div>
+                  </div>
+                </div>
+                <!-- Контейнер для дій буде заповнено динамічно скриптом -->
+              </div>
+              <div class="post-content">
+                <p>Це мій власний пост. Тут має бути меню з редагуванням/видаленням.</p>
+              </div>
+            </div>
           </div>
           <div class="feed-end-sentinel" id="feedSentinel"></div>
           <div id="skeletonContainer" style="display:none;">
@@ -627,44 +632,52 @@
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
   
-  <!-- Додатковий скрипт для роботи меню редагування постів -->
+  <!-- Додатковий скрипт для роботи меню редагування постів з урахуванням авторства -->
   <script>
     (function() {
-      // Функція для додавання меню до поста, якщо його ще немає
+      // Визначаємо поточного користувача (наприклад, після входу)
+      // У демо-режимі встановлюємо user1 як поточного
+      let currentUserId = localStorage.getItem('currentUserId') || 'user1'; // можна змінити на 'user2', щоб побачити інший варіант
+
+      // Функція для додавання відповідних дій до поста залежно від автора
       function enhancePost(post) {
-        if (post.querySelector('.post-menu-container')) return; // вже є меню
+        const authorId = post.dataset.authorId;
+        const isOwn = (authorId === currentUserId);
 
         const header = post.querySelector('.post-header');
         if (!header) return;
 
-        // Знаходимо існуючу кнопку підписки (якщо є)
-        const followBtn = post.querySelector('.follow-btn');
-        
-        // Створюємо контейнер для дій
+        // Знаходимо або створюємо контейнер дій
         let actionsDiv = post.querySelector('.post-actions');
         if (!actionsDiv) {
           actionsDiv = document.createElement('div');
           actionsDiv.className = 'post-actions';
-          // Переміщуємо кнопку підписки в actionsDiv
-          if (followBtn) {
-            actionsDiv.appendChild(followBtn.cloneNode(true));
-            followBtn.remove();
-          }
           header.appendChild(actionsDiv);
+        } else {
+          // Очищаємо контейнер, щоб додати актуальні елементи
+          actionsDiv.innerHTML = '';
         }
 
-        // Додаємо меню (три крапки)
-        const menuContainer = document.createElement('div');
-        menuContainer.className = 'post-menu-container';
-        menuContainer.innerHTML = `
-          <button class="post-menu-btn" aria-label="Меню поста">⋯</button>
-          <div class="post-menu-dropdown">
-            <div class="post-menu-item" data-action="edit">Редагувати</div>
-            <div class="post-menu-item" data-action="delete">Видалити</div>
-            <div class="post-menu-item" data-action="report">Поскаржитися</div>
-          </div>
-        `;
-        actionsDiv.appendChild(menuContainer);
+        if (isOwn) {
+          // Власний пост: показуємо меню з редагуванням/видаленням
+          const menuContainer = document.createElement('div');
+          menuContainer.className = 'post-menu-container';
+          menuContainer.innerHTML = `
+            <button class="post-menu-btn" aria-label="Меню поста">⋯</button>
+            <div class="post-menu-dropdown">
+              <div class="post-menu-item" data-action="edit">Редагувати</div>
+              <div class="post-menu-item" data-action="delete">Видалити</div>
+              <div class="post-menu-item" data-action="report">Поскаржитися</div>
+            </div>
+          `;
+          actionsDiv.appendChild(menuContainer);
+        } else {
+          // Чужий пост: показуємо кнопку підписки
+          const followBtn = document.createElement('button');
+          followBtn.className = 'follow-btn';
+          followBtn.textContent = 'Підписатися';
+          actionsDiv.appendChild(followBtn);
+        }
       }
 
       // Обробник кліків для відкриття/закриття меню та дій
@@ -715,9 +728,8 @@
         const editModal = document.getElementById('editPostModal');
         const editText = document.getElementById('editPostText');
         editText.value = postContent;
-        // Зберігаємо посилання на пост для оновлення після збереження
+        // Зберігаємо id поста для подальшого збереження
         editModal.dataset.editingPost = postElement.dataset.postId;
-        // Можна зберегти сам елемент, але dataset приймає лише рядки. Використаємо data-атрибут для id, а сам елемент знайдемо за id
         editModal.style.display = 'block';
       }
 
