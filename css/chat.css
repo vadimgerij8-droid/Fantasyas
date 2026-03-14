@@ -529,21 +529,34 @@
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15), var(--shadow-glow);
   outline: none;
 }
+/* Покращений блок попереднього перегляду відповіді (біля поля вводу) */
 .reply-preview {
   display: flex;
   align-items: center;
-  background: var(--surface);
-  border-left: 3px solid var(--accent);
-  padding: 8px 12px;
-  margin: 0 16px 8px;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  background: rgba(var(--surface-rgb), 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-left: 4px solid var(--accent);
+  padding: 10px 16px;
+  margin: 0 16px 12px;
+  border-radius: 14px;
+  font-size: 0.95rem;
   animation: slideUpFade 0.3s ease-out;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(var(--border-rgb), 0.3);
+  transition: background 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+.reply-preview:hover {
+  background: rgba(var(--surface-rgb), 0.95);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 .reply-preview .reply-sender {
-  font-weight: 600;
-  margin-right: 8px;
+  font-weight: 700;
+  margin-right: 10px;
   color: var(--accent);
+  white-space: nowrap;
 }
 .reply-preview .reply-text {
   flex: 1;
@@ -551,84 +564,181 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text-secondary);
+  font-style: italic;
 }
 .reply-preview .close-reply {
   background: none;
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0 4px;
+  font-size: 1.4rem;
+  padding: 0 6px;
+  transition: opacity 0.2s, transform 0.2s;
+  line-height: 1;
 }
 .reply-preview .close-reply:hover {
+  opacity: 1;
+  transform: scale(1.2);
   color: var(--danger);
 }
+/* Покращений блок відповіді всередині повідомлення */
 .message-reply-preview {
-  background: rgba(0,0,0,0.05);
-  border-left: 3px solid var(--accent);
-  padding: 6px 10px;
-  margin-bottom: 8px;
-  border-radius: 8px;
-  font-size: 0.85rem;
+  background: rgba(var(--surface-rgb), 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-left: 4px solid var(--accent);
+  padding: 8px 14px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(var(--border-rgb), 0.2);
+  color: var(--text-primary);
+}
+.message-reply-preview::before {
+  content: '↩';
+  font-size: 1.2rem;
+  opacity: 0.7;
+  color: var(--accent);
+  margin-right: 4px;
 }
 .message-reply-preview:hover {
-  background: rgba(0,0,0,0.1);
+  background: rgba(var(--surface-rgb), 0.5);
+  transform: translateX(4px);
 }
 .message-reply-preview .reply-sender {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--accent);
+  white-space: nowrap;
 }
 .message-reply-preview .reply-text {
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  font-style: italic;
 }
-.context-menu {
-  position: fixed;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  min-width: 180px;
+
+/* ========== СТИЛЬНЕ МЕНЮ РЕДАГУВАННЯ (Instagram-стиль) ========== */
+.message-actions-menu {
+  position: absolute;
+  background: rgba(var(--card-rgb), 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(var(--border-rgb), 0.3);
+  border-radius: 20px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  min-width: 240px;
   z-index: 2000;
   display: none;
   flex-direction: column;
-  padding: 4px 0;
-  animation: scaleIn 0.2s ease-out;
+  padding: 8px 0;
+  animation: scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: top right;
+  overflow: hidden;
+}
+.message-actions-menu.show {
+  display: flex;
+}
+.message-actions-menu .menu-item {
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--text-primary);
+  border-bottom: none;
+  border-radius: 0;
+}
+.message-actions-menu .menu-item:last-child {
+  border-bottom: none;
+}
+.message-actions-menu .menu-item:hover {
+  background: rgba(var(--surface-rgb), 0.8);
+  transform: translateX(6px) scale(1.02);
+}
+.message-actions-menu .menu-item svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  transition: transform 0.2s ease;
+}
+.message-actions-menu .menu-item:hover svg {
+  transform: scale(1.15);
+}
+.message-actions-menu .menu-item.danger {
+  color: #e0e0e0; /* світло-сірий замість червоного */
+}
+.message-actions-menu .menu-item.danger:hover {
+  background: rgba(200, 200, 200, 0.15);
+}
+/* Спеціальний стиль для пункту "Відповісти" */
+.message-actions-menu .menu-item.reply {
+  color: var(--accent);
+  font-weight: 600;
+}
+.message-actions-menu .menu-item.reply svg {
+  stroke: var(--accent);
+}
+
+/* Покращене контекстне меню (загальне) */
+.context-menu {
+  position: fixed;
+  background: rgba(var(--card-rgb), 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(var(--border-rgb), 0.3);
+  border-radius: 20px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  z-index: 2000;
+  display: none;
+  flex-direction: column;
+  padding: 8px 0;
+  animation: scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: top left;
   overflow: hidden;
 }
 .context-menu.show {
   display: flex;
 }
 .context-menu-item {
-  padding: 12px 16px;
+  padding: 12px 18px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   font-size: 0.95rem;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  color: var(--text-primary);
 }
 .context-menu-item:hover {
-  background: var(--surface);
-  transform: translateX(4px);
+  background: rgba(var(--surface-rgb), 0.8);
+  transform: translateX(6px);
 }
+
+/* Реакції – пікер */
 .reaction-picker {
   position: fixed;
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: rgba(var(--card-rgb), 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(var(--border-rgb), 0.3);
   border-radius: 40px;
-  box-shadow: var(--shadow-lg);
-  padding: 8px;
+  box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.3);
+  padding: 12px;
   display: none;
-  gap: 6px;
+  gap: 8px;
   z-index: 2000;
-  animation: scaleIn 0.2s ease-out;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: bottom center;
 }
 .reaction-picker.show {
   display: flex;
@@ -636,78 +746,99 @@
 .reaction-btn {
   background: none;
   border: none;
-  font-size: 1.8rem;
+  font-size: 2rem;
   cursor: pointer;
-  padding: 6px;
+  padding: 0;
   border-radius: 50%;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  width: 44px;
-  height: 44px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .reaction-btn:hover {
-  transform: scale(1.3) translateY(-4px);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  transform: scale(1.4) translateY(-6px);
+  background: transparent;
+  box-shadow: none;
 }
 .reaction-btn.more {
-  font-size: 1.4rem;
+  font-size: 1.8rem;
   color: var(--text-secondary);
 }
-
-/* ========== СТИЛЬНЕ МЕНЮ РЕДАГУВАННЯ (Instagram-стиль) ========== */
-.message-actions-menu {
-  position: absolute;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow-lg);
-  min-width: 220px;
-  z-index: 2000;
-  display: none;
-  flex-direction: column;
-  padding: 6px 0;
-  animation: scaleIn 0.2s ease-out;
-  overflow: hidden;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  background: rgba(var(--surface-rgb), 0.9);
+.reaction-btn.more:hover {
+  transform: scale(1.2) translateY(-4px);
 }
-.message-actions-menu.show {
-  display: flex;
-}
-.message-actions-menu .menu-item {
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.95rem;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border);
-}
-.message-actions-menu .menu-item:last-child {
-  border-bottom: none;
-}
-.message-actions-menu .menu-item:hover {
-  background: var(--surface);
-  transform: translateX(4px);
-}
-.message-actions-menu .menu-item svg {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
-}
-.message-actions-menu .menu-item.danger {
-  color: var(--danger);
-}
-.message-actions-menu .menu-item.danger:hover {
-  background: rgba(158, 158, 158, 0.1);
+/* Підсвічування реакції користувача */
+.reaction-item.user-reacted {
+  background: rgba(var(--accent-rgb), 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
+/* ========== АНІМАЦІЇ ========== */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes messageSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes typingDot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+@keyframes pulse-soft {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+/* ========== МОБІЛЬНА АДАПТАЦІЯ ========== */
 @media (max-width: 768px) {
   .chats-container {
     flex-direction: column;
@@ -744,377 +875,71 @@
   .chat-header {
     padding-top: env(safe-area-inset-top, 12px);
   }
-}
-
-/* ===== ДОДАТКОВІ СТИЛІ ДЛЯ ПОКРАЩЕННЯ UI (Instagram Direct стиль, чорно-білий) ===== */
-
-/* 1. Floating меню редагування (Instagram-стиль) */
-.message-actions-menu {
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  background: rgba(var(--card-rgb), 0.85) !important; /* напівпрозорий фон */
-  border: 1px solid rgba(var(--border-rgb), 0.3);
-  border-radius: 20px !important; /* Instagram округлення */
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  animation: scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform-origin: top right;
-  padding: 8px 0;
-  min-width: 240px;
-}
-
-.message-actions-menu .menu-item {
-  padding: 14px 18px;
-  font-size: 0.95rem;
-  gap: 16px;
-  border-bottom: none;
-  transition: background 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  color: var(--text-primary);
-  border-radius: 0;
-}
-
-.message-actions-menu .menu-item:hover {
-  background: rgba(var(--surface-rgb), 0.8);
-  transform: translateX(6px) scale(1.02);
-}
-
-.message-actions-menu .menu-item svg {
-  width: 22px;
-  height: 22px;
-  fill: currentColor;
-  transition: transform 0.2s ease;
-}
-
-.message-actions-menu .menu-item:hover svg {
-  transform: scale(1.15);
-}
-
-.message-actions-menu .menu-item.danger {
-  color: #e0e0e0; /* світло-сірий замість червоного */
-}
-
-.message-actions-menu .menu-item.danger:hover {
-  background: rgba(200, 200, 200, 0.15);
-}
-
-/* 2. Реакції – пікер та інтерактив */
-.reaction-picker {
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  background: rgba(var(--card-rgb), 0.85);
-  border: 1px solid rgba(var(--border-rgb), 0.3);
-  border-radius: 40px;
-  padding: 12px;
-  gap: 8px;
-  box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.3);
-  animation: scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transform-origin: bottom center;
-}
-
-.reaction-btn {
-  font-size: 2rem;
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.reaction-btn:hover {
-  transform: scale(1.4) translateY(-6px);
-  background: transparent;
-  box-shadow: none;
-}
-
-.reaction-btn.more {
-  font-size: 1.8rem;
-  color: var(--text-secondary);
-}
-
-.reaction-btn.more:hover {
-  transform: scale(1.2) translateY(-4px);
-}
-
-/* Підсвічування реакції користувача */
-.reaction-item.user-reacted {
-  background: rgba(var(--accent-rgb), 0.15);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-
-/* 3. Відповідь на повідомлення – покращений блок */
-.reply-preview {
-  border-left: 4px solid var(--accent);
-  background: rgba(var(--surface-rgb), 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 12px;
-  margin: 0 16px 12px;
-  padding: 10px 14px;
-  animation: slideUpFade 0.3s ease-out;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.2s;
-}
-
-.reply-preview:hover {
-  background: rgba(var(--surface-rgb), 0.9);
-  transform: translateY(-2px);
-}
-
-.reply-preview .reply-sender {
-  font-weight: 700;
-  color: var(--accent);
-  margin-right: 10px;
-}
-
-.reply-preview .reply-text {
-  font-size: 0.9rem;
-  color: var(--text-tertiary);
-}
-
-.reply-preview .close-reply {
-  opacity: 0.7;
-  transition: opacity 0.2s, transform 0.2s;
-}
-
-.reply-preview .close-reply:hover {
-  opacity: 1;
-  transform: scale(1.2);
-  color: var(--danger);
-}
-
-/* Блок відповіді всередині повідомлення */
-.message-reply-preview {
-  border-left: 4px solid var(--accent);
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 10px;
-  padding: 8px 12px;
-  margin-bottom: 10px;
-  transition: background 0.2s, transform 0.2s;
-}
-
-.message-reply-preview:hover {
-  background: rgba(0, 0, 0, 0.08);
-  transform: translateX(2px);
-}
-
-.message-reply-preview .reply-sender {
-  font-weight: 700;
-  color: var(--accent);
-}
-
-/* 4. Анімації повідомлень */
-.message-wrapper {
-  animation: messageSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.message-bubble {
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
-}
-
-.message-bubble:hover {
-  transform: scale(1.02);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-}
-
-/* Реакція з pop-ефектом */
-.reaction-item {
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s;
-}
-
-.reaction-item:active {
-  transform: scale(1.2);
-}
-
-/* Анімація появи меню та пікера */
-.message-actions-menu,
-.reaction-picker {
-  animation: scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-/* 5. Друк (typing) – анімація точок як в Instagram */
-.typing-indicator {
-  padding: 14px 20px;
-  background: rgba(var(--surface-rgb), 0.8);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-top: none;
-  border-radius: 30px;
-  margin: 8px 16px;
-  width: fit-content;
-}
-
-.typing-dots span {
-  animation: typingDot 1.4s infinite;
-  opacity: 1;
-  font-size: 2rem;
-  line-height: 0.8;
-  color: var(--text-tertiary);
-  display: inline-block;
-  width: 8px;
-  text-align: center;
-}
-
-.typing-dots span:nth-child(1) { animation-delay: 0s; }
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-/* 6. Додаємо відсутні keyframes */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes messageSlideIn {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes typingDot {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  30% {
-    transform: translateY(-8px);
-    opacity: 1;
-  }
-}
-
-@keyframes pulse-soft {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.9;
-  }
-}
-
-/* 7. Плавність для елементів, що з'являються */
-.chat-window-container {
-  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-}
-
-.chat-back-btn {
-  transition: background 0.2s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.chat-back-btn:hover {
-  transform: scale(1.15);
-}
-
-/* 8. Mobile UX – покращення */
-@media (max-width: 768px) {
-  .chat-window-container.active {
-    animation: slideIn 0.3s ease-out;
-  }
-
-  .chat-list-sidebar.hide {
-    display: none;
-  }
-
   .message-actions-menu {
     min-width: 200px;
     border-radius: 18px !important;
   }
-
   .reaction-picker {
     padding: 10px;
     gap: 4px;
   }
-
   .reaction-btn {
     width: 48px;
     height: 48px;
     font-size: 1.8rem;
   }
-
   .reply-preview {
     margin: 0 12px 10px;
   }
 }
 
-/* 9. Додаткові штрихи для Instagram-стилю */
-.chat-item {
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s;
-}
-
-.chat-item.active {
-  transform: translateX(12px) scale(1.03);
-}
-
-.chat-avatar {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.chat-item:hover .chat-avatar {
-  transform: scale(1.1) rotate(3deg);
-}
-
-/* Чорно-біла тема – використовуємо відтінки сірого */
+/* ========== ЧОРНО-БІЛА ТЕМА (базові змінні) ========== */
 :root {
-  --accent: #333333; /* темно-сірий як акцент */
+  --accent: #333333;
   --accent-light: #f0f0f0;
   --accent-rgb: 51, 51, 51;
   --card-rgb: 255, 255, 255;
   --surface-rgb: 245, 245, 245;
   --border-rgb: 220, 220, 220;
-  --danger: #999999; /* сірий замість червоного */
+  --danger: #999999;
+  --text-primary: #111111;
+  --text-secondary: #555555;
+  --text-tertiary: #888888;
+  --bg: #fafafa;
+  --card: #ffffff;
+  --surface: #f5f5f5;
+  --border: #dddddd;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+  --shadow-glow: 0 0 0 2px rgba(51,51,51,0.2);
+  --btn-primary-text: #ffffff;
 }
 
-/* Якщо потрібно, перевизначити кольори повідомлень */
-.message-bubble.sent {
-  background: #333333;
-  color: #ffffff;
-  background: linear-gradient(135deg, #333333 0%, #555555 100%);
+/* Приклад темної теми (перевизначиться, якщо додати клас .dark-theme або медіа-запит) */
+.dark-theme {
+  --accent: #cccccc;
+  --accent-light: #2a2a2a;
+  --accent-rgb: 204, 204, 204;
+  --card-rgb: 30, 30, 30;
+  --surface-rgb: 40, 40, 40;
+  --border-rgb: 60, 60, 60;
+  --danger: #aaaaaa;
+  --text-primary: #f0f0f0;
+  --text-secondary: #bbbbbb;
+  --text-tertiary: #888888;
+  --bg: #1a1a1a;
+  --card: #1e1e1e;
+  --surface: #282828;
+  --border: #3c3c3c;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.6);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.7);
+  --shadow-glow: 0 0 0 2px rgba(204,204,204,0.3);
+  --btn-primary-text: #000000;
 }
 
-.message-bubble.received {
-  background: #f0f0f0;
-  border: 1px solid #dddddd;
-  color: #111111;
-}
-
-.reaction-item.user-reacted {
-  background: #e0e0e0;
-  border-color: #333333;
-}
-
-/* Завершально: усі анімації використовують вказаний cubic-bezier де це можливо */
+/* Загальний перехід для всіх елементів */
 * {
   transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
