@@ -137,7 +137,7 @@
 
           <!-- Стрічка постів -->
           <div class="feed" id="feed">
-            <!-- Приклад поста з новою шапкою, переробленою за вимогою (тепер з атрибутом автора) -->
+            <!-- Приклад ЧУЖОГО поста (тільки "Поскаржитися" в меню) -->
             <div class="post" data-post-id="1" data-author-id="user2">
               <div class="post-header">
                 <div class="user-info">
@@ -150,10 +150,10 @@
                 <!-- Контейнер для дій буде заповнено динамічно скриптом -->
               </div>
               <div class="post-content">
-                <p>Це пост іншого користувача. Тут не повинно бути меню редагування/видалення, тільки кнопка підписки.</p>
+                <p>Це пост іншого користувача. При натисканні на три крапки має з'явитися тільки "Поскаржитися".</p>
               </div>
             </div>
-            <!-- Приклад власного поста (для демонстрації) -->
+            <!-- Приклад ВЛАСНОГО поста (меню з "Редагувати" та "Видалити") -->
             <div class="post" data-post-id="2" data-author-id="user1">
               <div class="post-header">
                 <div class="user-info">
@@ -166,7 +166,7 @@
                 <!-- Контейнер для дій буде заповнено динамічно скриптом -->
               </div>
               <div class="post-content">
-                <p>Це мій власний пост. Тут має бути меню з редагуванням/видаленням.</p>
+                <p>Це мій власний пост. Тут має бути меню з "Редагувати" та "Видалити".</p>
               </div>
             </div>
           </div>
@@ -654,30 +654,35 @@
           actionsDiv.className = 'post-actions';
           header.appendChild(actionsDiv);
         } else {
-          // Очищаємо контейнер, щоб додати актуальні елементи
+          // Очищаємо контейнер, щоб додати актуальні елементи (видаляємо зайве)
           actionsDiv.innerHTML = '';
         }
 
+        // Створюємо контейнер меню (три крапки)
+        const menuContainer = document.createElement('div');
+        menuContainer.className = 'post-menu-container';
+        
+        // Формуємо пункти меню залежно від авторства
+        let menuItemsHtml = '';
         if (isOwn) {
-          // Власний пост: показуємо меню з редагуванням/видаленням
-          const menuContainer = document.createElement('div');
-          menuContainer.className = 'post-menu-container';
-          menuContainer.innerHTML = `
-            <button class="post-menu-btn" aria-label="Меню поста">⋯</button>
-            <div class="post-menu-dropdown">
-              <div class="post-menu-item" data-action="edit">Редагувати</div>
-              <div class="post-menu-item" data-action="delete">Видалити</div>
-              <div class="post-menu-item" data-action="report">Поскаржитися</div>
-            </div>
+          menuItemsHtml = `
+            <div class="post-menu-item" data-action="edit">Редагувати</div>
+            <div class="post-menu-item" data-action="delete">Видалити</div>
           `;
-          actionsDiv.appendChild(menuContainer);
         } else {
-          // Чужий пост: показуємо кнопку підписки
-          const followBtn = document.createElement('button');
-          followBtn.className = 'follow-btn';
-          followBtn.textContent = 'Підписатися';
-          actionsDiv.appendChild(followBtn);
+          menuItemsHtml = `
+            <div class="post-menu-item" data-action="report">Поскаржитися</div>
+          `;
         }
+
+        menuContainer.innerHTML = `
+          <button class="post-menu-btn" aria-label="Меню поста">⋯</button>
+          <div class="post-menu-dropdown">
+            ${menuItemsHtml}
+          </div>
+        `;
+        
+        actionsDiv.appendChild(menuContainer);
       }
 
       // Обробник кліків для відкриття/закриття меню та дій
