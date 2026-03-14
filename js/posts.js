@@ -345,6 +345,12 @@ export async function loadMorePosts(containerId = 'feed') {
   }
 }
 
+// ================= Очищення слухачів постів (додано для запобігання витоку пам'яті) =================
+function unsubscribeAllPostListeners() {
+  state.postListeners.forEach(unsubscribe => unsubscribe());
+  state.postListeners.clear();
+}
+
 // ================= Рендеринг постів =================
 export function renderPosts(docs, containerId = 'feed') {
   const feed = document.getElementById(containerId);
@@ -380,7 +386,7 @@ export function renderPosts(docs, containerId = 'feed') {
       menuHtml = `
         <div class="post-menu-container">
           <button class="post-menu-btn" aria-label="Меню поста" tabindex="0">⋮</button>
-          <div class="post-menu-dropdown" style="display: none;">
+          <div class="post-menu-dropdown"> <!-- FIXED: прибрано style, ховається через CSS -->
             <div class="post-menu-item" data-action="edit">Редагувати</div>
             <div class="post-menu-item" data-action="delete">Видалити</div>
           </div>
@@ -444,9 +450,8 @@ export function renderPosts(docs, containerId = 'feed') {
     postEl.appendChild(footer);
 
     const commentsSection = document.createElement('div');
-    commentsSection.className = 'comments-section';
+    commentsSection.className = 'comments-section'; // FIXED: ховається через CSS, без inline style
     commentsSection.id = `comments-${post.id}`;
-    commentsSection.style.display = 'none';
     commentsSection.innerHTML = `
       <div class="comments-list" id="comments-list-${post.id}"></div>
       <div class="comment-form">
@@ -475,7 +480,7 @@ export function renderPosts(docs, containerId = 'feed') {
       };
     });
 
-    // Обробник для меню поста
+    // Обробник для меню поста (виправлено на використання класів)
     const menuContainer = postEl.querySelector('.post-menu-container');
     if (menuContainer) {
       const menuBtn = menuContainer.querySelector('.post-menu-btn');
@@ -485,10 +490,10 @@ export function renderPosts(docs, containerId = 'feed') {
         e.stopPropagation();
         // Закриваємо всі інші меню
         document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-          if (menu !== menuDropdown) menu.style.display = 'none';
+          menu.classList.remove('show'); // FIXED: використовуємо клас замість style
         });
         // Показуємо/ховаємо поточне
-        menuDropdown.style.display = menuDropdown.style.display === 'block' ? 'none' : 'block';
+        menuDropdown.classList.toggle('show');
       });
 
       // Обробка пунктів меню
@@ -501,7 +506,7 @@ export function renderPosts(docs, containerId = 'feed') {
           } else if (action === 'delete') {
             deletePost(post.id);
           }
-          menuDropdown.style.display = 'none';
+          menuDropdown.classList.remove('show'); // FIXED: закриваємо меню
         });
       });
     }
@@ -513,12 +518,13 @@ export function renderPosts(docs, containerId = 'feed') {
 
     const toggleBtn = postEl.querySelector('.comment-toggle-btn');
     toggleBtn.onclick = async () => {
-      if (commentsSection.style.display === 'none') {
-        commentsSection.style.display = 'block';
+      // FIXED: використовуємо classList замість style.display
+      if (commentsSection.classList.contains('show')) {
+        commentsSection.classList.remove('show');
+      } else {
+        commentsSection.classList.add('show');
         const commentsList = document.getElementById(`comments-list-${post.id}`);
         if (commentsList) await loadComments(post.id, commentsList);
-      } else {
-        commentsSection.style.display = 'none';
       }
     };
 
@@ -583,7 +589,7 @@ export function renderPosts(docs, containerId = 'feed') {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.post-menu-container')) {
     document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-      menu.style.display = 'none';
+      menu.classList.remove('show'); // FIXED: використовуємо клас
     });
   }
 });
@@ -799,6 +805,9 @@ export async function loadFilterHashtags(listId = 'filterList') {
 }
 
 export function applyFilter(tag) {
+  // ADDED: очищуємо слухачів перед зміною фільтра
+  unsubscribeAllPostListeners();
+
   setFilterHashtag(tag);
   document.getElementById('filterModal').classList.remove('active');
 
@@ -822,6 +831,9 @@ export function applyFilter(tag) {
 }
 
 export function clearFilter() {
+  // ADDED: очищуємо слухачів перед очищенням стрічки
+  unsubscribeAllPostListeners();
+
   setFilterHashtag(null);
   document.getElementById('activeFilter').innerHTML = '';
   resetPaginationState();
