@@ -24,17 +24,13 @@
     #authBox:not([style*="display: none"]) ~ .feed {
         display: none !important;
     }
-    /* Сховати верхню панель (топ бар) */
-    header.top-bar {
-        display: none !important;
-    }
   </style>
 </head>
 <body>
   <div class="app">
     <!-- Головний контейнер -->
     <main class="main">
-      <!-- Верхня панель (тепер прихована) -->
+      <!-- Верхня панель -->
       <header class="top-bar">
         <button class="back-btn" id="backBtn" aria-label="Назад" style="display: none;">←</button>
         <div class="top-bar-title" id="pageTitle">Головна</div>
@@ -184,13 +180,11 @@
                   <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
                 </div>
 
-                <!-- Прев'ю відповіді (оновлено згідно з вашим запитом) -->
-                <div id="replyPreview" class="reply-preview" style="display:none;">
-                  <div class="reply-info">
-                    <span id="replySender"></span>
-                    <span id="replyText"></span>
-                  </div>
-                  <button id="replyCancel">✕</button>
+                <!-- Прев'ю відповіді -->
+                <div id="replyPreview" class="reply-preview" style="display: none;">
+                  <span class="reply-sender" id="replySender"></span>
+                  <span class="reply-text" id="replyText"></span>
+                  <button class="close-reply" id="closeReply">✕</button>
                 </div>
 
                 <!-- Панель введення (емодзі видалено) -->
@@ -555,4 +549,4 @@
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
 </body>
-</html> пофікси меню редагування на постах
+</html>
