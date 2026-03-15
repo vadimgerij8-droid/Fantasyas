@@ -439,7 +439,7 @@ export async function deletePost(postId) {
   }
 }
 
-// ==================== Завантаження постів (пагінація) ====================
+// ==================== Завантаження постів (пагінація) — ВИПРАВЛЕНО ====================
 export async function loadMorePosts(containerId = 'feed') {
   if (!state.currentUser || state.loading || !state.hasMore) return;
 
@@ -452,8 +452,16 @@ export async function loadMorePosts(containerId = 'feed') {
       ? query(collection(db, "posts"), where("hashtags", "array-contains", state.currentFilterHashtag))
       : collection(db, "posts");
 
-    let orderField = state.currentFeedType === 'new' || state.currentFilterHashtag ? "createdAt" : "likesCount";
-    let q = query(baseQuery, orderBy(orderField, "desc"), orderBy("createdAt", "desc"), limit(10));
+    // Визначаємо поле сортування
+    const orderField = state.currentFeedType === 'new' || state.currentFilterHashtag ? "createdAt" : "likesCount";
+
+    // Будуємо запит без дублювання createdAt
+    let q;
+    if (orderField === "createdAt") {
+      q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
+    } else {
+      q = query(baseQuery, orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
+    }
 
     if (state.lastVisible) {
       q = query(q, startAfter(state.lastVisible));
