@@ -29,6 +29,78 @@
         display: none !important;
     }
   </style>
+  <!-- Стилі для меню трьох крапок (виправлення) -->
+  <style>
+    /* Контейнер для дій у шапці поста (кнопка підписки + меню) */
+    .post-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto; /* притискає до правого краю */
+    }
+    /* Контейнер меню – відносне позиціонування */
+    .post-menu-container {
+      position: relative;
+    }
+    /* Кнопка відкриття меню */
+    .post-menu-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      line-height: 1;
+      padding: 6px 10px;
+      cursor: pointer;
+      color: var(--text-secondary, #666);
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .post-menu-btn:hover {
+      background: var(--hover, rgba(0,0,0,0.05));
+    }
+    /* Випадаюче меню */
+    .post-menu {
+      position: absolute;
+      top: 40px;
+      right: 0;
+      background: var(--card-bg, #ffffff);
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      padding: 6px 0;
+      min-width: 140px;
+      z-index: 100;
+      display: none; /* приховано за замовчуванням */
+    }
+    .post-menu.active {
+      display: block;
+    }
+    /* Елементи меню */
+    .post-menu .menu-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 14px;
+      color: var(--text-primary, #000);
+      white-space: nowrap;
+    }
+    .post-menu .menu-item:hover {
+      background: var(--hover, rgba(0,0,0,0.05));
+    }
+    /* Кнопка підписки (існуючий стиль, можна доповнити) */
+    .follow-btn {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--accent, #1e88e5);
+      background: transparent;
+      color: var(--accent, #1e88e5);
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .follow-btn:hover {
+      background: var(--accent, #1e88e5);
+      color: #fff;
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -75,7 +147,7 @@
 
           <!-- Стрічка постів -->
           <div class="feed" id="feed">
-            <!-- Приклад поста з новою шапкою, переробленою за вимогою -->
+            <!-- Приклад поста з виправленим меню трьох крапок -->
             <div class="post">
               <div class="post-header">
                 <div class="user-info">
@@ -85,13 +157,48 @@
                     <div class="user-username">@username</div>
                   </div>
                 </div>
-                <button class="follow-btn">Підписатися</button>
+                <!-- Блок дій: підписка + меню -->
+                <div class="post-actions">
+                  <button class="follow-btn">Підписатися</button>
+                  <div class="post-menu-container">
+                    <button class="post-menu-btn" aria-label="Меню поста">⋮</button>
+                    <div class="post-menu">
+                      <div class="menu-item" data-action="edit">Редагувати</div>
+                      <div class="menu-item" data-action="delete">Видалити</div>
+                      <div class="menu-item" data-action="report">Поскаржитись</div>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="post-content">
-                <p>Текст поста. Тут може бути будь-який вміст, але головне — шапка оформлена згідно з завданням.</p>
+                <p>Текст поста. Тут може бути будь-який вміст. Меню тепер відкривається під кнопкою ⋮ і не перекриває шапку.</p>
               </div>
             </div>
-            <!-- Решта постів будуть додаватися динамічно -->
+            <!-- Ще один приклад для наочності -->
+            <div class="post">
+              <div class="post-header">
+                <div class="user-info">
+                  <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
+                  <div class="user-text">
+                    <div class="user-name">Інший Користувач</div>
+                    <div class="user-username">@other</div>
+                  </div>
+                </div>
+                <div class="post-actions">
+                  <button class="follow-btn">Підписатися</button>
+                  <div class="post-menu-container">
+                    <button class="post-menu-btn" aria-label="Меню поста">⋮</button>
+                    <div class="post-menu">
+                      <!-- Для чужих постів JS покаже тільки "Поскаржитись" -->
+                      <div class="menu-item" data-action="report">Поскаржитись</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="post-content">
+                <p>А тут інший пост. Меню також працює коректно.</p>
+              </div>
+            </div>
           </div>
           <div class="feed-end-sentinel" id="feedSentinel"></div>
           <div id="skeletonContainer" style="display:none;">
@@ -119,7 +226,6 @@
 
           <!-- === МЕНЮ СТВОРЕННЯ ПОСТА (ЕМОДЗІ ВИДАЛЕНО) === -->
           <div class="card" id="newPostBox" style="display:none;">
-            <!-- Видалено контейнер з емодзі -->
             <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="margin-bottom:10px;" tabindex="0"></textarea>
             <div class="file-input-wrapper" style="margin-bottom:8px;">
               <input type="file" id="postMedia" accept="image/*,video/*" multiple>
@@ -184,7 +290,7 @@
                   <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
                 </div>
 
-                <!-- Прев'ю відповіді (оновлено згідно з вашим запитом) -->
+                <!-- Прев'ю відповіді -->
                 <div id="replyPreview" class="reply-preview" style="display:none;">
                   <div class="reply-info">
                     <span id="replySender"></span>
@@ -198,7 +304,6 @@
                   <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
                   <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
                   <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
-                  <!-- Видалено кнопку та меню емодзі -->
                   <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -219,7 +324,7 @@
             <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
           </div>
 
-          <!-- Панель реакцій (залишається без змін) -->
+          <!-- Панель реакцій -->
           <div class="reaction-picker" id="reactionPicker">
             <button class="reaction-btn" data-emoji="👍">👍</button>
             <button class="reaction-btn" data-emoji="❤️">❤️</button>
@@ -419,7 +524,7 @@
         <span>Головна</span>
       </div>
       <div class="nav-item" data-section="search" tabindex="0">
-        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="2" x2="16.65" y2="16.65"/></svg>
         <span>Пошук</span>
       </div>
       <div class="nav-item" data-section="hashtags" tabindex="0">
@@ -554,5 +659,27 @@
 
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
+  <!-- Невеликий скрипт для демонстрації роботи меню (можна видалити, якщо main.js вже обробляє) -->
+  <script>
+    // Цей код лише для прикладу — в реальному проекті логіка має бути в main.js
+    document.addEventListener('click', function(e) {
+      // Відкриття/закриття меню поста
+      const menuBtn = e.target.closest('.post-menu-btn');
+      if (menuBtn) {
+        e.preventDefault();
+        const container = menuBtn.closest('.post-menu-container');
+        const menu = container.querySelector('.post-menu');
+        // Закриваємо всі інші меню
+        document.querySelectorAll('.post-menu.active').forEach(m => {
+          if (m !== menu) m.classList.remove('active');
+        });
+        menu.classList.toggle('active');
+      }
+      // Закриття при кліку поза меню
+      if (!e.target.closest('.post-menu-container')) {
+        document.querySelectorAll('.post-menu.active').forEach(m => m.classList.remove('active'));
+      }
+    });
+  </script>
 </body>
-</html> пофікси меню редагування на постах
+</html>
