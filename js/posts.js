@@ -5,149 +5,116 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { 
   state,
-  setFilterHashtag, 
-  resetPaginationState, 
-  setCurrentFeedType
+  setFilterHashtag, resetPaginationState, setCurrentFeedType
 } from './state.js';
-import { showToast, vibrate, uploadToCloudinary, debounce } from './utils.js';
+import { showToast, vibrate, uploadToCloudinary, debounce, setupEmojiPicker } from './utils.js';
 import { toggleFollow } from './profile.js';
 
-// ================= Константи =================
-const CONSTANTS = {
-  MAX_FILES: 3,
-  POSTS_PER_PAGE: 10,
-  MAX_POST_LENGTH: 2000,
-  DEBOUNCE_DELAY: 300,
-  POPULARITY: {
-    LIKE: 50,
-    COMMENT: 40,
-    VIEW: 5
-  }
-};
+// ================= Допоміжні функції =================
+export function extractHashtags(text) {
+  const regex = /#(\w+)/g;
+  const matches = text.match(regex);
+  return matches ? matches.map(tag => tag.toLowerCase()) : [];
+}
 
-// ================= Клас для управління постами =================
-class PostManager {
-  constructor() {
-    this.listeners = new Map();
-    this.pendingOperations = new Map();
-    this.observer = null;
-    this.initIntersectionObserver();
+// ================= Лайк (з debounce) =================
+export const toggleLike = debounce(async (postId, buttonElement) => {
+  if (!state.currentUser) {
+    showToast('Увійдіть, щоб лайкати');
+    return;
   }
 
-  // Спостерігач для лінивого завантаження та переглядів
-  initIntersectionObserver() {
-    this.observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const postId = entry.target.dataset.postId;
-          if (postId) this.trackView(postId);
-        }
-      });
-    }, { threshold: 0.5 });
-  }
+  if (state.likePromiseMap.has(postId)) return;
 
-  // ================= Хештеги =================
-  static extractHashtags(text) {
-    if (!text) return [];
-    const matches = text.match(/#(\w+)/g);
-    return matches ? [...new Set(matches.map(tag => tag.toLowerCase()))] : [];
-  }
+  const wasLiked = buttonElement.classList.contains('liked');
+  const countSpan = buttonElement.querySelector('span');
+  const oldCount = countSpan ? parseInt(countSpan.textContent) : 0;
 
-  static formatHashtags(text) {
-    if (!text) return '';
-    return text.replace(/#(\w+)/g, '<span class="hashtag" data-tag="$1">#$1</span>');
-  }
+  // Оптимістичне оновлення
+  const newCount = wasLiked ? Math.max(oldCount - 1, 0) : oldCount + 1;
+  buttonElement.classList.toggle('liked', !wasLiked);
+  if (countSpan) countSpan.textContent = newCount;
 
-  // ================= Безпека та валідація =================
-  static async verifyOwnership(postId) {
-    if (!state.currentUser) throw new Error('Unauthorized');
-    
+  try {
+    state.likePromiseMap.set(postId, true);
+
     const postRef = doc(db, "posts", postId);
     const postSnap = await getDoc(postRef);
-    
-    if (!postSnap.exists()) throw new Error('Post not found');
-    if (postSnap.data().author !== state.currentUser.uid) {
-      throw new Error('Permission denied');
+    if (!postSnap.exists()) {
+      showToast('Пост не знайдено');
+      buttonElement.classList.toggle('liked', wasLiked);
+      if (countSpan) countSpan.textContent = oldCount;
+      return;
     }
-    
-    return { ref: postRef, data: postSnap.data() };
-  }
 
-  static checkAuth() {
-    if (!state.currentUser) {
-      showToast('Увійдіть, щоб виконати цю дію');
-      return false;
-    }
-    return true;
-  }
+    const postData = postSnap.data();
+    const isLiked = postData.likes?.includes(state.currentUser.uid) || false;
 
-  // ================= Оптимізовані операції з лайками =================
-  toggleLike = debounce(async (postId, buttonElement) => {
-    if (!PostManager.checkAuth()) return;
-    if (this.pendingOperations.has(`like-${postId}`)) return;
-
-    const wasLiked = buttonElement.classList.contains('liked');
-    const countSpan = buttonElement.querySelector('.like-count');
-    const oldCount = parseInt(countSpan?.textContent || 0);
-
-    // Оптимістичне оновлення UI
-    this.updateLikeUI(buttonElement, !wasLiked, wasLiked ? oldCount - 1 : oldCount + 1);
-
-    try {
-      this.pendingOperations.set(`like-${postId}`, true);
-      
+    if (isLiked === wasLiked) {
       const batch = writeBatch(db);
-      const postRef = doc(db, "posts", postId);
-      const userRef = doc(db, "users", state.currentUser.uid);
-
-      if (wasLiked) {
+      if (isLiked) {
         batch.update(postRef, {
           likes: arrayRemove(state.currentUser.uid),
           likesCount: increment(-1),
-          popularity: increment(-CONSTANTS.POPULARITY.LIKE)
+          popularity: increment(-50)
         });
-        batch.update(userRef, { likedPosts: arrayRemove(postId) });
+        batch.update(doc(db, "users", state.currentUser.uid), {
+          likedPosts: arrayRemove(postId)
+        });
       } else {
         batch.update(postRef, {
           likes: arrayUnion(state.currentUser.uid),
           likesCount: increment(1),
-          popularity: increment(CONSTANTS.POPULARITY.LIKE)
+          popularity: increment(50)
         });
-        batch.update(userRef, { likedPosts: arrayUnion(postId) });
+        batch.update(doc(db, "users", state.currentUser.uid), {
+          likedPosts: arrayUnion(postId)
+        });
         vibrate(30);
       }
-
       await batch.commit();
-    } catch (error) {
-      console.error('Like error:', error);
-      this.updateLikeUI(buttonElement, wasLiked, oldCount);
-      showToast('Не вдалося оновити лайк');
-    } finally {
-      this.pendingOperations.delete(`like-${postId}`);
+    } else {
+      // Стан не співпав – повертаємо як було в базі
+      buttonElement.classList.toggle('liked', isLiked);
+      if (countSpan) countSpan.textContent = postData.likesCount || 0;
     }
-  }, CONSTANTS.DEBOUNCE_DELAY);
+  } catch (error) {
+    console.error('Помилка toggleLike:', error);
+    showToast('Не вдалося оновити лайк. Спробуйте ще.');
+    buttonElement.classList.toggle('liked', wasLiked);
+    if (countSpan) countSpan.textContent = oldCount;
+  } finally {
+    state.likePromiseMap.delete(postId);
+  }
+}, 300);
 
-  updateLikeUI(button, isLiked, count) {
-    button.classList.toggle('liked', isLiked);
-    const countSpan = button.querySelector('.like-count');
-    if (countSpan) countSpan.textContent = Math.max(0, count);
+// ================= Збереження поста =================
+export const toggleSave = debounce(async (postId, buttonElement) => {
+  if (!state.currentUser) {
+    showToast('Увійдіть, щоб зберегти');
+    return;
   }
 
-  // ================= Операції збереження =================
-  toggleSave = debounce(async (postId, buttonElement) => {
-    if (!PostManager.checkAuth()) return;
-    if (this.pendingOperations.has(`save-${postId}`)) return;
+  if (state.savePromiseMap.has(postId)) return;
 
-    const wasSaved = buttonElement.classList.contains('saved');
-    buttonElement.classList.toggle('saved', !wasSaved);
+  const wasSaved = buttonElement.classList.contains('saved');
+  buttonElement.classList.toggle('saved', !wasSaved);
 
-    try {
-      this.pendingOperations.set(`save-${postId}`, true);
-      
+  try {
+    state.savePromiseMap.set(postId, true);
+
+    const postRef = doc(db, "posts", postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) {
+      showToast('Пост не знайдено');
+      buttonElement.classList.toggle('saved', wasSaved);
+      return;
+    }
+
+    const isSaved = postSnap.data().saves?.includes(state.currentUser.uid) || false;
+    if (isSaved === wasSaved) {
       const batch = writeBatch(db);
-      const postRef = doc(db, "posts", postId);
       const userRef = doc(db, "users", state.currentUser.uid);
-
       if (wasSaved) {
         batch.update(userRef, { savedPosts: arrayRemove(postId) });
         batch.update(postRef, { saves: arrayRemove(state.currentUser.uid) });
@@ -155,1032 +122,765 @@ class PostManager {
         batch.update(userRef, { savedPosts: arrayUnion(postId) });
         batch.update(postRef, { saves: arrayUnion(state.currentUser.uid) });
       }
-
       await batch.commit();
-    } catch (error) {
-      console.error('Save error:', error);
-      buttonElement.classList.toggle('saved', wasSaved);
-      showToast('Не вдалося зберегти пост');
-    } finally {
-      this.pendingOperations.delete(`save-${postId}`);
+    } else {
+      buttonElement.classList.toggle('saved', isSaved);
     }
-  }, CONSTANTS.DEBOUNCE_DELAY);
+  } catch (error) {
+    console.error("Помилка збереження:", error);
+    showToast("Не вдалося зберегти пост.");
+    buttonElement.classList.toggle('saved', wasSaved);
+  } finally {
+    state.savePromiseMap.delete(postId);
+  }
+}, 300);
 
-  // ================= Створення поста =================
-  async createPost(text, files) {
-    if (!PostManager.checkAuth()) return false;
+// ================= Створення поста =================
+export async function createPost(text, files) {
+  if (!state.currentUser) {
+    showToast('Увійдіть, щоб опублікувати пост');
+    return false;
+  }
 
-    if (files.length > CONSTANTS.MAX_FILES) {
-      showToast(`Можна вибрати не більше ${CONSTANTS.MAX_FILES} файлів`);
-      return false;
+  const MAX_FILES = 3;
+  if (files.length > MAX_FILES) {
+    showToast(`Можна вибрати не більше ${MAX_FILES} файлів`);
+    return false;
+  }
+
+  try {
+    showToast('Завантаження...');
+
+    const media = [];
+    for (const file of files) {
+      const url = await uploadToCloudinary(file);
+      media.push({ url, type: file.type.split('/')[0] });
     }
 
-    const submitBtn = document.getElementById('submitPost');
-    const originalText = submitBtn?.textContent;
-    
+    const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
+    const userData = userSnap.data();
+
+    const hashtags = extractHashtags(text);
+
+    const postDoc = await addDoc(collection(db, "posts"), {
+      author: state.currentUser.uid,
+      authorType: 'user',
+      authorName: userData.nickname,
+      authorUserId: userData.userId,
+      authorAvatar: userData.avatar || '',
+      text,
+      media,
+      createdAt: serverTimestamp(),
+      likes: [],
+      likesCount: 0,
+      commentsCount: 0,
+      saves: [],
+      views: 0,
+      hashtags,
+      popularity: 0
+    });
+
+    await updateDoc(doc(db, "users", state.currentUser.uid), { posts: arrayUnion(postDoc.id) });
+
+    document.getElementById('postText').value = '';
+    document.getElementById('postMedia').value = '';
+    document.getElementById('postMediaPreviews').innerHTML = '';
+    document.getElementById('postMediaLabel').textContent = '+ Медіа (до 3 файлів)';
+
+    showToast('Пост опубліковано!');
+    return true;
+  } catch (e) {
+    console.error('Помилка створення поста:', e);
+    showToast('Помилка: ' + e.message);
+    return false;
+  }
+}
+
+// ================= Редагування поста =================
+export async function editPost(postId) {
+  if (!state.currentUser) return;
+  
+  const postRef = doc(db, "posts", postId);
+  const postSnap = await getDoc(postRef);
+  if (!postSnap.exists()) {
+    showToast('Пост не знайдено');
+    return;
+  }
+  
+  const post = postSnap.data();
+  if (post.author !== state.currentUser.uid) {
+    showToast('Ви не автор цього поста');
+    return;
+  }
+  
+  // Викликаємо нове модальне вікно замість prompt
+  createEditModal(post.text || '', async (newText) => {
     try {
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner"></span> Публікація...';
-      }
-
-      // Паралельне завантаження медіа
-      const media = await Promise.all(
-        files.map(file => uploadToCloudinary(file).then(url => ({
-          url,
-          type: file.type.split('/')[0]
-        })))
-      );
-
-      const [userSnap] = await Promise.all([
-        getDoc(doc(db, "users", state.currentUser.uid))
-      ]);
-
-      const userData = userSnap.data();
-      const hashtags = PostManager.extractHashtags(text);
-
-      const postData = {
-        author: state.currentUser.uid,
-        authorType: 'user',
-        authorName: userData.nickname,
-        authorUserId: userData.userId,
-        authorAvatar: userData.avatar || '',
-        text: text.trim(),
-        media,
-        createdAt: serverTimestamp(),
-        likes: [],
-        likesCount: 0,
-        commentsCount: 0,
-        saves: [],
-        views: 0,
+      const hashtags = extractHashtags(newText);
+      await updateDoc(postRef, {
+        text: newText,
         hashtags,
-        popularity: 0
-      };
-
-      const postDoc = await addDoc(collection(db, "posts"), postData);
-      
-      await updateDoc(doc(db, "users", state.currentUser.uid), {
-        posts: arrayUnion(postDoc.id)
+        edited: true,
+        updatedAt: serverTimestamp()
       });
+      showToast('Пост оновлено');
 
-      this.resetCreateForm();
-      showToast('Пост опубліковано!');
-      return true;
-    } catch (error) {
-      console.error('Create post error:', error);
-      showToast('Помилка: ' + error.message);
-      return false;
-    } finally {
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText || 'Опублікувати';
-      }
-    }
-  }
-
-  resetCreateForm() {
-    const elements = {
-      text: document.getElementById('postText'),
-      media: document.getElementById('postMedia'),
-      previews: document.getElementById('postMediaPreviews'),
-      label: document.getElementById('postMediaLabel')
-    };
-
-    if (elements.text) elements.text.value = '';
-    if (elements.media) elements.media.value = '';
-    if (elements.previews) elements.previews.innerHTML = '';
-    if (elements.label) elements.label.textContent = '+ Медіа (до 3 файлів)';
-  }
-
-  // ================= Редагування з покращеним UI =================
-  async editPost(postId) {
-    if (!PostManager.checkAuth()) return;
-
-    try {
-      const { ref: postRef, data: post } = await PostManager.verifyOwnership(postId);
-      
-      const modal = new EditPostModal(post.text || '', async (newText) => {
-        try {
-          const hashtags = PostManager.extractHashtags(newText);
-          
-          await updateDoc(postRef, {
-            text: newText.trim(),
-            hashtags,
-            edited: true,
-            updatedAt: serverTimestamp()
-          });
-
-          this.updatePostInDOM(postId, newText.trim(), hashtags);
-          showToast('Пост оновлено');
-        } catch (error) {
-          console.error('Update error:', error);
-          showToast('Не вдалося оновити пост');
-        }
-      });
-
-      modal.show();
-    } catch (error) {
-      showToast(error.message);
-    }
-  }
-
-  updatePostInDOM(postId, newText, hashtags) {
-    const postEl = document.querySelector(`.post[data-post-id="${postId}"]`);
-    if (!postEl) return;
-
-    const contentContainer = postEl.querySelector('.post-content');
-    if (contentContainer) {
-      contentContainer.innerHTML = PostManager.formatHashtags(newText);
-      this.attachHashtagListeners(contentContainer);
-    }
-
-    // Додаємо мітку "редаговано"
-    const metaContainer = postEl.querySelector('.post-meta');
-    if (metaContainer && !metaContainer.querySelector('.edited-badge')) {
-      const editedBadge = document.createElement('span');
-      editedBadge.className = 'edited-badge';
-      editedBadge.textContent = ' (ред.)';
-      metaContainer.appendChild(editedBadge);
-    }
-  }
-
-  // ================= Видалення з batch операціями =================
-  async deletePost(postId) {
-    if (!PostManager.checkAuth()) return;
-    if (!confirm('Видалити цей пост назавжди?')) return;
-
-    try {
-      await PostManager.verifyOwnership(postId);
-
-      const batch = writeBatch(db);
-      
-      // Видаляємо коментарі
-      const commentsSnap = await getDocs(collection(db, `posts/${postId}/comments`));
-      commentsSnap.forEach(doc => batch.delete(doc.ref));
-
-      // Видаляємо пост
-      batch.delete(doc(db, "posts", postId));
-      
-      // Оновлюємо користувача
-      batch.update(doc(db, "users", state.currentUser.uid), {
-        posts: arrayRemove(postId)
-      });
-
-      await batch.commit();
-
-      // Анімоване видалення з DOM
+      // Миттєве оновлення тексту поста в DOM без перезавантаження
       const postEl = document.querySelector(`.post[data-post-id="${postId}"]`);
       if (postEl) {
-        postEl.style.transition = 'all 0.3s ease';
-        postEl.style.opacity = '0';
-        postEl.style.transform = 'scale(0.9)';
-        setTimeout(() => postEl.remove(), 300);
+        const contentContainer = postEl.querySelector('.post-content');
+        if (contentContainer) {
+          let contentHtml = newText;
+          const hashtagRegex = /#(\w+)/g;
+          contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
+          contentContainer.innerHTML = contentHtml;
+          
+          // Відновлюємо кліки по нових хештегах
+          contentContainer.querySelectorAll('.hashtag').forEach(span => {
+            span.onclick = (e) => {
+              e.stopPropagation();
+              const tag = span.dataset.tag;
+              searchHashtag(tag);
+            };
+          });
+        }
       }
-
-      this.cleanupListener(postId);
-      showToast('Пост видалено');
     } catch (error) {
-      console.error('Delete error:', error);
-      showToast(error.message);
+      console.error('Помилка редагування поста:', error);
+      showToast('Не вдалося оновити пост');
     }
-  }
+  });
+}
 
-  // ================= Завантаження постів з оптимізацією =================
-  async loadMorePosts(containerId = 'feed') {
-    if (!state.currentUser || state.loading || !state.hasMore) return;
+// Функція для створення UI модального вікна редагування
+function createEditModal(currentText, onSave) {
+  // Видаляємо попереднє вікно, якщо раптом залишилося
+  const existingModal = document.getElementById('customEditModal');
+  if (existingModal) existingModal.remove();
 
-    state.loading = true;
-    const skeleton = document.getElementById('skeletonContainer');
-    if (skeleton) skeleton.style.display = 'block';
+  const modal = document.createElement('div');
+  modal.id = 'customEditModal';
+  // Базові стилі інлайн, щоб гарантовано працювало поверх будь-якого CSS
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
+    z-index: 9999; backdrop-filter: blur(2px);
+  `;
 
-    try {
-      let baseQuery = state.currentFilterHashtag 
-        ? query(collection(db, "posts"), where("hashtags", "array-contains", state.currentFilterHashtag))
-        : collection(db, "posts");
+  modal.innerHTML = `
+    <div style="background: var(--bg-color, #ffffff); padding: 20px; border-radius: 16px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 15px;">
+      <h3 style="margin: 0; font-size: 18px; color: var(--text-color, #333);">Редагувати пост</h3>
+      <textarea id="editModalTextarea" style="width: 100%; height: 150px; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: 8px; resize: none; font-family: inherit; font-size: 15px; outline: none; box-sizing: border-box; background: var(--input-bg, #fff); color: var(--text-color, #333);">${currentText}</textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button id="closeEditModal" style="padding: 10px 16px; border: none; border-radius: 8px; background: var(--btn-secondary-bg, #e0e0e0); color: var(--text-color, #333); font-weight: 600; cursor: pointer;">Скасувати</button>
+        <button id="saveEditModal" style="padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary-color, #007bff); color: white; font-weight: 600; cursor: pointer;">Зберегти</button>
+      </div>
+    </div>
+  `;
 
-      let q;
-      if (state.currentFeedType === 'new' || state.currentFilterHashtag) {
-        q = query(baseQuery, orderBy("createdAt", "desc"), limit(CONSTANTS.POSTS_PER_PAGE));
-      } else {
-        q = query(baseQuery, orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(CONSTANTS.POSTS_PER_PAGE));
-      }
+  document.body.appendChild(modal);
 
-      if (state.lastVisible) {
-        q = query(q, startAfter(state.lastVisible));
-      }
+  const textarea = document.getElementById('editModalTextarea');
+  // Ставимо курсор в кінець тексту
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
 
-      const snapshot = await getDocs(q);
-      
-      if (snapshot.empty) {
-        state.hasMore = false;
-        return;
-      }
+  const closeModal = () => modal.remove();
 
-      state.lastVisible = snapshot.docs[snapshot.docs.length - 1];
-      this.renderPosts(snapshot.docs, containerId);
-    } catch (error) {
-      this.handleLoadError(error);
-    } finally {
-      if (skeleton) skeleton.style.display = 'none';
-      state.loading = false;
-    }
-  }
-
-  handleLoadError(error) {
-    console.error("Load posts error:", error);
-    
-    if (error.code === 'failed-precondition') {
-      const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-      showToast(match ? `⚠️ Потрібен індекс: ${match[0]}` : '⚠️ Потрібно створити індекс у Firestore');
-    } else if (error.code === 'permission-denied') {
-      showToast('❌ Недостатньо прав доступу');
+  document.getElementById('closeEditModal').onclick = closeModal;
+  document.getElementById('saveEditModal').onclick = () => {
+    const newText = textarea.value.trim();
+    if (newText && newText !== currentText) {
+      onSave(newText);
+      closeModal();
+    } else if (newText === currentText) {
+      closeModal(); // Якщо нічого не змінено, просто закриваємо
     } else {
-      showToast('Помилка завантаження: ' + error.message);
+      showToast('Текст поста не може бути порожнім');
     }
-  }
+  };
 
-  // ================= Рендеринг з DocumentFragment =================
-  renderPosts(docs, containerId = 'feed') {
-    const feed = document.getElementById(containerId);
-    if (!feed) return;
+  // Закриття по кліку на темний фон
+  modal.onclick = (e) => {
+    if (e.target === modal) closeModal();
+  };
+}
 
-    const fragment = document.createDocumentFragment();
+// ================= Видалення поста =================
+export async function deletePost(postId) {
+  if (!state.currentUser) return;
+  if (!confirm('Видалити цей пост назавжди?')) return;
 
-    docs.forEach(docSnap => {
-      const post = { id: docSnap.id, ...docSnap.data() };
-      const postEl = this.createPostElement(post);
-      fragment.appendChild(postEl);
-      
-      // Спостереження за переглядами
-      this.observer.observe(postEl);
-      
-      // Реактивне оновлення
-      this.setupRealtimeUpdates(post.id, postEl);
+  try {
+    const postRef = doc(db, "posts", postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) {
+      showToast('Пост не знайдено');
+      return;
+    }
+
+    // Видаляємо коментарі (підколекцію) за допомогою batch
+    const commentsSnapshot = await getDocs(collection(db, `posts/${postId}/comments`));
+    const batch = writeBatch(db);
+    commentsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+    // Видаляємо сам пост
+    batch.delete(postRef);
+
+    // Видаляємо ID поста з масиву постів автора
+    const userRef = doc(db, "users", state.currentUser.uid);
+    batch.update(userRef, {
+      posts: arrayRemove(postId)
     });
 
-    feed.appendChild(fragment);
+    await batch.commit();
+
+    // Видаляємо елемент з DOM
+    const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
+    if (postElement) postElement.remove();
+
+    showToast('Пост видалено');
+  } catch (error) {
+    console.error('Помилка видалення поста:', error);
+    showToast('Не вдалося видалити пост');
   }
+}
 
-  createPostElement(post) {
-    const isAuthor = state.currentUser?.uid === post.author;
-    const isLiked = post.likes?.includes(state.currentUser?.uid) || false;
-    const isSaved = post.saves?.includes(state.currentUser?.uid) || false;
-    const isFollowing = state.currentUserFollowing?.includes(post.author) || false;
-
-    const postEl = document.createElement('article');
-    postEl.className = 'post';
-    postEl.dataset.postId = post.id;
-    postEl.tabIndex = 0;
-
-    const timeString = this.formatTime(post.createdAt);
-
-    postEl.innerHTML = `
-      <header class="post-header">
-        <div class="post-author-section">
-          <div class="avatar" style="background-image:url(${post.authorAvatar || '/default-avatar.png'})" 
-               data-uid="${post.author}" role="button" tabindex="0" aria-label="Профіль ${post.authorName}"></div>
-          <div class="post-author-info">
-            <div class="author-row">
-              <span class="post-author" data-uid="${post.author}" role="button">${post.authorName || 'Невідомо'}</span>
-              <span class="post-userid">${post.authorUserId || ''}</span>
-              ${!isAuthor && state.currentUser ? `
-                <button class="follow-btn-post ${isFollowing ? 'following' : ''}" 
-                        data-uid="${post.author}" aria-label="${isFollowing ? 'Відписатися' : 'Підписатися'}">
-                  ${isFollowing ? 'Відписатися' : 'Підписатися'}
-                </button>
-              ` : ''}
-            </div>
-            <time class="post-time" datetime="${post.createdAt?.toDate?.().toISOString() || ''}">${timeString}</time>
-          </div>
-        </div>
-        ${isAuthor ? this.createPostMenu() : ''}
-      </header>
-      
-      <div class="post-content">${PostManager.formatHashtags(post.text)}</div>
-      
-      ${post.media?.length ? this.createGalleryHTML(post.media) : ''}
-      
-      <footer class="post-footer">
-        <div class="post-actions">
-          <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" 
-                  data-post-id="${post.id}" aria-label="Подобається" aria-pressed="${isLiked}">
-            <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-            <span class="like-count">${post.likesCount || 0}</span>
-          </button>
-          
-          <button class="action-btn comment-btn" data-post-id="${post.id}" aria-label="Коментарі">
-            <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span class="comment-count">${post.commentsCount || 0}</span>
-          </button>
-          
-          <button class="action-btn save-btn ${isSaved ? 'saved' : ''}" 
-                  data-post-id="${post.id}" aria-label="Зберегти" aria-pressed="${isSaved}">
-            <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-            </svg>
-          </button>
-        </div>
-        
-        <div class="post-stats">
-          <span class="view-count" title="Перегляди">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="2"/>
-              <path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/>
-            </svg>
-            ${post.views || 0}
-          </span>
-        </div>
-      </footer>
-      
-      <section class="comments-section" id="comments-${post.id}" hidden>
-        <div class="comments-list" id="comments-list-${post.id}"></div>
-        <form class="comment-form" onsubmit="return false;">
-          <input type="text" id="comment-input-${post.id}" class="comment-input" 
-                 placeholder="Напишіть коментар..." maxlength="500" aria-label="Коментар">
-          <button type="button" class="emoji-btn" data-input="comment-input-${post.id}" aria-label="Емодзі">😊</button>
-          <button type="submit" class="submit-comment-btn" data-post-id="${post.id}" aria-label="Надіслати">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-            </svg>
-          </button>
-        </form>
-      </section>
-    `;
-
-    this.attachPostListeners(postEl, post.id);
-    return postEl;
+// ================= Завантаження постів (пагінація) =================
+export async function loadMorePosts(containerId = 'feed') {
+  if (!state.currentUser) {
+    console.log('loadMorePosts: користувач не авторизований');
+    return;
   }
-
-  createPostMenu() {
-    return `
-      <div class="post-menu">
-        <button class="post-menu-trigger" aria-label="Меню поста" aria-haspopup="true" aria-expanded="false">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
-          </svg>
-        </button>
-        <div class="post-menu-dropdown" role="menu" hidden>
-          <button class="menu-item" data-action="edit" role="menuitem">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-            Редагувати
-          </button>
-          <button class="menu-item menu-item-danger" data-action="delete" role="menuitem">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-            Видалити
-          </button>
-        </div>
-      </div>
-    `;
+  if (state.loading) {
+    console.log('loadMorePosts: вже завантажується');
+    return;
   }
+  if (!state.hasMore) {
+    console.log('loadMorePosts: більше немає постів');
+    return;
+  }
+  
+  state.loading = true;
+  const skeleton = document.getElementById('skeletonContainer');
+  if (skeleton) skeleton.style.display = 'block';
 
-  createGalleryHTML(media) {
-    if (media.length === 1) {
-      const item = media[0];
-      return item.type === 'image' 
-        ? `<div class="post-media"><img src="${item.url}" alt="Зображення поста" loading="lazy"></div>`
-        : `<div class="post-media"><video src="${item.url}" controls preload="metadata"></video></div>`;
+  try {
+    let baseQuery;
+    if (state.currentFilterHashtag) {
+      console.log('loadMorePosts: фільтр за хештегом', state.currentFilterHashtag);
+      baseQuery = query(collection(db, "posts"), where("hashtags", "array-contains", state.currentFilterHashtag));
+    } else {
+      baseQuery = collection(db, "posts");
     }
 
-    return `
-      <div class="post-gallery" data-slide="0">
-        <div class="gallery-track">
-          ${media.map((item, i) => `
-            <div class="gallery-slide ${i === 0 ? 'active' : ''}">
-              ${item.type === 'image' 
-                ? `<img src="${item.url}" alt="Зображення ${i + 1}" loading="${i === 0 ? 'eager' : 'lazy'}">`
-                : `<video src="${item.url}" controls preload="metadata"></video>`
-              }
-            </div>
-          `).join('')}
-        </div>
-        ${media.length > 1 ? `
-          <div class="gallery-nav">
-            <button class="gallery-prev" aria-label="Попереднє">‹</button>
-            <div class="gallery-dots">
-              ${media.map((_, i) => `<button class="dot ${i === 0 ? 'active' : ''}" data-index="${i}" aria-label="Слайд ${i + 1}"></button>`).join('')}
-            </div>
-            <button class="gallery-next" aria-label="Наступне">›</button>
-          </div>
-          <div class="gallery-counter">1/${media.length}</div>
-        ` : ''}
-      </div>
-    `;
-  }
-
-  attachPostListeners(postEl, postId) {
-    // Лайк
-    const likeBtn = postEl.querySelector('.like-btn');
-    if (likeBtn) {
-      likeBtn.addEventListener('click', () => this.toggleLike(postId, likeBtn));
+    let q;
+    if (state.currentFeedType === 'new' || state.currentFilterHashtag) {
+      console.log('loadMorePosts: сортування за датою (нові)');
+      q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
+    } else {
+      console.log('loadMorePosts: сортування за популярністю');
+      q = query(baseQuery, orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
     }
 
-    // Збереження
-    const saveBtn = postEl.querySelector('.save-btn');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => this.toggleSave(postId, saveBtn));
+    if (state.lastVisible) {
+      console.log('loadMorePosts: є lastVisible, додаємо startAfter');
+      q = query(q, startAfter(state.lastVisible));
     }
 
-    // Коментарі
-    const commentBtn = postEl.querySelector('.comment-btn');
-    const commentsSection = postEl.querySelector('.comments-section');
-    if (commentBtn && commentsSection) {
-      commentBtn.addEventListener('click', () => {
-        const isHidden = commentsSection.hidden;
-        commentsSection.hidden = !isHidden;
-        if (isHidden) this.loadComments(postId, postEl.querySelector('.comments-list'));
-      });
+    const snapshot = await getDocs(q);
+    console.log('loadMorePosts: отримано документів', snapshot.size);
+    
+    if (snapshot.empty) {
+      state.hasMore = false;
+      return;
     }
 
-    // Меню
-    const menuTrigger = postEl.querySelector('.post-menu-trigger');
-    if (menuTrigger) {
-      menuTrigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.toggleMenu(menuTrigger);
-      });
-    }
-
-    // Хештеги
-    this.attachHashtagListeners(postEl);
-
-    // Галерея
-    this.initGallery(postEl);
-  }
-
-  attachHashtagListeners(container) {
-    container.querySelectorAll('.hashtag').forEach(tag => {
-      tag.addEventListener('click', (e) => {
-        e.stopPropagation();
-        searchHashtag(tag.dataset.tag);
-      });
-    });
-  }
-
-  initGallery(postEl) {
-    const gallery = postEl.querySelector('.post-gallery');
-    if (!gallery || gallery.dataset.slide === undefined) return;
-
-    const track = gallery.querySelector('.gallery-track');
-    const slides = gallery.querySelectorAll('.gallery-slide');
-    const dots = gallery.querySelectorAll('.dot');
-    const counter = gallery.querySelector('.gallery-counter');
-    let current = 0;
-
-    const updateSlide = (index) => {
-      current = index;
-      track.style.transform = `translateX(-${index * 100}%)`;
-      slides.forEach((s, i) => s.classList.toggle('active', i === index));
-      dots.forEach((d, i) => d.classList.toggle('active', i === index));
-      if (counter) counter.textContent = `${index + 1}/${slides.length}`;
-    };
-
-    gallery.querySelector('.gallery-prev')?.addEventListener('click', () => {
-      updateSlide(current > 0 ? current - 1 : slides.length - 1);
-    });
-
-    gallery.querySelector('.gallery-next')?.addEventListener('click', () => {
-      updateSlide(current < slides.length - 1 ? current + 1 : 0);
-    });
-
-    dots.forEach((dot, i) => {
-      dot.addEventListener('click', () => updateSlide(i));
-    });
-  }
-
-  // ================= Меню з анімацією =================
-  toggleMenu(trigger) {
-    // Закриваємо всі інші меню
-    document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-      if (menu !== trigger.nextElementSibling) {
-        menu.hidden = true;
-        menu.previousElementSibling?.setAttribute('aria-expanded', 'false');
+    state.lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    renderPosts(snapshot.docs, containerId);
+  } catch (e) {
+    console.error("Помилка завантаження постів:", e);
+    if (e.code === 'failed-precondition' || e.message.includes('index')) {
+      const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+      if (match) {
+        console.log('Посилання для створення індексу:', match[0]);
+        showToast(`⚠️ Потрібен індекс. Скопіюйте посилання з консолі (F12).`);
+      } else {
+        showToast('⚠️ Потрібно створити складений індекс у Firestore. Перейдіть у Firebase Console.');
       }
-    });
-
-    const dropdown = trigger.nextElementSibling;
-    const isOpen = !dropdown.hidden;
-    
-    dropdown.hidden = isOpen;
-    trigger.setAttribute('aria-expanded', !isOpen);
-
-    if (!isOpen) {
-      // Закриття при кліку поза меню
-      const closeHandler = (e) => {
-        if (!trigger.parentElement.contains(e.target)) {
-          dropdown.hidden = true;
-          trigger.setAttribute('aria-expanded', 'false');
-          document.removeEventListener('click', closeHandler);
-        }
-      };
-      setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    } else if (e.code === 'permission-denied') {
+      showToast('❌ Недостатньо прав. Перевірте правила безпеки Firestore.');
+    } else {
+      showToast('Помилка завантаження: ' + e.message);
     }
+  } finally {
+    if (skeleton) skeleton.style.display = 'none';
+    state.loading = false;
+  }
+}
+
+// ================= Рендеринг постів =================
+export function renderPosts(docs, containerId = 'feed') {
+  const feed = document.getElementById(containerId);
+  if (!feed) {
+    console.error('renderPosts: контейнер не знайдено', containerId);
+    return;
   }
 
-  // ================= Реактивні оновлення =================
-  setupRealtimeUpdates(postId, postEl) {
-    if (this.listeners.has(postId)) return;
-
-    const unsubscribe = onSnapshot(
-      doc(db, "posts", postId),
-      (snap) => {
-        if (!snap.exists()) {
-          postEl.remove();
-          this.cleanupListener(postId);
-          return;
-        }
-
-        const data = snap.data();
-        
-        // Оновлюємо лише змінені елементи
-        const likeBtn = postEl.querySelector('.like-btn');
-        if (likeBtn) {
-          const isLiked = data.likes?.includes(state.currentUser?.uid);
-          likeBtn.classList.toggle('liked', isLiked);
-          const count = likeBtn.querySelector('.like-count');
-          if (count) count.textContent = data.likesCount || 0;
-        }
-
-        const saveBtn = postEl.querySelector('.save-btn');
-        if (saveBtn) {
-          const isSaved = data.saves?.includes(state.currentUser?.uid);
-          saveBtn.classList.toggle('saved', isSaved);
-        }
-
-        const commentCount = postEl.querySelector('.comment-count');
-        if (commentCount) commentCount.textContent = data.commentsCount || 0;
-      },
-      (error) => console.error(`Realtime error for ${postId}:`, error)
-    );
-
-    this.listeners.set(postId, unsubscribe);
-  }
-
-  cleanupListener(postId) {
-    const unsubscribe = this.listeners.get(postId);
-    if (unsubscribe) {
-      unsubscribe();
-      this.listeners.delete(postId);
-    }
-  }
-
-  cleanupAllListeners() {
-    this.listeners.forEach(unsubscribe => unsubscribe());
-    this.listeners.clear();
-    this.observer?.disconnect();
-  }
-
-  // ================= Коментарі =================
-  async loadComments(postId, container) {
-    try {
-      const q = query(
-        collection(db, `posts/${postId}/comments`), 
-        orderBy("createdAt", "asc")
-      );
-      const snapshot = await getDocs(q);
-      
-      const fragment = document.createDocumentFragment();
-      
-      if (snapshot.empty) {
-        container.innerHTML = '<p class="no-comments">Поки немає коментарів</p>';
-        return;
-      }
-
-      snapshot.forEach(doc => {
-        const comment = doc.data();
-        const el = this.createCommentElement(comment);
-        fragment.appendChild(el);
-      });
-
-      container.innerHTML = '';
-      container.appendChild(fragment);
-    } catch (error) {
-      console.error('Load comments error:', error);
-      container.innerHTML = '<p class="error">Помилка завантаження коментарів</p>';
-    }
-  }
-
-  createCommentElement(comment) {
-    const el = document.createElement('div');
-    el.className = 'comment';
-    
-    const time = this.formatTime(comment.createdAt);
-    
-    el.innerHTML = `
-      <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" 
-           data-uid="${comment.author}" role="button"></div>
-      <div class="comment-content">
-        <div class="comment-header">
-          <span class="comment-author" data-uid="${comment.author}">${comment.authorName}</span>
-          <time class="comment-time">${time}</time>
-        </div>
-        <p class="comment-text">${this.escapeHtml(comment.text)}</p>
-      </div>
-    `;
-    
-    return el;
-  }
-
-  async addComment(postId, text) {
-    if (!PostManager.checkAuth() || !text.trim()) return;
-
-    try {
-      const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
-      const user = userSnap.data();
-
-      await addDoc(collection(db, `posts/${postId}/comments`), {
-        author: state.currentUser.uid,
-        authorName: user.nickname,
-        authorAvatar: user.avatar || '',
-        text: text.trim(),
-        createdAt: serverTimestamp()
-      });
-
-      await updateDoc(doc(db, "posts", postId), { 
-        commentsCount: increment(1),
-        popularity: increment(CONSTANTS.POPULARITY.COMMENT)
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Add comment error:', error);
-      throw error;
-    }
-  }
-
-  // ================= Перегляди =================
-  async trackView(postId) {
-    if (!state.currentUser || state.viewedPosts?.has(postId)) return;
-    
-    state.viewedPosts = state.viewedPosts || new Set();
-    state.viewedPosts.add(postId);
-
-    try {
-      await updateDoc(doc(db, "posts", postId), { 
-        views: increment(1),
-        popularity: increment(CONSTANTS.POPULARITY.VIEW)
-      });
-    } catch (e) {
-      console.warn("View tracking error:", e);
-    }
-  }
-
-  // ================= Утиліти =================
-  formatTime(timestamp) {
-    if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleString('uk-UA', {
+  docs.forEach(docSnap => {
+    const post = { id: docSnap.id, ...docSnap.data() };
+    const liked = post.likes?.includes(state.currentUser?.uid) || false;
+    const saved = post.saves?.includes(state.currentUser?.uid) || false;
+    const postTime = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString('uk-UA', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
+      minute: '2-digit',
+      hour12: false
+    }) : '';
+    const isAuthor = state.currentUser && post.author === state.currentUser.uid;
+    const isFollowing = state.currentUserFollowing.includes(post.author);
 
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-}
+    const postEl = document.createElement('div');
+    postEl.className = 'post';
+    postEl.dataset.postId = post.id;
+    postEl.tabIndex = 0;
 
-// ================= Модальне вікно редагування =================
-class EditPostModal {
-  constructor(currentText, onSave) {
-    this.currentText = currentText;
-    this.onSave = onSave;
-    this.maxLength = CONSTANTS.MAX_POST_LENGTH;
-    this.modal = null;
-  }
-
-  show() {
-    this.create();
-    this.attachListeners();
-    this.updateCharCount();
-    
-    // Фокус в кінець тексту
-    const textarea = this.modal.querySelector('#editTextarea');
-    textarea.focus();
-    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-  }
-
-  create() {
-    // Видаляємо існуюче
-    document.getElementById('editPostModal')?.remove();
-
-    this.modal = document.createElement('div');
-    this.modal.id = 'editPostModal';
-    this.modal.className = 'modal-overlay';
-    this.modal.innerHTML = `
-      <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="editTitle">
-        <div class="modal-header">
-          <h3 id="editTitle">Редагувати пост</h3>
-          <button class="modal-close" aria-label="Закрити">×</button>
-        </div>
-        
-        <div class="modal-body">
-          <div class="textarea-wrapper">
-            <textarea 
-              id="editTextarea" 
-              class="edit-textarea" 
-              maxlength="${this.maxLength}"
-              placeholder="Що у вас нового?"
-              aria-label="Текст поста"
-            >${this.escapeHtml(this.currentText)}</textarea>
-            <div class="textarea-toolbar">
-              <button type="button" class="emoji-trigger" aria-label="Додати емодзі">😊</button>
-              <span class="char-count" aria-live="polite">0/${this.maxLength}</span>
-            </div>
+    let menuHtml = '';
+    if (isAuthor) {
+      menuHtml = `
+        <div class="post-menu-container">
+          <button class="post-menu-btn" aria-label="Меню поста" tabindex="0">⋮</button>
+          <div class="post-menu-dropdown" style="display: none;">
+            <div class="post-menu-item" data-action="edit">Редагувати</div>
+            <div class="post-menu-item" data-action="delete">Видалити</div>
           </div>
         </div>
-        
-        <div class="modal-footer">
-          <button class="btn btn-secondary" data-action="cancel">Скасувати</button>
-          <button class="btn btn-primary" data-action="save" disabled>
-            <span class="btn-text">Зберегти</span>
-          </button>
+      `;
+    }
+
+    let contentHtml = post.text || '';
+    const hashtagRegex = /#(\w+)/g;
+    contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
+
+    const followButtonHtml = !isAuthor && state.currentUser ? 
+      `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>` : '';
+
+    postEl.innerHTML = `
+      <div class="post-header">
+        <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" data-uid="${post.author}" tabindex="0"></div>
+        <div class="post-author-info">
+          <div>
+            <span class="post-author" data-uid="${post.author}" tabindex="0">${post.authorName || 'Невідомо'}</span>
+            <span class="post-meta">${post.authorUserId || ''}</span>
+            ${followButtonHtml}
+          </div>
+          <div class="post-time">${postTime}</div>
         </div>
+        ${menuHtml}
       </div>
+      <div class="post-content">${contentHtml}</div>
     `;
 
-    document.body.appendChild(this.modal);
-    
-    // Анімація появи
-    requestAnimationFrame(() => this.modal.classList.add('active'));
-  }
+    if (post.media && post.media.length > 0) {
+      const gallery = createGallery(post.media);
+      postEl.appendChild(gallery);
+    } else if (post.mediaUrl) {
+      const mediaEl = post.mediaType === 'image'
+        ? `<img src="${post.mediaUrl}" class="post-media" loading="lazy" tabindex="0">`
+        : `<video src="${post.mediaUrl}" controls class="post-media" tabindex="0"></video>`;
+      postEl.innerHTML += mediaEl;
+    }
 
-  attachListeners() {
-    const textarea = this.modal.querySelector('#editTextarea');
-    const saveBtn = this.modal.querySelector('[data-action="save"]');
-    const cancelBtn = this.modal.querySelector('[data-action="cancel"]');
-    const closeBtn = this.modal.querySelector('.modal-close');
-    const emojiBtn = this.modal.querySelector('.emoji-trigger');
+    const footer = document.createElement('div');
+    footer.className = 'post-footer';
+    footer.innerHTML = `
+      <button class="like-btn ${liked ? 'liked' : ''}" data-post-id="${post.id}" tabindex="0">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        <span>${post.likesCount || 0}</span>
+      </button>
+      <button class="comment-toggle-btn" data-post-id="${post.id}" tabindex="0">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>${post.commentsCount || 0}</span>
+      </button>
+      <button class="save-btn ${saved ? 'saved' : ''}" data-post-id="${post.id}" tabindex="0">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <span class="view-count" title="Перегляди">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7z"/></svg>
+        ${post.views || 0}
+      </span>
+    `;
+    postEl.appendChild(footer);
 
-    // Оновлення лічильника та кнопки
-    textarea.addEventListener('input', () => {
-      this.updateCharCount();
-      const hasChanges = textarea.value.trim() !== this.currentText.trim();
-      saveBtn.disabled = !hasChanges || !textarea.value.trim();
+    const commentsSection = document.createElement('div');
+    commentsSection.className = 'comments-section';
+    commentsSection.id = `comments-${post.id}`;
+    commentsSection.style.display = 'none';
+    commentsSection.innerHTML = `
+      <div class="comments-list" id="comments-list-${post.id}"></div>
+      <div class="comment-form">
+        <input type="text" id="comment-input-${post.id}" class="comment-input" placeholder="Напишіть коментар..." tabindex="0">
+        <div class="emoji-picker-container" style="position: relative;">
+          <button class="emoji-button" id="comment-emoji-${post.id}" tabindex="0">😊</button>
+          <div class="emoji-picker" id="comment-picker-${post.id}"></div>
+        </div>
+        <button class="btn btn-primary btn-icon" id="submit-comment-${post.id}" tabindex="0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    `;
+    postEl.appendChild(commentsSection);
+
+    feed.appendChild(postEl);
+
+    incrementPostView(post.id);
+
+    postEl.querySelectorAll('.hashtag').forEach(span => {
+      span.onclick = (e) => {
+        e.stopPropagation();
+        const tag = span.dataset.tag;
+        searchHashtag(tag);
+      };
     });
 
-    // Збереження
-    saveBtn.addEventListener('click', () => {
-      const newText = textarea.value.trim();
-      if (newText && newText !== this.currentText) {
-        this.onSave(newText);
-        this.close();
-      }
-    });
+    const commentInput = document.getElementById(`comment-input-${post.id}`);
+    if (commentInput) {
+      setupEmojiPicker(`comment-emoji-${post.id}`, `comment-picker-${post.id}`, `comment-input-${post.id}`);
+    }
 
-    // Скасування
-    const cancel = () => {
-      if (textarea.value.trim() !== this.currentText.trim()) {
-        if (confirm('Ви маєте незбережені зміни. Вийти?')) {
-          this.close();
-        }
+    const toggleBtn = postEl.querySelector('.comment-toggle-btn');
+    toggleBtn.onclick = async () => {
+      if (commentsSection.style.display === 'none') {
+        commentsSection.style.display = 'block';
+        const commentsList = document.getElementById(`comments-list-${post.id}`);
+        if (commentsList) await loadComments(post.id, commentsList);
       } else {
-        this.close();
+        commentsSection.style.display = 'none';
       }
     };
 
-    cancelBtn.addEventListener('click', cancel);
-    closeBtn.addEventListener('click', cancel);
-
-    // Закриття по кліку поза модалкою
-    this.modal.addEventListener('click', (e) => {
-      if (e.target === this.modal) cancel();
-    });
-
-    // Escape для закриття
-    this.modal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') cancel();
-    });
-
-    // Emoji picker (спрощена версія, можна розширити)
-    emojiBtn.addEventListener('click', () => {
-      const emojis = ['😀', '😂', '🥰', '😎', '🤔', '👍', '❤️', '🔥', '🎉', '👏'];
-      const picker = document.createElement('div');
-      picker.className = 'emoji-picker-dropdown';
-      picker.innerHTML = emojis.map(e => `<button type="button" class="emoji-option">${e}</button>`).join('');
-      
-      const rect = emojiBtn.getBoundingClientRect();
-      picker.style.position = 'absolute';
-      picker.style.top = `${rect.bottom + 5}px`;
-      picker.style.left = `${rect.left}px`;
-      
-      picker.addEventListener('click', (e) => {
-        if (e.target.classList.contains('emoji-option')) {
-          const start = textarea.selectionStart;
-          const end = textarea.selectionEnd;
-          const text = textarea.value;
-          textarea.value = text.substring(0, start) + e.target.textContent + text.substring(end);
-          textarea.focus();
-          textarea.setSelectionRange(start + 2, start + 2);
-          textarea.dispatchEvent(new Event('input'));
-          picker.remove();
+    const submitBtn = document.getElementById(`submit-comment-${post.id}`);
+    if (submitBtn) {
+      submitBtn.onclick = async () => {
+        const text = commentInput.value.trim();
+        if (!text) return;
+        try {
+          await addComment(post.id, text);
+          commentInput.value = '';
+          const commentsList = document.getElementById(`comments-list-${post.id}`);
+          if (commentsList) await loadComments(post.id, commentsList);
+          const countSpan = toggleBtn.querySelector('span');
+          if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
+          showToast('Коментар додано');
+        } catch (error) {
+          console.error('Error adding comment:', error);
+          showToast('Помилка: ' + error.message);
         }
-      });
+      };
+    }
 
-      document.body.appendChild(picker);
-      
-      // Закриття picker при кліку поза ним
-      setTimeout(() => {
-        document.addEventListener('click', function closePicker(e) {
-          if (!picker.contains(e.target) && e.target !== emojiBtn) {
-            picker.remove();
-            document.removeEventListener('click', closePicker);
+    const postRef = doc(db, "posts", post.id);
+    const unsubscribe = onSnapshot(postRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        const likeBtn = postEl.querySelector('.like-btn');
+        if (likeBtn) {
+          const liked = data.likes?.includes(state.currentUser?.uid) || false;
+          const countSpan = likeBtn.querySelector('span');
+          if (liked) {
+            likeBtn.classList.add('liked');
+          } else {
+            likeBtn.classList.remove('liked');
           }
-        });
-      }, 0);
+          if (countSpan) countSpan.textContent = data.likesCount || 0;
+        }
+        const saveBtn = postEl.querySelector('.save-btn');
+        if (saveBtn) {
+          const saved = data.saves?.includes(state.currentUser?.uid) || false;
+          if (saved) {
+            saveBtn.classList.add('saved');
+          } else {
+            saveBtn.classList.remove('saved');
+          }
+        }
+      } else {
+        if (postEl.parentNode) postEl.parentNode.removeChild(postEl);
+        unsubscribe();
+        state.postListeners.delete(post.id);
+      }
+    }, (error) => {
+      console.error(`Error listening to post ${post.id}:`, error);
+    });
+    state.postListeners.set(post.id, unsubscribe);
+  });
+}
+
+// ================= Глобальне делегування для меню постів =================
+document.addEventListener('click', (e) => {
+  const menuBtn = e.target.closest('.post-menu-btn');
+  if (menuBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const menuContainer = menuBtn.closest('.post-menu-container');
+    const dropdown = menuContainer.querySelector('.post-menu-dropdown');
+    if (dropdown) {
+      document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+        if (menu !== dropdown) menu.style.display = 'none';
+      });
+      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+    return;
+  }
+
+  const menuItem = e.target.closest('.post-menu-item');
+  if (menuItem) {
+    e.preventDefault();
+    e.stopPropagation();
+    const menuContainer = menuItem.closest('.post-menu-container');
+    const postEl = menuContainer.closest('.post');
+    const postId = postEl.dataset.postId;
+    const action = menuItem.dataset.action;
+    
+    if (action === 'edit') {
+      editPost(postId);
+    } else if (action === 'delete') {
+      deletePost(postId);
+    }
+    
+    const dropdown = menuContainer.querySelector('.post-menu-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+    return;
+  }
+
+  if (!e.target.closest('.post-menu-container')) {
+    document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+      menu.style.display = 'none';
     });
   }
+});
 
-  updateCharCount() {
-    const textarea = this.modal.querySelector('#editTextarea');
-    const counter = this.modal.querySelector('.char-count');
-    const length = textarea.value.length;
-    counter.textContent = `${length}/${this.maxLength}`;
-    counter.classList.toggle('near-limit', length > this.maxLength * 0.9);
-  }
+// ================= Коментарі =================
+export async function loadComments(postId, container) {
+  const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
+  const snapshot = await getDocs(q);
+  container.innerHTML = '';
+  snapshot.forEach(doc => {
+    const comment = doc.data();
+    const commentEl = document.createElement('div');
+    commentEl.className = 'comment';
+    const commentTime = comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleString('uk-UA', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }) : '';
+    commentEl.innerHTML = `
+      <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" data-uid="${comment.author}"></div>
+      <div class="comment-content">
+        <div>
+          <span class="comment-author" data-uid="${comment.author}">${comment.authorName}</span>
+          <span class="comment-time">${commentTime}</span>
+        </div>
+        <div class="comment-text">${comment.text}</div>
+      </div>
+    `;
+    container.appendChild(commentEl);
+  });
+}
 
-  close() {
-    this.modal.classList.remove('active');
-    setTimeout(() => this.modal.remove(), 300);
-  }
+export async function addComment(postId, text) {
+  if (!state.currentUser || !text.trim()) return;
+  const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
+  const user = userSnap.data();
+  const commentRef = collection(db, `posts/${postId}/comments`);
+  await addDoc(commentRef, {
+    author: state.currentUser.uid,
+    authorName: user.nickname,
+    authorAvatar: user.avatar || '',
+    text: text.trim(),
+    createdAt: serverTimestamp()
+  });
+  await updateDoc(doc(db, "posts", postId), { 
+    commentsCount: increment(1),
+    popularity: increment(40)
+  });
+}
 
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+// ================= Перегляди =================
+async function incrementPostView(postId) {
+  if (!state.currentUser) return;
+  if (state.viewedPosts.has(postId)) return;
+  state.viewedPosts.add(postId);
+  try {
+    await updateDoc(doc(db, "posts", postId), { 
+      views: increment(1),
+      popularity: increment(5)
+    });
+  } catch (e) {
+    console.warn("Не вдалося оновити перегляди:", e);
   }
 }
 
-// ================= Хештеги та фільтри =================
-class HashtagManager {
-  static async loadPopular(listId = 'hashtagList', limit = 20) {
-    const list = document.getElementById(listId);
-    if (!list) return;
+// ================= Галерея =================
+function createGallery(media) {
+  const gallery = document.createElement('div');
+  gallery.className = 'post-gallery';
 
-    list.innerHTML = '<div class="skeleton-loader"></div>';
+  const inner = document.createElement('div');
+  inner.className = 'gallery-inner';
 
-    try {
-      // Використовуємо агрегацію на клієнті (для великих обсягів краще Cloud Function)
-      const snapshot = await getDocs(collection(db, "posts"));
-      const tagCount = new Map();
-
-      snapshot.forEach(doc => {
-        (doc.data().hashtags || []).forEach(tag => {
-          tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
-        });
-      });
-
-      const sorted = Array.from(tagCount.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, limit);
-
-      this.renderHashtagList(list, sorted);
-    } catch (error) {
-      console.error('Load hashtags error:', error);
-      list.innerHTML = '<p class="error">Помилка завантаження</p>';
+  media.forEach((item, index) => {
+    const slide = document.createElement('div');
+    slide.className = 'gallery-slide';
+    if (item.type === 'image') {
+      slide.innerHTML = `<img src="${item.url}" loading="lazy" tabindex="0">`;
+    } else {
+      slide.innerHTML = `<video src="${item.url}" controls class="post-media" tabindex="0"></video>`;
     }
-  }
+    inner.appendChild(slide);
+  });
 
-  static renderHashtagList(container, tags) {
-    if (!tags.length) {
-      container.innerHTML = '<p class="empty">Поки немає хештегів</p>';
+  gallery.appendChild(inner);
+
+  const indicators = document.createElement('div');
+  indicators.className = 'gallery-indicators';
+  media.forEach((_, i) => {
+    const dot = document.createElement('span');
+    dot.className = i === 0 ? 'active' : '';
+    indicators.appendChild(dot);
+  });
+  gallery.appendChild(indicators);
+
+  const counter = document.createElement('div');
+  counter.className = 'gallery-counter';
+  counter.textContent = `1/${media.length}`;
+  gallery.appendChild(counter);
+
+  const updateGallery = () => {
+    const scrollLeft = inner.scrollLeft;
+    const slideWidth = inner.clientWidth;
+    const index = Math.round(scrollLeft / slideWidth);
+    const safeIndex = Math.min(Math.max(index, 0), media.length - 1);
+    
+    indicators.querySelectorAll('span').forEach((dot, i) => {
+      dot.className = i === safeIndex ? 'active' : '';
+    });
+    counter.textContent = `${safeIndex + 1}/${media.length}`;
+  };
+
+  inner.addEventListener('scroll', updateGallery);
+  setTimeout(updateGallery, 0);
+
+  return gallery;
+}
+
+// ================= Хештеги =================
+export async function loadHashtags(listId = 'hashtagList') {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
+
+  try {
+    const postsSnap = await getDocs(collection(db, "posts"));
+    const tagCount = new Map();
+    postsSnap.forEach(doc => {
+      const tags = doc.data().hashtags || [];
+      tags.forEach(tag => {
+        tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
+      });
+    });
+
+    const sortedTags = Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 20);
+
+    list.innerHTML = '';
+    if (sortedTags.length === 0) {
+      list.innerHTML = '<p style="text-align:center; padding:20px;">Поки немає хештегів</p>';
       return;
     }
 
-    const fragment = document.createDocumentFragment();
-    
-    tags.forEach(([tag, count]) => {
-      const item = document.createElement('div');
-      item.className = 'hashtag-item';
-      item.tabIndex = 0;
-      item.innerHTML = `
-        <span class="hashtag-name">#${tag}</span>
-        <span class="hashtag-count">${count} ${this.declension(count, 'пост', 'пости', 'постів')}</span>
+    sortedTags.forEach(([tag, count]) => {
+      const div = document.createElement('div');
+      div.className = 'hashtag-item';
+      div.tabIndex = 0;
+      div.innerHTML = `
+        <span class="hashtag-name">${tag}</span>
+        <span class="hashtag-count">${count} постів</span>
       `;
-      item.addEventListener('click', () => searchHashtag(tag));
-      fragment.appendChild(item);
+      div.onclick = () => searchHashtag(tag);
+      list.appendChild(div);
     });
-
-    container.innerHTML = '';
-    container.appendChild(fragment);
-  }
-
-  static declension(n, one, few, many) {
-    if (n % 10 === 1 && n % 100 !== 11) return one;
-    if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return few;
-    return many;
+  } catch (e) {
+    console.error('Error loading hashtags:', e);
+    list.innerHTML = '<p style="text-align:center; padding:20px;">Помилка завантаження</p>';
   }
 }
-
-// ================= Ініціалізація та експорти =================
-const postManager = new PostManager();
-
-// Глобальні обробники подій з делегуванням
-document.addEventListener('DOMContentLoaded', () => {
-  // Делегування для динамічно доданих елементів
-  document.body.addEventListener('click', (e) => {
-    // Меню поста
-    const menuItem = e.target.closest('.menu-item');
-    if (menuItem) {
-      e.stopPropagation();
-      const postEl = menuItem.closest('.post');
-      const postId = postEl?.dataset.postId;
-      const action = menuItem.dataset.action;
-      
-      if (action === 'edit') postManager.editPost(postId);
-      if (action === 'delete') postManager.deletePost(postId);
-      
-      // Закриваємо меню
-      const dropdown = menuItem.closest('.post-menu-dropdown');
-      const trigger = dropdown?.previousElementSibling;
-      if (dropdown) dropdown.hidden = true;
-      if (trigger) trigger.setAttribute('aria-expanded', 'false');
-    }
-
-    // Підписка
-    const followBtn = e.target.closest('.follow-btn-post');
-    if (followBtn) {
-      const uid = followBtn.dataset.uid;
-      if (uid) toggleFollow(uid, followBtn);
-    }
-
-    // Перехід на профіль
-    const profileLink = e.target.closest('[data-uid]');
-    if (profileLink && !profileLink.closest('.follow-btn-post')) {
-      const uid = profileLink.dataset.uid;
-      // Ваш код для відкриття профілю
-    }
-  });
-
-  // Обробка форм коментарів
-  document.body.addEventListener('submit', (e) => {
-    if (e.target.classList.contains('comment-form')) {
-      e.preventDefault();
-      const postId = e.target.querySelector('.submit-comment-btn')?.dataset.postId;
-      const input = e.target.querySelector('.comment-input');
-      if (postId && input?.value.trim()) {
-        postManager.addComment(postId, input.value).then(() => {
-          input.value = '';
-          const list = document.getElementById(`comments-list-${postId}`);
-          if (list) postManager.loadComments(postId, list);
-        });
-      }
-    }
-  });
-});
-
-// Експорт функцій
-export const toggleLike = (...args) => postManager.toggleLike(...args);
-export const toggleSave = (...args) => postManager.toggleSave(...args);
-export const createPost = (...args) => postManager.createPost(...args);
-export const editPost = (...args) => postManager.editPost(...args);
-export const deletePost = (...args) => postManager.deletePost(...args);
-export const loadMorePosts = (...args) => postManager.loadMorePosts(...args);
-export const renderPosts = (...args) => postManager.renderPosts(...args);
-export const loadComments = (...args) => postManager.loadComments(...args);
-export const addComment = (...args) => postManager.addComment(...args);
-export const loadHashtags = (...args) => HashtagManager.loadPopular(...args);
-export const extractHashtags = (text) => PostManager.extractHashtags(text);
 
 export function searchHashtag(tag) {
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.value = '#' + tag;
-    document.querySelector('[data-section="search"]')?.click();
+    document.querySelector('[data-section="search"]').click();
+  }
+}
+
+// ================= Фільтри =================
+export async function loadFilterHashtags(listId = 'filterList') {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
+
+  try {
+    const postsSnap = await getDocs(collection(db, "posts"));
+    const tagCount = new Map();
+    postsSnap.forEach(doc => {
+      const tags = doc.data().hashtags || [];
+      tags.forEach(tag => {
+        tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
+      });
+    });
+
+    const sortedTags = Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 30);
+
+    list.innerHTML = '';
+    if (sortedTags.length === 0) {
+      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає хештегів</p>';
+      return;
+    }
+
+    sortedTags.forEach(([tag, count]) => {
+      const div = document.createElement('div');
+      div.className = 'filter-item';
+      div.tabIndex = 0;
+      div.innerHTML = `
+        <span class="tag">#${tag}</span>
+        <span class="count">${count} постів</span>
+      `;
+      div.onclick = () => applyFilter(tag);
+      list.appendChild(div);
+    });
+  } catch (e) {
+    console.error('Error loading filter hashtags:', e);
+    list.innerHTML = '<p style="text-align:center; padding:20px;">Помилка завантаження</p>';
   }
 }
 
 export function applyFilter(tag) {
   setFilterHashtag(tag);
-  document.getElementById('filterModal')?.classList.remove('active');
+  document.getElementById('filterModal').classList.remove('active');
 
   if (state.currentFeedType === 'popular') {
     setCurrentFeedType('new');
-    document.getElementById('feedNewBtn')?.classList.add('active');
-    document.getElementById('feedPopularBtn')?.classList.remove('active');
+    document.getElementById('feedNewBtn').classList.add('active');
+    document.getElementById('feedPopularBtn').classList.remove('active');
   }
 
   const activeDiv = document.getElementById('activeFilter');
-  if (activeDiv) {
-    activeDiv.innerHTML = `
-      <span class="filter-chip">#${tag}</span>
-      <button class="clear-filter" id="clearFilterChip" aria-label="Очистити фільтр">×</button>
-    `;
-    document.getElementById('clearFilterChip')?.addEventListener('click', clearFilter);
-  }
+  activeDiv.innerHTML = `#${tag} <button id="clearFilterChip">✕</button>`;
+  document.getElementById('clearFilterChip').onclick = clearFilter;
 
   resetPaginationState();
   const feed = document.getElementById('feed');
@@ -1192,8 +892,7 @@ export function applyFilter(tag) {
 
 export function clearFilter() {
   setFilterHashtag(null);
-  const activeDiv = document.getElementById('activeFilter');
-  if (activeDiv) activeDiv.innerHTML = '';
+  document.getElementById('activeFilter').innerHTML = '';
   resetPaginationState();
   const feed = document.getElementById('feed');
   if (feed) {
@@ -1201,8 +900,3 @@ export function clearFilter() {
     loadMorePosts();
   }
 }
-
-// Очищення при виході
-window.addEventListener('beforeunload', () => {
-  postManager.cleanupAllListeners();
-});
