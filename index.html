@@ -28,68 +28,6 @@
     header.top-bar {
         display: none !important;
     }
-
-    /* ===== Стилі для меню поста ===== */
-    .post-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .post-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .post-menu-container {
-      position: relative;
-    }
-
-    .post-menu-btn {
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-      color: var(--text-color, #333);
-    }
-
-    .post-menu-btn:hover {
-      background: var(--hover-bg, #f0f0f0);
-    }
-
-    .post-menu-dropdown {
-      position: absolute;
-      top: 100%;
-      right: 0;
-      background: var(--card-bg, #fff);
-      border: 1px solid var(--border, #ddd);
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      min-width: 150px;
-      z-index: 10;
-      display: none;
-    }
-
-    .post-menu-dropdown.show {
-      display: block;
-    }
-
-    .post-menu-item {
-      padding: 10px 16px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .post-menu-item:hover {
-      background: var(--hover-bg, #f5f5f5);
-    }
-
-    .post-menu-item[data-action="delete"] {
-      color: var(--danger, #e53935);
-    }
   </style>
 </head>
 <body>
@@ -137,38 +75,23 @@
 
           <!-- Стрічка постів -->
           <div class="feed" id="feed">
-            <!-- Приклад ЧУЖОГО поста (тільки "Поскаржитися" в меню) -->
-            <div class="post" data-post-id="1" data-author-id="user2">
+            <!-- Приклад поста з новою шапкою, переробленою за вимогою -->
+            <div class="post">
               <div class="post-header">
                 <div class="user-info">
                   <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
                   <div class="user-text">
-                    <div class="user-name">Ім'я Користувача (чужий)</div>
-                    <div class="user-username">@user2</div>
+                    <div class="user-name">Ім'я Користувача</div>
+                    <div class="user-username">@username</div>
                   </div>
                 </div>
-                <!-- Контейнер для дій буде заповнено динамічно скриптом -->
+                <button class="follow-btn">Підписатися</button>
               </div>
               <div class="post-content">
-                <p>Це пост іншого користувача. При натисканні на три крапки має з'явитися тільки "Поскаржитися".</p>
+                <p>Текст поста. Тут може бути будь-який вміст, але головне — шапка оформлена згідно з завданням.</p>
               </div>
             </div>
-            <!-- Приклад ВЛАСНОГО поста (меню з "Редагувати" та "Видалити") -->
-            <div class="post" data-post-id="2" data-author-id="user1">
-              <div class="post-header">
-                <div class="user-info">
-                  <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
-                  <div class="user-text">
-                    <div class="user-name">Мій профіль</div>
-                    <div class="user-username">@user1</div>
-                  </div>
-                </div>
-                <!-- Контейнер для дій буде заповнено динамічно скриптом -->
-              </div>
-              <div class="post-content">
-                <p>Це мій власний пост. Тут має бути меню з "Редагувати" та "Видалити".</p>
-              </div>
-            </div>
+            <!-- Решта постів будуть додаватися динамічно -->
           </div>
           <div class="feed-end-sentinel" id="feedSentinel"></div>
           <div id="skeletonContainer" style="display:none;">
@@ -631,162 +554,5 @@
 
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
-  
-  <!-- Виправлений скрипт для роботи меню постів з динамічним визначенням автора -->
-  <script>
-    (function() {
-      // Функція для отримання поточного ID користувача
-      function getCurrentUserId() {
-        return localStorage.getItem('currentUserId') || 'user1'; // Якщо немає – демо-режим
-      }
-
-      // Функція для оновлення меню всіх постів
-      function refreshAllPosts() {
-        document.querySelectorAll('.post').forEach(post => enhancePost(post));
-      }
-
-      // Функція для додавання відповідних дій до поста
-      function enhancePost(post) {
-        const authorId = post.dataset.authorId;
-        const currentUserId = getCurrentUserId();
-        const isOwn = (authorId === currentUserId);
-
-        const header = post.querySelector('.post-header');
-        if (!header) return;
-
-        // Шукаємо або створюємо контейнер дій
-        let actionsDiv = post.querySelector('.post-actions');
-        if (!actionsDiv) {
-          actionsDiv = document.createElement('div');
-          actionsDiv.className = 'post-actions';
-          header.appendChild(actionsDiv);
-        } else {
-          actionsDiv.innerHTML = ''; // Очищаємо
-        }
-
-        // Створюємо контейнер меню (три крапки)
-        const menuContainer = document.createElement('div');
-        menuContainer.className = 'post-menu-container';
-
-        // Формуємо пункти меню
-        let menuItemsHtml = isOwn
-          ? `<div class="post-menu-item" data-action="edit">Редагувати</div>
-             <div class="post-menu-item" data-action="delete">Видалити</div>`
-          : `<div class="post-menu-item" data-action="report">Поскаржитися</div>`;
-
-        menuContainer.innerHTML = `
-          <button class="post-menu-btn" aria-label="Меню поста">⋯</button>
-          <div class="post-menu-dropdown">
-            ${menuItemsHtml}
-          </div>
-        `;
-
-        actionsDiv.appendChild(menuContainer);
-      }
-
-      // Обробник кліків для меню
-      document.addEventListener('click', function(e) {
-        // Відкриття/закриття меню
-        if (e.target.closest('.post-menu-btn')) {
-          e.preventDefault();
-          const btn = e.target.closest('.post-menu-btn');
-          const dropdown = btn.nextElementSibling;
-          document.querySelectorAll('.post-menu-dropdown.show').forEach(menu => {
-            if (menu !== dropdown) menu.classList.remove('show');
-          });
-          dropdown.classList.toggle('show');
-          e.stopPropagation();
-        }
-
-        // Закриття меню при кліку поза ним
-        if (!e.target.closest('.post-menu-container')) {
-          document.querySelectorAll('.post-menu-dropdown.show').forEach(menu => {
-            menu.classList.remove('show');
-          });
-        }
-
-        // Обробка пунктів меню
-        if (e.target.closest('.post-menu-item')) {
-          const item = e.target.closest('.post-menu-item');
-          const action = item.dataset.action;
-          const post = item.closest('.post');
-          const postId = post.dataset.postId;
-
-          if (action === 'edit') {
-            editPost(post);
-          } else if (action === 'delete') {
-            deletePost(post);
-          } else if (action === 'report') {
-            alert('Скарга відправлена');
-          }
-
-          item.closest('.post-menu-dropdown').classList.remove('show');
-        }
-      });
-
-      // Функції редагування/видалення
-      function editPost(postElement) {
-        const postContent = postElement.querySelector('.post-content p').innerText;
-        const editModal = document.getElementById('editPostModal');
-        const editText = document.getElementById('editPostText');
-        editText.value = postContent;
-        editModal.dataset.editingPost = postElement.dataset.postId;
-        editModal.style.display = 'block';
-      }
-
-      function deletePost(postElement) {
-        if (confirm('Видалити цей пост?')) {
-          postElement.remove();
-        }
-      }
-
-      // Закриття модалки редагування
-      document.getElementById('closeEditPostModal')?.addEventListener('click', function() {
-        document.getElementById('editPostModal').style.display = 'none';
-      });
-
-      // Збереження змін
-      document.getElementById('savePostEdit')?.addEventListener('click', function() {
-        const modal = document.getElementById('editPostModal');
-        const postId = modal.dataset.editingPost;
-        const newText = document.getElementById('editPostText').value;
-        const post = document.querySelector(`.post[data-post-id="${postId}"]`);
-        if (post) {
-          post.querySelector('.post-content p').innerText = newText;
-        }
-        modal.style.display = 'none';
-        delete modal.dataset.editingPost;
-      });
-
-      // Спостерігач за новими постами (динамічне додавання)
-      const feed = document.getElementById('feed');
-      if (feed) {
-        const observer = new MutationObserver(mutations => {
-          mutations.forEach(mutation => {
-            mutation.addedNodes.forEach(node => {
-              if (node.nodeType === 1) {
-                if (node.classList.contains('post')) {
-                  enhancePost(node);
-                } else {
-                  node.querySelectorAll('.post').forEach(post => enhancePost(post));
-                }
-              }
-            });
-          });
-        });
-        observer.observe(feed, { childList: true, subtree: true });
-      }
-
-      // Оновлення при зміні користувача (наприклад, вхід/вихід)
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'currentUserId') {
-          refreshAllPosts();
-        }
-      });
-
-      // Початкове застосування до вже існуючих постів
-      refreshAllPosts();
-    })();
-  </script>
 </body>
-</html>
+</html> пофікси меню редагування на постах
