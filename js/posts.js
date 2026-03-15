@@ -1,120 +1,286 @@
-import { db } from './firebase.js';
-import { 
-  collection, addDoc, doc, getDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter, 
-  getDocs, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, onSnapshot 
+// posts.js — Повністю оновлений модуль для роботи з постами
+import { db } from './config.js';
+import {
+  collection, addDoc, doc, getDoc, updateDoc, deleteDoc,
+  query, where, orderBy, limit, startAfter, getDocs,
+  serverTimestamp, arrayUnion, arrayRemove, increment,
+  writeBatch, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { 
+import {
   state,
-  setFilterHashtag, 
-  resetPaginationState, 
-  setCurrentFeedType 
+  setFilterHashtag,
+  resetPaginationState,
+  setCurrentFeedType
 } from './state.js';
 import { showToast, vibrate, uploadToCloudinary, debounce, setupEmojiPicker } from './utils.js';
+import { toggleFollow } from './profile.js';
 
-// ================= Допоміжні функції =================
+// ==================== Конфігурація та допоміжні функції ====================
+const CONFIG = {
+  MAX_FILES: 3,
+  LIKE_DEBOUNCE: 300,
+  SAVE_DEBOUNCE: 300,
+  POPULARITY_LIKE: 50,
+  POPULARITY_COMMENT: 40,
+  POPULARITY_VIEW: 5,
+  EMOJI_BUTTON_TEXT: '😊'
+};
+
+// Утиліта для безпечного доступу до DOM
+const $ = (selector, context = document) => context.querySelector(selector);
+const $$ = (selector, context = document) => Array.from(context.querySelectorAll(selector));
+
+// Хештеги
 export function extractHashtags(text) {
   const regex = /#(\w+)/g;
   const matches = text.match(regex);
   return matches ? matches.map(tag => tag.toLowerCase()) : [];
 }
 
-// ================= Лайк (з debounce) =================
-export const toggleLike = debounce(async (postId, buttonElement) => {
+// ==================== Сучасне меню поста (Instagram‑стиль) ====================
+class PostMenu {
+  constructor(container, postId, isAuthor) {
+    this.container = container;
+    this.postId = postId;
+    this.isAuthor = isAuthor;
+    this.menuBtn = null;
+    this.dropdown = null;
+    this.init();
+  }
+
+  init() {
+    if (!this.isAuthor) return;
+
+    this.container.classList.add('post-menu-container');
+    this.container.innerHTML = `
+      <button class="post-menu-btn" aria-label="Меню поста">⋮</button>
+      <div class="post-menu-dropdown">
+        <div class="post-menu-item" data-action="edit">Редагувати</div>
+        <div class="post-menu-item" data-action="delete">Видалити</div>
+      </div>
+    `;
+
+    this.menuBtn = $('.post-menu-btn', this.container);
+    this.dropdown = $('.post-menu-dropdown', this.container);
+
+    // Анімація через CSS (клас .show)
+    this.menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggle();
+    });
+
+    // Закриття при кліку поза меню – глобальний обробник додається один раз
+  }
+
+  toggle() {
+    const isOpen = this.dropdown.classList.contains('show');
+    // Закриваємо всі інші меню
+    $$('.post-menu-dropdown.show').forEach(d => d.classList.remove('show'));
+    if (!isOpen) {
+      this.dropdown.classList.add('show');
+    }
+  }
+
+  close() {
+    this.dropdown.classList.remove('show');
+  }
+
+  static setupGlobalClose() {
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.post-menu-container')) {
+        $$('.post-menu-dropdown.show').forEach(d => d.classList.remove('show'));
+      }
+    });
+  }
+}
+
+// Викликати один раз при завантаженні модуля
+PostMenu.setupGlobalClose();
+
+// ==================== Модальне вікно редагування з emoji та лічильником ====================
+class EditModal {
+  constructor(currentText, onSave) {
+    this.currentText = currentText;
+    this.onSave = onSave;
+    this.modal = null;
+    this.textarea = null;
+    this.counter = null;
+    this.init();
+  }
+
+  init() {
+    // Видаляємо попереднє, якщо є
+    $('#customEditModal')?.remove();
+
+    this.modal = document.createElement('div');
+    this.modal.id = 'customEditModal';
+    this.modal.className = 'edit-modal-overlay'; // для CSS-анімації
+    this.modal.innerHTML = `
+      <div class="edit-modal">
+        <h3 class="edit-modal-title">Редагувати пост</h3>
+        <div class="edit-modal-textarea-container">
+          <textarea id="editModalTextarea" class="edit-modal-textarea" maxlength="2000">${this.currentText}</textarea>
+          <span class="edit-modal-counter" id="editModalCounter">${this.currentText.length}/2000</span>
+        </div>
+        <div class="edit-modal-actions">
+          <button id="closeEditModal" class="edit-modal-btn cancel">Скасувати</button>
+          <button id="saveEditModal" class="edit-modal-btn save">Зберегти</button>
+        </div>
+        <button id="editModalEmojiBtn" class="edit-modal-emoji-btn">${CONFIG.EMOJI_BUTTON_TEXT}</button>
+        <div id="editModalEmojiPicker" class="emoji-picker"></div>
+      </div>
+    `;
+
+    document.body.appendChild(this.modal);
+    this.textarea = $('#editModalTextarea');
+    this.counter = $('#editModalCounter');
+
+    // Анімація появи
+    setTimeout(() => this.modal.classList.add('active'), 10);
+
+    this.attachEvents();
+    this.setupEmoji();
+    this.textarea.focus();
+    this.textarea.setSelectionRange(this.textarea.value.length, this.textarea.value.length);
+  }
+
+  attachEvents() {
+    this.textarea.addEventListener('input', () => {
+      const len = this.textarea.value.length;
+      this.counter.textContent = `${len}/2000`;
+    });
+
+    $('#closeEditModal').addEventListener('click', () => this.close());
+    $('#saveEditModal').addEventListener('click', () => {
+      const newText = this.textarea.value.trim();
+      if (newText && newText !== this.currentText) {
+        this.onSave(newText);
+        this.close();
+      } else if (newText === this.currentText) {
+        this.close();
+      } else {
+        showToast('Текст поста не може бути порожнім');
+      }
+    });
+
+    this.modal.addEventListener('click', (e) => {
+      if (e.target === this.modal) this.close();
+    });
+  }
+
+  setupEmoji() {
+    const emojiBtn = $('#editModalEmojiBtn');
+    const picker = $('#editModalEmojiPicker');
+    setupEmojiPicker(emojiBtn, picker, this.textarea);
+  }
+
+  close() {
+    this.modal.classList.remove('active');
+    setTimeout(() => this.modal.remove(), 200); // після анімації
+  }
+}
+
+// ==================== Оптимізовані функції лайків та збережень ====================
+// Спільна логіка для оновлення UI та Firestore з batch
+async function performSocialAction({
+  postId,
+  button,
+  actionType, // 'like' або 'save'
+  checkWas,
+  getServerState,
+  buildBatchUpdates,
+  onSuccessOptimistic,
+  onErrorRollback
+}) {
   if (!state.currentUser) {
-    showToast('Увійдіть, щоб лайкати');
+    showToast(`Увійдіть, щоб ${actionType === 'like' ? 'лайкати' : 'зберегти'}`);
     return;
   }
 
-  if (state.likePromiseMap.has(postId)) return;
+  const promiseMap = actionType === 'like' ? state.likePromiseMap : state.savePromiseMap;
+  if (promiseMap.has(postId)) return;
 
-  const wasLiked = buttonElement.classList.contains('liked');
-  const countSpan = buttonElement.querySelector('span');
-  const oldCount = countSpan ? parseInt(countSpan.textContent) : 0;
+  const wasActive = button.classList.contains(actionType === 'like' ? 'liked' : 'saved');
+  const countSpan = actionType === 'like' ? button.querySelector('span') : null;
+  const oldCount = countSpan ? parseInt(countSpan.textContent) || 0 : 0;
 
   // Оптимістичне оновлення
-  const newCount = wasLiked ? Math.max(oldCount - 1, 0) : oldCount + 1;
-  buttonElement.classList.toggle('liked', !wasLiked);
-  if (countSpan) countSpan.textContent = newCount;
+  button.classList.toggle(actionType === 'like' ? 'liked' : 'saved', !wasActive);
+  if (countSpan) {
+    const newCount = wasActive ? Math.max(oldCount - 1, 0) : oldCount + 1;
+    countSpan.textContent = newCount;
+  }
 
   try {
-    state.likePromiseMap.set(postId, true);
+    promiseMap.set(postId, true);
 
     const postRef = doc(db, "posts", postId);
     const postSnap = await getDoc(postRef);
     if (!postSnap.exists()) {
       showToast('Пост не знайдено');
-      buttonElement.classList.toggle('liked', wasLiked);
-      if (countSpan) countSpan.textContent = oldCount;
+      onErrorRollback({ button, wasActive, countSpan, oldCount });
       return;
     }
 
-    const postData = postSnap.data();
-    const isLiked = postData.likes?.includes(state.currentUser.uid) || false;
-
-    if (isLiked === wasLiked) {
+    const serverActive = getServerState(postSnap.data());
+    if (serverActive === wasActive) {
       const batch = writeBatch(db);
-      if (isLiked) {
+      buildBatchUpdates(batch, postRef, wasActive);
+      await batch.commit();
+      onSuccessOptimistic?.({ wasActive, postId });
+    } else {
+      // Стан не співпав – відкочуємо до серверного
+      onErrorRollback({ button, wasActive: serverActive, countSpan, oldCount: postSnap.data().likesCount || 0 });
+    }
+  } catch (error) {
+    console.error(`Помилка ${actionType}:`, error);
+    showToast(`Не вдалося оновити. Спробуйте ще.`);
+    onErrorRollback({ button, wasActive, countSpan, oldCount });
+  } finally {
+    promiseMap.delete(postId);
+  }
+}
+
+export const toggleLike = debounce(async (postId, buttonElement) => {
+  await performSocialAction({
+    postId,
+    button: buttonElement,
+    actionType: 'like',
+    checkWas: (el) => el.classList.contains('liked'),
+    getServerState: (data) => data.likes?.includes(state.currentUser.uid) || false,
+    buildBatchUpdates: (batch, postRef, wasLiked) => {
+      const userRef = doc(db, "users", state.currentUser.uid);
+      if (wasLiked) {
         batch.update(postRef, {
           likes: arrayRemove(state.currentUser.uid),
           likesCount: increment(-1),
-          popularity: increment(-50)
+          popularity: increment(-CONFIG.POPULARITY_LIKE)
         });
-        batch.update(doc(db, "users", state.currentUser.uid), {
-          likedPosts: arrayRemove(postId)
-        });
+        batch.update(userRef, { likedPosts: arrayRemove(postId) });
       } else {
         batch.update(postRef, {
           likes: arrayUnion(state.currentUser.uid),
           likesCount: increment(1),
-          popularity: increment(50)
+          popularity: increment(CONFIG.POPULARITY_LIKE)
         });
-        batch.update(doc(db, "users", state.currentUser.uid), {
-          likedPosts: arrayUnion(postId)
-        });
+        batch.update(userRef, { likedPosts: arrayUnion(postId) });
         vibrate(30);
       }
-      await batch.commit();
-    } else {
-      // Стан не співпав – повертаємо як було в базі
-      buttonElement.classList.toggle('liked', isLiked);
-      if (countSpan) countSpan.textContent = postData.likesCount || 0;
+    },
+    onErrorRollback: ({ button, wasActive, countSpan, oldCount }) => {
+      button.classList.toggle('liked', wasActive);
+      if (countSpan) countSpan.textContent = oldCount;
     }
-  } catch (error) {
-    console.error('Помилка toggleLike:', error);
-    showToast('Не вдалося оновити лайк. Спробуйте ще.');
-    buttonElement.classList.toggle('liked', wasLiked);
-    if (countSpan) countSpan.textContent = oldCount;
-  } finally {
-    state.likePromiseMap.delete(postId);
-  }
-}, 300);
+  });
+}, CONFIG.LIKE_DEBOUNCE);
 
-// ================= Збереження поста =================
 export const toggleSave = debounce(async (postId, buttonElement) => {
-  if (!state.currentUser) {
-    showToast('Увійдіть, щоб зберегти');
-    return;
-  }
-
-  if (state.savePromiseMap.has(postId)) return;
-
-  const wasSaved = buttonElement.classList.contains('saved');
-  buttonElement.classList.toggle('saved', !wasSaved);
-
-  try {
-    state.savePromiseMap.set(postId, true);
-
-    const postRef = doc(db, "posts", postId);
-    const postSnap = await getDoc(postRef);
-    if (!postSnap.exists()) {
-      showToast('Пост не знайдено');
-      buttonElement.classList.toggle('saved', wasSaved);
-      return;
-    }
-
-    const isSaved = postSnap.data().saves?.includes(state.currentUser.uid) || false;
-    if (isSaved === wasSaved) {
-      const batch = writeBatch(db);
+  await performSocialAction({
+    postId,
+    button: buttonElement,
+    actionType: 'save',
+    getServerState: (data) => data.saves?.includes(state.currentUser.uid) || false,
+    buildBatchUpdates: (batch, postRef, wasSaved) => {
       const userRef = doc(db, "users", state.currentUser.uid);
       if (wasSaved) {
         batch.update(userRef, { savedPosts: arrayRemove(postId) });
@@ -123,29 +289,22 @@ export const toggleSave = debounce(async (postId, buttonElement) => {
         batch.update(userRef, { savedPosts: arrayUnion(postId) });
         batch.update(postRef, { saves: arrayUnion(state.currentUser.uid) });
       }
-      await batch.commit();
-    } else {
-      buttonElement.classList.toggle('saved', isSaved);
+    },
+    onErrorRollback: ({ button, wasActive }) => {
+      button.classList.toggle('saved', wasActive);
     }
-  } catch (error) {
-    console.error("Помилка збереження:", error);
-    showToast("Не вдалося зберегти пост.");
-    buttonElement.classList.toggle('saved', wasSaved);
-  } finally {
-    state.savePromiseMap.delete(postId);
-  }
-}, 300);
+  });
+}, CONFIG.SAVE_DEBOUNCE);
 
-// ================= Створення поста =================
+// ==================== Створення поста ====================
 export async function createPost(text, files) {
   if (!state.currentUser) {
     showToast('Увійдіть, щоб опублікувати пост');
     return false;
   }
 
-  const MAX_FILES = 3;
-  if (files.length > MAX_FILES) {
-    showToast(`Можна вибрати не більше ${MAX_FILES} файлів`);
+  if (files.length > CONFIG.MAX_FILES) {
+    showToast(`Можна вибрати не більше ${CONFIG.MAX_FILES} файлів`);
     return false;
   }
 
@@ -181,18 +340,19 @@ export async function createPost(text, files) {
       popularity: 0
     });
 
-    await updateDoc(doc(db, "users", state.currentUser.uid), { posts: arrayUnion(postDoc.id) });
+    await updateDoc(doc(db, "users", state.currentUser.uid), {
+      posts: arrayUnion(postDoc.id)
+    });
 
     // Очищення форми
     const postText = document.getElementById('postText');
     const postMedia = document.getElementById('postMedia');
-    const postMediaPreviews = document.getElementById('postMediaPreviews');
-    const postMediaLabel = document.getElementById('postMediaLabel');
-    
+    const previews = document.getElementById('postMediaPreviews');
+    const label = document.getElementById('postMediaLabel');
     if (postText) postText.value = '';
     if (postMedia) postMedia.value = '';
-    if (postMediaPreviews) postMediaPreviews.innerHTML = '';
-    if (postMediaLabel) postMediaLabel.textContent = '+ Медіа (до 3 файлів)';
+    if (previews) previews.innerHTML = '';
+    if (label) label.textContent = '+ Медіа (до 3 файлів)';
 
     showToast('Пост опубліковано!');
     return true;
@@ -203,25 +363,24 @@ export async function createPost(text, files) {
   }
 }
 
-// ================= Редагування поста =================
+// ==================== Редагування поста ====================
 export async function editPost(postId) {
   if (!state.currentUser) return;
-  
+
   const postRef = doc(db, "posts", postId);
   const postSnap = await getDoc(postRef);
   if (!postSnap.exists()) {
     showToast('Пост не знайдено');
     return;
   }
-  
+
   const post = postSnap.data();
   if (post.author !== state.currentUser.uid) {
     showToast('Ви не автор цього поста');
     return;
   }
-  
-  // Викликаємо модальне вікно
-  createEditModal(post.text || '', async (newText) => {
+
+  new EditModal(post.text || '', async (newText) => {
     try {
       const hashtags = extractHashtags(newText);
       await updateDoc(postRef, {
@@ -232,24 +391,13 @@ export async function editPost(postId) {
       });
       showToast('Пост оновлено');
 
-      // Миттєве оновлення тексту поста в DOM
-      const postEl = document.querySelector(`.post[data-post-id="${postId}"]`);
+      // Миттєве оновлення DOM
+      const postEl = $(`.post[data-post-id="${postId}"]`);
       if (postEl) {
-        const contentContainer = postEl.querySelector('.post-content');
+        const contentContainer = $('.post-content', postEl);
         if (contentContainer) {
-          let contentHtml = newText;
-          const hashtagRegex = /#(\w+)/g;
-          contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
-          contentContainer.innerHTML = contentHtml;
-          
-          // Відновлюємо кліки по хештегах
-          contentContainer.querySelectorAll('.hashtag').forEach(span => {
-            span.onclick = (e) => {
-              e.stopPropagation();
-              const tag = span.dataset.tag;
-              searchHashtag(tag);
-            };
-          });
+          contentContainer.innerHTML = highlightHashtags(newText);
+          attachHashtagClick(contentContainer);
         }
       }
     } catch (error) {
@@ -259,59 +407,7 @@ export async function editPost(postId) {
   });
 }
 
-// Функція для створення модального вікна редагування
-function createEditModal(currentText, onSave) {
-  // Видаляємо попереднє вікно
-  const existingModal = document.getElementById('customEditModal');
-  if (existingModal) existingModal.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'customEditModal';
-  modal.style.cssText = `
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
-    z-index: 9999; backdrop-filter: blur(2px);
-  `;
-
-  modal.innerHTML = `
-    <div style="background: var(--bg-color, #ffffff); padding: 20px; border-radius: 16px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 15px;">
-      <h3 style="margin: 0; font-size: 18px; color: var(--text-color, #333);">Редагувати пост</h3>
-      <textarea id="editModalTextarea" style="width: 100%; height: 150px; padding: 12px; border: 1px solid var(--border-color, #ddd); border-radius: 8px; resize: none; font-family: inherit; font-size: 15px; outline: none; box-sizing: border-box; background: var(--input-bg, #fff); color: var(--text-color, #333);">${currentText}</textarea>
-      <div style="display: flex; justify-content: flex-end; gap: 10px;">
-        <button id="closeEditModal" style="padding: 10px 16px; border: none; border-radius: 8px; background: var(--btn-secondary-bg, #e0e0e0); color: var(--text-color, #333); font-weight: 600; cursor: pointer;">Скасувати</button>
-        <button id="saveEditModal" style="padding: 10px 16px; border: none; border-radius: 8px; background: var(--primary-color, #007bff); color: white; font-weight: 600; cursor: pointer;">Зберегти</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-
-  const textarea = document.getElementById('editModalTextarea');
-  textarea.focus();
-  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-
-  const closeModal = () => modal.remove();
-
-  document.getElementById('closeEditModal').onclick = closeModal;
-  document.getElementById('saveEditModal').onclick = () => {
-    const newText = textarea.value.trim();
-    if (newText && newText !== currentText) {
-      onSave(newText);
-      closeModal();
-    } else if (newText === currentText) {
-      closeModal();
-    } else {
-      showToast('Текст поста не може бути порожнім');
-    }
-  };
-
-  // Закриття по кліку на фон
-  modal.onclick = (e) => {
-    if (e.target === modal) closeModal();
-  };
-}
-
-// ================= Видалення поста =================
+// ==================== Видалення поста ====================
 export async function deletePost(postId) {
   if (!state.currentUser) return;
   if (!confirm('Видалити цей пост назавжди?')) return;
@@ -324,26 +420,18 @@ export async function deletePost(postId) {
       return;
     }
 
-    // Видаляємо коментарі
+    // Видаляємо коментарі (підколекцію) за допомогою batch
     const commentsSnapshot = await getDocs(collection(db, `posts/${postId}/comments`));
     const batch = writeBatch(db);
     commentsSnapshot.forEach(doc => batch.delete(doc.ref));
-
-    // Видаляємо пост
     batch.delete(postRef);
-
-    // Видаляємо ID поста з масиву постів автора
-    const userRef = doc(db, "users", state.currentUser.uid);
-    batch.update(userRef, {
+    batch.update(doc(db, "users", state.currentUser.uid), {
       posts: arrayRemove(postId)
     });
-
     await batch.commit();
 
-    // Видаляємо елемент з DOM
-    const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
-    if (postElement) postElement.remove();
-
+    // Видаляємо з DOM
+    $(`.post[data-post-id="${postId}"]`)?.remove();
     showToast('Пост видалено');
   } catch (error) {
     console.error('Помилка видалення поста:', error);
@@ -351,46 +439,27 @@ export async function deletePost(postId) {
   }
 }
 
-// ================= Завантаження постів =================
+// ==================== Завантаження постів (пагінація) ====================
 export async function loadMorePosts(containerId = 'feed') {
-  if (!state.currentUser) {
-    console.log('loadMorePosts: користувач не авторизований');
-    return;
-  }
-  if (state.loading) {
-    console.log('loadMorePosts: вже завантажується');
-    return;
-  }
-  if (!state.hasMore) {
-    console.log('loadMorePosts: більше немає постів');
-    return;
-  }
-  
+  if (!state.currentUser || state.loading || !state.hasMore) return;
+
   state.loading = true;
   const skeleton = document.getElementById('skeletonContainer');
   if (skeleton) skeleton.style.display = 'block';
 
   try {
-    let baseQuery;
-    if (state.currentFilterHashtag) {
-      baseQuery = query(collection(db, "posts"), where("hashtags", "array-contains", state.currentFilterHashtag));
-    } else {
-      baseQuery = collection(db, "posts");
-    }
+    let baseQuery = state.currentFilterHashtag
+      ? query(collection(db, "posts"), where("hashtags", "array-contains", state.currentFilterHashtag))
+      : collection(db, "posts");
 
-    let q;
-    if (state.currentFeedType === 'new' || state.currentFilterHashtag) {
-      q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
-    } else {
-      q = query(baseQuery, orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
-    }
+    let orderField = state.currentFeedType === 'new' || state.currentFilterHashtag ? "createdAt" : "likesCount";
+    let q = query(baseQuery, orderBy(orderField, "desc"), orderBy("createdAt", "desc"), limit(10));
 
     if (state.lastVisible) {
       q = query(q, startAfter(state.lastVisible));
     }
 
     const snapshot = await getDocs(q);
-    
     if (snapshot.empty) {
       state.hasMore = false;
       return;
@@ -399,96 +468,94 @@ export async function loadMorePosts(containerId = 'feed') {
     state.lastVisible = snapshot.docs[snapshot.docs.length - 1];
     renderPosts(snapshot.docs, containerId);
   } catch (e) {
-    console.error("Помилка завантаження постів:", e);
-    if (e.code === 'failed-precondition' || e.message.includes('index')) {
-      const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-      if (match) {
-        console.log('Посилання для створення індексу:', match[0]);
-        showToast(`⚠️ Потрібен індекс. Скопіюйте посилання з консолі (F12).`);
-      } else {
-        showToast('⚠️ Потрібно створити складений індекс у Firestore. Перейдіть у Firebase Console.');
-      }
-    } else if (e.code === 'permission-denied') {
-      showToast('❌ Недостатньо прав. Перевірте правила безпеки Firestore.');
-    } else {
-      showToast('Помилка завантаження: ' + e.message);
-    }
+    handleFirestoreError(e);
   } finally {
     if (skeleton) skeleton.style.display = 'none';
     state.loading = false;
   }
 }
 
-// ================= Рендеринг постів =================
+function handleFirestoreError(e) {
+  console.error("Помилка завантаження постів:", e);
+  if (e.code === 'failed-precondition' && e.message.includes('index')) {
+    const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+    showToast(match ? '⚠️ Потрібен індекс. Скопіюйте посилання з консолі (F12).' : '⚠️ Потрібно створити складений індекс у Firestore.');
+  } else if (e.code === 'permission-denied') {
+    showToast('❌ Недостатньо прав. Перевірте правила безпеки.');
+  } else {
+    showToast('Помилка завантаження: ' + e.message);
+  }
+}
+
+// ==================== Рендеринг постів (з documentFragment) ====================
+function highlightHashtags(text) {
+  return text.replace(/#(\w+)/g, '<span class="hashtag" data-tag="$1">#$1</span>');
+}
+
+function attachHashtagClick(container) {
+  $$('.hashtag', container).forEach(span => {
+    span.onclick = (e) => {
+      e.stopPropagation();
+      searchHashtag(span.dataset.tag);
+    };
+  });
+}
+
 export function renderPosts(docs, containerId = 'feed') {
   const feed = document.getElementById(containerId);
-  if (!feed) {
-    console.error('renderPosts: контейнер не знайдено', containerId);
-    return;
-  }
+  if (!feed) return;
 
-  // Використовуємо DocumentFragment для оптимізації
   const fragment = document.createDocumentFragment();
 
   docs.forEach(docSnap => {
     const post = { id: docSnap.id, ...docSnap.data() };
     const liked = post.likes?.includes(state.currentUser?.uid) || false;
     const saved = post.saves?.includes(state.currentUser?.uid) || false;
-    const postTime = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString('uk-UA', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }) : '';
+    const postTime = post.createdAt
+      ? new Date(post.createdAt.seconds * 1000).toLocaleString('uk-UA', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        })
+      : '';
     const isAuthor = state.currentUser && post.author === state.currentUser.uid;
-    const isFollowing = state.currentUserFollowing?.includes(post.author) || false;
+    const isFollowing = state.currentUserFollowing.includes(post.author);
 
     const postEl = document.createElement('div');
     postEl.className = 'post';
     postEl.dataset.postId = post.id;
     postEl.tabIndex = 0;
 
-    let menuHtml = '';
-    if (isAuthor) {
-      menuHtml = `
-        <div class="post-menu-container">
-          <button class="post-menu-btn" aria-label="Меню поста" tabindex="0">⋮</button>
-          <div class="post-menu-dropdown" style="display: none;">
-            <div class="post-menu-item" data-action="edit">Редагувати</div>
-            <div class="post-menu-item" data-action="delete">Видалити</div>
-          </div>
+    // Меню буде додано окремо через PostMenu
+    const header = document.createElement('div');
+    header.className = 'post-header';
+    header.innerHTML = `
+      <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" data-uid="${post.author}" tabindex="0"></div>
+      <div class="post-author-info">
+        <div>
+          <span class="post-author" data-uid="${post.author}" tabindex="0">${post.authorName || 'Невідомо'}</span>
+          <span class="post-meta">${post.authorUserId || ''}</span>
+          ${!isAuthor && state.currentUser ? `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>` : ''}
         </div>
-      `;
-    }
-
-    let contentHtml = post.text || '';
-    const hashtagRegex = /#(\w+)/g;
-    contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
-
-    const followButtonHtml = !isAuthor && state.currentUser ? 
-      `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>` : '';
-
-    postEl.innerHTML = `
-      <div class="post-header">
-        <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" data-uid="${post.author}" tabindex="0"></div>
-        <div class="post-author-info">
-          <div>
-            <span class="post-author" data-uid="${post.author}" tabindex="0">${post.authorName || 'Невідомо'}</span>
-            <span class="post-meta">${post.authorUserId || ''}</span>
-            ${followButtonHtml}
-          </div>
-          <div class="post-time">${postTime}</div>
-        </div>
-        ${menuHtml}
+        <div class="post-time">${postTime}</div>
       </div>
-      <div class="post-content">${contentHtml}</div>
+      <div class="post-menu-container"></div>
     `;
+    postEl.appendChild(header);
 
-    if (post.media && post.media.length > 0) {
-      const gallery = createGallery(post.media);
-      postEl.appendChild(gallery);
+    // Ініціалізуємо меню
+    const menuContainer = $('.post-menu-container', header);
+    new PostMenu(menuContainer, post.id, isAuthor);
+
+    // Контент
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'post-content';
+    contentDiv.innerHTML = highlightHashtags(post.text || '');
+    attachHashtagClick(contentDiv);
+    postEl.appendChild(contentDiv);
+
+    // Медіа
+    if (post.media?.length) {
+      postEl.appendChild(createGallery(post.media));
     } else if (post.mediaUrl) {
       const mediaEl = document.createElement(post.mediaType === 'image' ? 'img' : 'video');
       mediaEl.src = post.mediaUrl;
@@ -499,6 +566,7 @@ export function renderPosts(docs, containerId = 'feed') {
       postEl.appendChild(mediaEl);
     }
 
+    // Футер
     const footer = document.createElement('div');
     footer.className = 'post-footer';
     footer.innerHTML = `
@@ -520,6 +588,7 @@ export function renderPosts(docs, containerId = 'feed') {
     `;
     postEl.appendChild(footer);
 
+    // Секція коментарів
     const commentsSection = document.createElement('div');
     commentsSection.className = 'comments-section';
     commentsSection.id = `comments-${post.id}`;
@@ -539,157 +608,93 @@ export function renderPosts(docs, containerId = 'feed') {
     `;
     postEl.appendChild(commentsSection);
 
-    // Додаємо в fragment замість прямого append
     fragment.appendChild(postEl);
+  });
 
-    // Лічильник переглядів
-    incrementPostView(post.id);
+  feed.appendChild(fragment);
 
-    // Обробники подій для хештегів
-    postEl.querySelectorAll('.hashtag').forEach(span => {
-      span.onclick = (e) => {
-        e.stopPropagation();
-        const tag = span.dataset.tag;
-        searchHashtag(tag);
-      };
-    });
+  // Тепер навішуємо обробники подій та onSnapshot для кожного нового поста
+  docs.forEach(docSnap => {
+    const postId = docSnap.id;
+    const postEl = $(`.post[data-post-id="${postId}"]`, feed);
+    if (!postEl) return;
 
-    // Налаштування emoji picker для коментарів
-    const commentInput = document.getElementById(`comment-input-${post.id}`);
-    if (commentInput) {
-      setupEmojiPicker(`comment-emoji-${post.id}`, `comment-picker-${post.id}`, `comment-input-${post.id}`);
-    }
+    // Лайк
+    const likeBtn = $('.like-btn', postEl);
+    likeBtn?.addEventListener('click', () => toggleLike(postId, likeBtn));
 
-    // Обробник для кнопки коментарів
-    const toggleBtn = postEl.querySelector('.comment-toggle-btn');
-    toggleBtn.onclick = async () => {
+    // Збереження
+    const saveBtn = $('.save-btn', postEl);
+    saveBtn?.addEventListener('click', () => toggleSave(postId, saveBtn));
+
+    // Коментарі
+    const toggleBtn = $('.comment-toggle-btn', postEl);
+    const commentsSection = $(`#comments-${postId}`);
+    toggleBtn?.addEventListener('click', async () => {
       if (commentsSection.style.display === 'none') {
         commentsSection.style.display = 'block';
-        const commentsList = document.getElementById(`comments-list-${post.id}`);
-        if (commentsList) await loadComments(post.id, commentsList);
+        const commentsList = $(`#comments-list-${postId}`);
+        if (commentsList) await loadComments(postId, commentsList);
       } else {
         commentsSection.style.display = 'none';
       }
-    };
-
-    // Обробник для відправки коментаря
-    const submitBtn = document.getElementById(`submit-comment-${post.id}`);
-    if (submitBtn) {
-      submitBtn.onclick = async () => {
-        const text = commentInput.value.trim();
-        if (!text) return;
-        try {
-          await addComment(post.id, text);
-          commentInput.value = '';
-          const commentsList = document.getElementById(`comments-list-${post.id}`);
-          if (commentsList) await loadComments(post.id, commentsList);
-          const countSpan = toggleBtn.querySelector('span');
-          if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
-          showToast('Коментар додано');
-        } catch (error) {
-          console.error('Error adding comment:', error);
-          showToast('Помилка: ' + error.message);
-        }
-      };
-    }
-
-    // Налаштування реального часу для лайків та збережень
-    const postRef = doc(db, "posts", post.id);
-    const unsubscribe = onSnapshot(postRef, (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        const likeBtn = postEl.querySelector('.like-btn');
-        if (likeBtn) {
-          const liked = data.likes?.includes(state.currentUser?.uid) || false;
-          const countSpan = likeBtn.querySelector('span');
-          if (liked) {
-            likeBtn.classList.add('liked');
-          } else {
-            likeBtn.classList.remove('liked');
-          }
-          if (countSpan) countSpan.textContent = data.likesCount || 0;
-        }
-        const saveBtn = postEl.querySelector('.save-btn');
-        if (saveBtn) {
-          const saved = data.saves?.includes(state.currentUser?.uid) || false;
-          if (saved) {
-            saveBtn.classList.add('saved');
-          } else {
-            saveBtn.classList.remove('saved');
-          }
-        }
-      } else {
-        if (postEl.parentNode) postEl.parentNode.removeChild(postEl);
-        unsubscribe();
-        state.postListeners.delete(post.id);
-      }
-    }, (error) => {
-      console.error(`Error listening to post ${post.id}:`, error);
     });
-    state.postListeners.set(post.id, unsubscribe);
-  });
 
-  // Додаємо всі пости за одну операцію
-  feed.appendChild(fragment);
+    const submitBtn = $(`#submit-comment-${postId}`);
+    const commentInput = $(`#comment-input-${postId}`);
+    submitBtn?.addEventListener('click', async () => {
+      const text = commentInput.value.trim();
+      if (!text) return;
+      try {
+        await addComment(postId, text);
+        commentInput.value = '';
+        const commentsList = $(`#comments-list-${postId}`);
+        if (commentsList) await loadComments(postId, commentsList);
+        const countSpan = toggleBtn.querySelector('span');
+        if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
+        showToast('Коментар додано');
+      } catch (error) {
+        console.error('Error adding comment:', error);
+        showToast('Помилка: ' + error.message);
+      }
+    });
+
+    // Emoji для коментаря
+    setupEmojiPicker(`comment-emoji-${postId}`, `comment-picker-${postId}`, `comment-input-${postId}`);
+
+    // Перегляд
+    incrementPostView(postId);
+
+    // Реактивний слухач змін поста
+    const unsubscribe = onSnapshot(doc(db, "posts", postId), (snap) => {
+      if (!snap.exists()) {
+        postEl.remove();
+        unsubscribe();
+        state.postListeners.delete(postId);
+        return;
+      }
+      const data = snap.data();
+      // Оновлюємо лайк
+      const likeBtn = $('.like-btn', postEl);
+      if (likeBtn) {
+        const liked = data.likes?.includes(state.currentUser?.uid) || false;
+        likeBtn.classList.toggle('liked', liked);
+        const countSpan = likeBtn.querySelector('span');
+        if (countSpan) countSpan.textContent = data.likesCount || 0;
+      }
+      // Оновлюємо збереження
+      const saveBtn = $('.save-btn', postEl);
+      if (saveBtn) {
+        const saved = data.saves?.includes(state.currentUser?.uid) || false;
+        saveBtn.classList.toggle('saved', saved);
+      }
+    }, (error) => console.error(`Listener post ${postId}:`, error));
+
+    state.postListeners.set(postId, unsubscribe);
+  });
 }
 
-// ================= Глобальне делегування для меню постів =================
-document.addEventListener('click', (e) => {
-  const menuBtn = e.target.closest('.post-menu-btn');
-  if (menuBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    const menuContainer = menuBtn.closest('.post-menu-container');
-    const dropdown = menuContainer.querySelector('.post-menu-dropdown');
-    if (dropdown) {
-      // Закриваємо всі інші меню
-      document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-        if (menu !== dropdown) menu.style.display = 'none';
-      });
-      // Відкриваємо/закриваємо поточне
-      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-    }
-    return;
-  }
-
-  const menuItem = e.target.closest('.post-menu-item');
-  if (menuItem) {
-    e.preventDefault();
-    e.stopPropagation();
-    const menuContainer = menuItem.closest('.post-menu-container');
-    const postEl = menuContainer.closest('.post');
-    const postId = postEl.dataset.postId;
-    const action = menuItem.dataset.action;
-    
-    if (action === 'edit') {
-      editPost(postId);
-    } else if (action === 'delete') {
-      deletePost(postId);
-    }
-    
-    const dropdown = menuContainer.querySelector('.post-menu-dropdown');
-    if (dropdown) dropdown.style.display = 'none';
-    return;
-  }
-
-  // Закриваємо всі меню при кліку поза ними
-  if (!e.target.closest('.post-menu-container')) {
-    document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-      menu.style.display = 'none';
-    });
-  }
-});
-
-// Закриття меню по Esc
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-      menu.style.display = 'none';
-    });
-  }
-});
-
-// ================= Коментарі =================
+// ==================== Коментарі ====================
 export async function loadComments(postId, container) {
   const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
   const snapshot = await getDocs(q);
@@ -698,14 +703,12 @@ export async function loadComments(postId, container) {
     const comment = doc.data();
     const commentEl = document.createElement('div');
     commentEl.className = 'comment';
-    const commentTime = comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleString('uk-UA', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }) : '';
+    const commentTime = comment.createdAt
+      ? new Date(comment.createdAt.seconds * 1000).toLocaleString('uk-UA', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        })
+      : '';
     commentEl.innerHTML = `
       <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" data-uid="${comment.author}"></div>
       <div class="comment-content">
@@ -732,28 +735,27 @@ export async function addComment(postId, text) {
     text: text.trim(),
     createdAt: serverTimestamp()
   });
-  await updateDoc(doc(db, "posts", postId), { 
+  await updateDoc(doc(db, "posts", postId), {
     commentsCount: increment(1),
-    popularity: increment(40)
+    popularity: increment(CONFIG.POPULARITY_COMMENT)
   });
 }
 
-// ================= Перегляди =================
+// ==================== Перегляди ====================
 async function incrementPostView(postId) {
-  if (!state.currentUser) return;
-  if (state.viewedPosts.has(postId)) return;
+  if (!state.currentUser || state.viewedPosts.has(postId)) return;
   state.viewedPosts.add(postId);
   try {
-    await updateDoc(doc(db, "posts", postId), { 
+    await updateDoc(doc(db, "posts", postId), {
       views: increment(1),
-      popularity: increment(5)
+      popularity: increment(CONFIG.POPULARITY_VIEW)
     });
   } catch (e) {
     console.warn("Не вдалося оновити перегляди:", e);
   }
 }
 
-// ================= Галерея =================
+// ==================== Галерея ====================
 function createGallery(media) {
   const gallery = document.createElement('div');
   gallery.className = 'post-gallery';
@@ -793,8 +795,8 @@ function createGallery(media) {
     const slideWidth = inner.clientWidth;
     const index = Math.round(scrollLeft / slideWidth);
     const safeIndex = Math.min(Math.max(index, 0), media.length - 1);
-    
-    indicators.querySelectorAll('span').forEach((dot, i) => {
+
+    $$('span', indicators).forEach((dot, i) => {
       dot.className = i === safeIndex ? 'active' : '';
     });
     counter.textContent = `${safeIndex + 1}/${media.length}`;
@@ -806,7 +808,7 @@ function createGallery(media) {
   return gallery;
 }
 
-// ================= Хештеги =================
+// ==================== Хештеги ====================
 export async function loadHashtags(listId = 'hashtagList') {
   const list = document.getElementById(listId);
   if (!list) return;
@@ -816,8 +818,7 @@ export async function loadHashtags(listId = 'hashtagList') {
     const postsSnap = await getDocs(collection(db, "posts"));
     const tagCount = new Map();
     postsSnap.forEach(doc => {
-      const tags = doc.data().hashtags || [];
-      tags.forEach(tag => {
+      (doc.data().hashtags || []).forEach(tag => {
         tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
       });
     });
@@ -851,12 +852,11 @@ export function searchHashtag(tag) {
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.value = '#' + tag;
-    const searchSection = document.querySelector('[data-section="search"]');
-    if (searchSection) searchSection.click();
+    document.querySelector('[data-section="search"]')?.click();
   }
 }
 
-// ================= Фільтри =================
+// ==================== Фільтри ====================
 export async function loadFilterHashtags(listId = 'filterList') {
   const list = document.getElementById(listId);
   if (!list) return;
@@ -866,8 +866,7 @@ export async function loadFilterHashtags(listId = 'filterList') {
     const postsSnap = await getDocs(collection(db, "posts"));
     const tagCount = new Map();
     postsSnap.forEach(doc => {
-      const tags = doc.data().hashtags || [];
-      tags.forEach(tag => {
+      (doc.data().hashtags || []).forEach(tag => {
         tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
       });
     });
@@ -899,23 +898,17 @@ export async function loadFilterHashtags(listId = 'filterList') {
 
 export function applyFilter(tag) {
   setFilterHashtag(tag);
-  const filterModal = document.getElementById('filterModal');
-  if (filterModal) filterModal.classList.remove('active');
+  document.getElementById('filterModal')?.classList.remove('active');
 
   if (state.currentFeedType === 'popular') {
     setCurrentFeedType('new');
-    const feedNewBtn = document.getElementById('feedNewBtn');
-    const feedPopularBtn = document.getElementById('feedPopularBtn');
-    if (feedNewBtn) feedNewBtn.classList.add('active');
-    if (feedPopularBtn) feedPopularBtn.classList.remove('active');
+    document.getElementById('feedNewBtn')?.classList.add('active');
+    document.getElementById('feedPopularBtn')?.classList.remove('active');
   }
 
   const activeDiv = document.getElementById('activeFilter');
-  if (activeDiv) {
-    activeDiv.innerHTML = `#${tag} <button id="clearFilterChip">✕</button>`;
-    const clearBtn = document.getElementById('clearFilterChip');
-    if (clearBtn) clearBtn.onclick = clearFilter;
-  }
+  activeDiv.innerHTML = `#${tag} <button id="clearFilterChip">✕</button>`;
+  document.getElementById('clearFilterChip').onclick = clearFilter;
 
   resetPaginationState();
   const feed = document.getElementById('feed');
@@ -927,8 +920,7 @@ export function applyFilter(tag) {
 
 export function clearFilter() {
   setFilterHashtag(null);
-  const activeDiv = document.getElementById('activeFilter');
-  if (activeDiv) activeDiv.innerHTML = '';
+  document.getElementById('activeFilter').innerHTML = '';
   resetPaginationState();
   const feed = document.getElementById('feed');
   if (feed) {
