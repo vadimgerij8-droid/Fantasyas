@@ -30,7 +30,7 @@
   <div class="app">
     <!-- Головний контейнер -->
     <main class="main">
-      <!-- Верхня панель -->
+      <!-- Верхня панель (замінено "Головна" на 𝑭𝒂𝒏𝒕𝒂𝒔𝒚𝒂𝒔) -->
       <header class="top-bar">
         <button class="back-btn" id="backBtn" aria-label="Назад" style="display: none;">←</button>
         <div class="top-bar-title" id="pageTitle">𝑭𝒂𝒏𝒕𝒂𝒔𝒚𝒂𝒔</div>
@@ -548,5 +548,27 @@
 
   <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
+
+  <!-- Фіксуємо заголовок "𝑭𝒂𝒏𝒕𝒂𝒔𝒚𝒂𝒔" навіть при зміні розділів -->
+  <script>
+    (function() {
+      const titleEl = document.getElementById('pageTitle');
+      if (!titleEl) return;
+      const targetText = '𝑭𝒂𝒏𝒕𝒂𝒔𝒚𝒂𝒔';
+      // Встановлюємо одразу
+      titleEl.innerText = targetText;
+      // Спостерігаємо за змінами вмісту елемента
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'characterData' || mutation.type === 'childList') {
+            if (titleEl.innerText !== targetText) {
+              titleEl.innerText = targetText;
+            }
+          }
+        });
+      });
+      observer.observe(titleEl, { childList: true, characterData: true, subtree: true });
+    })();
+  </script>
 </body>
 </html>
