@@ -1,9 +1,9 @@
 import { db } from './config.js';
-import { 
-  collection, addDoc, doc, getDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter, 
-  getDocs, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, onSnapshot 
+import {
+  collection, addDoc, doc, getDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter,
+  getDocs, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { 
+import {
   state,
   setFilterHashtag, resetPaginationState, setCurrentFeedType
 } from './state.js';
@@ -48,7 +48,8 @@ export const toggleLike = debounce(async (postId, buttonElement) => {
     }
 
     const postData = postSnap.data();
-    const isLiked = postData.likes?.includes(state.currentUser.uid) || false;
+    // Явна перевірка наявності масиву likes
+    const isLiked = postData.likes && postData.likes.includes(state.currentUser.uid) ? true : false;
 
     if (isLiked === wasLiked) {
       const batch = writeBatch(db);
@@ -111,7 +112,9 @@ export const toggleSave = debounce(async (postId, buttonElement) => {
       return;
     }
 
-    const isSaved = postSnap.data().saves?.includes(state.currentUser.uid) || false;
+    const postData = postSnap.data();
+    const isSaved = postData.saves && postData.saves.includes(state.currentUser.uid) ? true : false;
+
     if (isSaved === wasSaved) {
       const batch = writeBatch(db);
       const userRef = doc(db, "users", state.currentUser.uid);
@@ -142,6 +145,11 @@ export async function createPost(text, files) {
     return false;
   }
 
+  // Перевірка files
+  if (!files || !Array.isArray(files)) {
+    files = [];
+  }
+
   const MAX_FILES = 3;
   if (files.length > MAX_FILES) {
     showToast(`Можна вибрати не більше ${MAX_FILES} файлів`);
@@ -157,7 +165,12 @@ export async function createPost(text, files) {
       media.push({ url, type: file.type.split('/')[0] });
     }
 
-    const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
+    const userRef = doc(db, "users", state.currentUser.uid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      showToast('Користувача не знайдено');
+      return false;
+    }
     const userData = userSnap.data();
 
     const hashtags = extractHashtags(text);
@@ -165,8 +178,8 @@ export async function createPost(text, files) {
     const postDoc = await addDoc(collection(db, "posts"), {
       author: state.currentUser.uid,
       authorType: 'user',
-      authorName: userData.nickname,
-      authorUserId: userData.userId,
+      authorName: userData.nickname || 'Невідомо',
+      authorUserId: userData.userId || '',
       authorAvatar: userData.avatar || '',
       text,
       media,
@@ -180,7 +193,7 @@ export async function createPost(text, files) {
       popularity: 0
     });
 
-    await updateDoc(doc(db, "users", state.currentUser.uid), { posts: arrayUnion(postDoc.id) });
+    await updateDoc(userRef, { posts: arrayUnion(postDoc.id) });
 
     document.getElementById('postText').value = '';
     document.getElementById('postMedia').value = '';
@@ -199,20 +212,20 @@ export async function createPost(text, files) {
 // ================= Редагування поста =================
 export async function editPost(postId) {
   if (!state.currentUser) return;
-  
+
   const postRef = doc(db, "posts", postId);
   const postSnap = await getDoc(postRef);
   if (!postSnap.exists()) {
     showToast('Пост не знайдено');
     return;
   }
-  
+
   const post = postSnap.data();
   if (post.author !== state.currentUser.uid) {
     showToast('Ви не автор цього поста');
     return;
   }
-  
+
   // Викликаємо нове модальне вікно замість prompt
   createEditModal(post.text || '', async (newText) => {
     try {
@@ -234,7 +247,7 @@ export async function editPost(postId) {
           const hashtagRegex = /#(\w+)/g;
           contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
           contentContainer.innerHTML = contentHtml;
-          
+
           // Відновлюємо кліки по нових хештегах
           contentContainer.querySelectorAll('.hashtag').forEach(span => {
             span.onclick = (e) => {
@@ -322,7 +335,7 @@ export async function deletePost(postId) {
     // Видаляємо коментарі (підколекцію) за допомогою batch
     const commentsSnapshot = await getDocs(collection(db, `posts/${postId}/comments`));
     const batch = writeBatch(db);
-    commentsSnapshot.forEach(doc => batch.delete(doc.ref));
+    commentsSnapshot.forEach(docSnap => batch.delete(docSnap.ref)); // перейменував doc на docSnap
 
     // Видаляємо сам пост
     batch.delete(postRef);
@@ -360,7 +373,7 @@ export async function loadMorePosts(containerId = 'feed') {
     console.log('loadMorePosts: більше немає постів');
     return;
   }
-  
+
   state.loading = true;
   const skeleton = document.getElementById('skeletonContainer');
   if (skeleton) skeleton.style.display = 'block';
@@ -390,7 +403,7 @@ export async function loadMorePosts(containerId = 'feed') {
 
     const snapshot = await getDocs(q);
     console.log('loadMorePosts: отримано документів', snapshot.size);
-    
+
     if (snapshot.empty) {
       state.hasMore = false;
       return;
@@ -429,18 +442,25 @@ export function renderPosts(docs, containerId = 'feed') {
 
   docs.forEach(docSnap => {
     const post = { id: docSnap.id, ...docSnap.data() };
-    const liked = post.likes?.includes(state.currentUser?.uid) || false;
-    const saved = post.saves?.includes(state.currentUser?.uid) || false;
-    const postTime = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString('uk-UA', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }) : '';
+
+    // Перевірки наявності полів
+    const liked = state.currentUser && post.likes && post.likes.includes(state.currentUser.uid) ? true : false;
+    const saved = state.currentUser && post.saves && post.saves.includes(state.currentUser.uid) ? true : false;
+
+    let postTime = '';
+    if (post.createdAt && typeof post.createdAt.seconds === 'number') {
+      postTime = new Date(post.createdAt.seconds * 1000).toLocaleString('uk-UA', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    }
+
     const isAuthor = state.currentUser && post.author === state.currentUser.uid;
-    const isFollowing = state.currentUserFollowing.includes(post.author);
+    const isFollowing = state.currentUserFollowing && state.currentUserFollowing.includes(post.author) ? true : false;
 
     const postEl = document.createElement('div');
     postEl.className = 'post';
@@ -464,7 +484,7 @@ export function renderPosts(docs, containerId = 'feed') {
     const hashtagRegex = /#(\w+)/g;
     contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
 
-    const followButtonHtml = !isAuthor && state.currentUser ? 
+    const followButtonHtml = !isAuthor && state.currentUser ?
       `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>` : '';
 
     postEl.innerHTML = `
@@ -587,7 +607,7 @@ export function renderPosts(docs, containerId = 'feed') {
         const data = snap.data();
         const likeBtn = postEl.querySelector('.like-btn');
         if (likeBtn) {
-          const liked = data.likes?.includes(state.currentUser?.uid) || false;
+          const liked = state.currentUser && data.likes && data.likes.includes(state.currentUser.uid) ? true : false;
           const countSpan = likeBtn.querySelector('span');
           if (liked) {
             likeBtn.classList.add('liked');
@@ -598,7 +618,7 @@ export function renderPosts(docs, containerId = 'feed') {
         }
         const saveBtn = postEl.querySelector('.save-btn');
         if (saveBtn) {
-          const saved = data.saves?.includes(state.currentUser?.uid) || false;
+          const saved = state.currentUser && data.saves && data.saves.includes(state.currentUser.uid) ? true : false;
           if (saved) {
             saveBtn.classList.add('saved');
           } else {
@@ -642,13 +662,13 @@ document.addEventListener('click', (e) => {
     const postEl = menuContainer.closest('.post');
     const postId = postEl.dataset.postId;
     const action = menuItem.dataset.action;
-    
+
     if (action === 'edit') {
       editPost(postId);
     } else if (action === 'delete') {
       deletePost(postId);
     }
-    
+
     const dropdown = menuContainer.querySelector('.post-menu-dropdown');
     if (dropdown) dropdown.style.display = 'none';
     return;
@@ -663,51 +683,69 @@ document.addEventListener('click', (e) => {
 
 // ================= Коментарі =================
 export async function loadComments(postId, container) {
-  const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
-  const snapshot = await getDocs(q);
-  container.innerHTML = '';
-  snapshot.forEach(doc => {
-    const comment = doc.data();
-    const commentEl = document.createElement('div');
-    commentEl.className = 'comment';
-    const commentTime = comment.createdAt ? new Date(comment.createdAt.seconds * 1000).toLocaleString('uk-UA', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }) : '';
-    commentEl.innerHTML = `
-      <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" data-uid="${comment.author}"></div>
-      <div class="comment-content">
-        <div>
-          <span class="comment-author" data-uid="${comment.author}">${comment.authorName}</span>
-          <span class="comment-time">${commentTime}</span>
+  try {
+    const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
+    const snapshot = await getDocs(q);
+    container.innerHTML = '';
+    snapshot.forEach(docSnap => { // перейменував doc на docSnap
+      const comment = docSnap.data();
+      const commentEl = document.createElement('div');
+      commentEl.className = 'comment';
+      let commentTime = '';
+      if (comment.createdAt && typeof comment.createdAt.seconds === 'number') {
+        commentTime = new Date(comment.createdAt.seconds * 1000).toLocaleString('uk-UA', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+      }
+      commentEl.innerHTML = `
+        <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" data-uid="${comment.author}"></div>
+        <div class="comment-content">
+          <div>
+            <span class="comment-author" data-uid="${comment.author}">${comment.authorName}</span>
+            <span class="comment-time">${commentTime}</span>
+          </div>
+          <div class="comment-text">${comment.text}</div>
         </div>
-        <div class="comment-text">${comment.text}</div>
-      </div>
-    `;
-    container.appendChild(commentEl);
-  });
+      `;
+      container.appendChild(commentEl);
+    });
+  } catch (error) {
+    console.error('Помилка завантаження коментарів:', error);
+    container.innerHTML = '<p style="text-align:center;">Помилка завантаження коментарів</p>';
+  }
 }
 
 export async function addComment(postId, text) {
   if (!state.currentUser || !text.trim()) return;
-  const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
-  const user = userSnap.data();
-  const commentRef = collection(db, `posts/${postId}/comments`);
-  await addDoc(commentRef, {
-    author: state.currentUser.uid,
-    authorName: user.nickname,
-    authorAvatar: user.avatar || '',
-    text: text.trim(),
-    createdAt: serverTimestamp()
-  });
-  await updateDoc(doc(db, "posts", postId), { 
-    commentsCount: increment(1),
-    popularity: increment(40)
-  });
+
+  try {
+    const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
+    if (!userSnap.exists()) {
+      showToast('Користувача не знайдено');
+      return;
+    }
+    const user = userSnap.data();
+    const commentRef = collection(db, `posts/${postId}/comments`);
+    await addDoc(commentRef, {
+      author: state.currentUser.uid,
+      authorName: user.nickname || 'Невідомо',
+      authorAvatar: user.avatar || '',
+      text: text.trim(),
+      createdAt: serverTimestamp()
+    });
+    await updateDoc(doc(db, "posts", postId), {
+      commentsCount: increment(1),
+      popularity: increment(40)
+    });
+  } catch (error) {
+    console.error('Помилка додавання коментаря:', error);
+    throw error; // проброс, щоб обробити в onclick
+  }
 }
 
 // ================= Перегляди =================
@@ -716,7 +754,7 @@ async function incrementPostView(postId) {
   if (state.viewedPosts.has(postId)) return;
   state.viewedPosts.add(postId);
   try {
-    await updateDoc(doc(db, "posts", postId), { 
+    await updateDoc(doc(db, "posts", postId), {
       views: increment(1),
       popularity: increment(5)
     });
@@ -765,7 +803,7 @@ function createGallery(media) {
     const slideWidth = inner.clientWidth;
     const index = Math.round(scrollLeft / slideWidth);
     const safeIndex = Math.min(Math.max(index, 0), media.length - 1);
-    
+
     indicators.querySelectorAll('span').forEach((dot, i) => {
       dot.className = i === safeIndex ? 'active' : '';
     });
@@ -787,8 +825,8 @@ export async function loadHashtags(listId = 'hashtagList') {
   try {
     const postsSnap = await getDocs(collection(db, "posts"));
     const tagCount = new Map();
-    postsSnap.forEach(doc => {
-      const tags = doc.data().hashtags || [];
+    postsSnap.forEach(docSnap => { // перейменував doc на docSnap
+      const tags = docSnap.data().hashtags || [];
       tags.forEach(tag => {
         tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
       });
@@ -836,8 +874,8 @@ export async function loadFilterHashtags(listId = 'filterList') {
   try {
     const postsSnap = await getDocs(collection(db, "posts"));
     const tagCount = new Map();
-    postsSnap.forEach(doc => {
-      const tags = doc.data().hashtags || [];
+    postsSnap.forEach(docSnap => { // перейменував doc на docSnap
+      const tags = docSnap.data().hashtags || [];
       tags.forEach(tag => {
         tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
       });
