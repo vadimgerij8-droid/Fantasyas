@@ -2,7 +2,8 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"/>
+  <!-- ВИПРАВЛЕННЯ: прибрано maximum-scale=1.0 — суперечить user-scalable=yes і шкодить доступності -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>FANTASYAS · Підписки</title>
 
   <!-- Favicons -->
@@ -16,28 +17,30 @@
   <!-- Fonts & Styles -->
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="css/main.css">
-  
-  <!-- Додатковий стиль для приховування елементів під час реєстрації/входу -->
+
   <style>
-    /* Коли блок авторизації видимий – ховаємо заголовок стрічки та самі пости */
-    #authBox:not([style*="display: none"]) ~ .feed-header,
-    #authBox:not([style*="display: none"]) ~ .feed {
-        display: none !important;
+    /*
+      ВИПРАВЛЕННЯ: старий CSS-селектор з [style*="display: none"] ненадійний —
+      рядок може відрізнятись пробілами/крапкою з комою.
+      Тепер керування видимістю через клас .auth-visible, який додає/знімає JS.
+    */
+    body.auth-visible .feed-header,
+    body.auth-visible .feed {
+      display: none !important;
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <!-- Головний контейнер -->
     <main class="main">
-      <!-- Верхня панель (замінено "Головна" на 𝑭𝒂𝒏𝒕𝒂𝒔𝒚𝒂𝒔) -->
+      <!-- Верхня панель -->
       <header class="top-bar">
         <button class="back-btn" id="backBtn" aria-label="Назад" style="display: none;">←</button>
         <div class="top-bar-title" id="pageTitle">𝑭𝒂𝒏𝒕𝒂𝒔𝒚𝒂𝒔</div>
       </header>
 
-      <!-- Контент (секції) -->
       <div class="content" id="content">
+
         <!-- ========== СЕКЦІЯ ГОЛОВНА ========== -->
         <section id="home" class="section active">
           <!-- Блок авторизації -->
@@ -62,7 +65,7 @@
           </div>
 
           <!-- Фільтри стрічки -->
-          <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap: wrap; align-items: center;">
+          <div class="feed-header" style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center;">
             <button class="btn" id="feedNewBtn" tabindex="0">Нові</button>
             <button class="btn" id="feedPopularBtn" tabindex="0">Популярні</button>
             <button class="btn" id="filterBtn" tabindex="0">Фільтри</button>
@@ -70,25 +73,10 @@
           </div>
 
           <!-- Стрічка постів -->
-          <div class="feed" id="feed">
-            <!-- Приклад поста з новою шапкою, переробленою за вимогою -->
-            <div class="post">
-              <div class="post-header">
-                <div class="user-info">
-                  <img src="https://via.placeholder.com/40" alt="Avatar" class="avatar">
-                  <div class="user-text">
-                    <div class="user-name">Ім'я Користувача</div>
-                    <div class="user-username">@username</div>
-                  </div>
-                </div>
-                <button class="follow-btn">Підписатися</button>
-              </div>
-              <div class="post-content">
-                <p>Текст поста. Тут може бути будь-який вміст, але головне — шапка оформлена згідно з завданням.</p>
-              </div>
-            </div>
-            <!-- Решта постів будуть додаватися динамічно -->
-          </div>
+          <!-- ВИПРАВЛЕННЯ: видалено статичний демо-пост — він показувався всім
+               до завантаження Firebase, містив зовнішній via.placeholder.com
+               і <img> замість <div> як в решті коду -->
+          <div class="feed" id="feed"></div>
           <div class="feed-end-sentinel" id="feedSentinel"></div>
           <div id="skeletonContainer" style="display:none;">
             <div class="skeleton" style="height:200px; margin-bottom:20px;"></div>
@@ -113,9 +101,7 @@
           <div class="profile-header" id="profileHeader"></div>
           <div class="profile-tabs" id="profileTabs"></div>
 
-          <!-- === МЕНЮ СТВОРЕННЯ ПОСТА (ЕМОДЗІ ВИДАЛЕНО) === -->
           <div class="card" id="newPostBox" style="display:none;">
-            <!-- Видалено контейнер з емодзі -->
             <textarea id="postText" class="input" placeholder="Що нового? #хештег" rows="3" style="margin-bottom:10px;" tabindex="0"></textarea>
             <div class="file-input-wrapper" style="margin-bottom:8px;">
               <input type="file" id="postMedia" accept="image/*,video/*" multiple>
@@ -124,30 +110,26 @@
                 <span id="postMediaLabel"> Фото/Відео </span>
               </div>
             </div>
-            <div id="postMediaPreviews" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;"></div>
+            <div id="postMediaPreviews" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;"></div>
             <button class="btn btn-primary" id="addPost" style="margin-top:12px;" tabindex="0">Опублікувати</button>
           </div>
 
-          <!-- Стрічка постів профілю -->
           <div class="feed" id="profileFeed"></div>
         </section>
 
         <!-- ========== СЕКЦІЯ ЧАТИ ========== -->
         <section id="chats" class="section">
           <div class="chats-container">
-            <!-- Бічна панель зі списком чатів -->
             <aside class="chat-list-sidebar" id="chatListSidebar">
               <div class="chat-search">
                 <input type="text" id="chatSearchInput" class="input" placeholder="Пошук користувачів...">
-                <div id="chatSearchResults" class="user-list" style="display: none;"></div>
+                <div id="chatSearchResults" class="user-list" style="display:none;"></div>
               </div>
               <div id="chatList" class="chat-list"></div>
             </aside>
 
-            <!-- Вікно чату -->
-            <div class="chat-window-container" id="chatWindowContainer" style="display: none;">
+            <div class="chat-window-container" id="chatWindowContainer" style="display:none;">
               <div class="chat-window">
-                <!-- Заголовок чату -->
                 <div class="chat-header">
                   <button class="chat-back-btn" id="chatBackBtn" aria-label="Назад">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -173,26 +155,25 @@
                   </div>
                 </div>
 
-                <!-- Область повідомлень -->
                 <div class="chat-messages" id="chatMessages"></div>
-                <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <div class="typing-indicator" id="typingIndicator" style="display:none;">
                   <span>друкує</span>
                   <span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
                 </div>
 
                 <!-- Прев'ю відповіді -->
-                <div id="replyPreview" class="reply-preview" style="display: none;">
+                <!-- ВИПРАВЛЕННЯ: id="closeReply" → id="replyCancel" — щоб збігалось з chat.js
+                     де слухач: document.getElementById('replyCancel') -->
+                <div id="replyPreview" class="reply-preview" style="display:none;">
                   <span class="reply-sender" id="replySender"></span>
                   <span class="reply-text" id="replyText"></span>
-                  <button class="close-reply" id="closeReply">✕</button>
+                  <button class="close-reply" id="replyCancel">✕</button>
                 </div>
 
-                <!-- Панель введення (емодзі видалено) -->
                 <div class="chat-input-area">
                   <button class="chat-attach-btn" id="chatAttachBtn" tabindex="0">📎</button>
-                  <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display: none;">
+                  <input type="file" id="chatAttachFile" accept="image/*,video/*" style="display:none;">
                   <input type="text" id="chatText" class="input" placeholder="Напишіть повідомлення..." autocomplete="off">
-                  <!-- Видалено кнопку та меню емодзі -->
                   <button class="btn btn-primary btn-icon" id="sendMessage" tabindex="0">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -213,7 +194,6 @@
             <div class="context-menu-item" data-action="deleteEveryone">Видалити для всіх</div>
           </div>
 
-          <!-- Панель реакцій (залишається без змін) -->
           <div class="reaction-picker" id="reactionPicker">
             <button class="reaction-btn" data-emoji="👍">👍</button>
             <button class="reaction-btn" data-emoji="❤️">❤️</button>
@@ -227,9 +207,8 @@
 
         <!-- ========== СЕКЦІЯ НАЛАШТУВАННЯ ========== -->
         <section id="settings" class="section card">
-          <div class="settings-container" style="display: flex; gap: 24px; flex-wrap: wrap;">
-            <!-- Навігація по вкладках налаштувань -->
-            <nav class="settings-nav" style="flex: 0 0 200px; border-right: 1px solid var(--border); padding-right: 16px;">
+          <div class="settings-container" style="display:flex; gap:24px; flex-wrap:wrap;">
+            <nav class="settings-nav" style="flex:0 0 200px; border-right:1px solid var(--border); padding-right:16px;">
               <div class="settings-nav-item active" data-tab="account">Обліковий запис</div>
               <div class="settings-nav-item" data-tab="privacy">Конфіденційність</div>
               <div class="settings-nav-item" data-tab="notifications">Сповіщення</div>
@@ -237,10 +216,9 @@
               <div class="settings-nav-item" data-tab="data-storage">Дані та сховище</div>
               <div class="settings-nav-item" data-tab="security">Безпека</div>
               <div class="settings-nav-item" data-tab="privacy-policy">Політика конфіденційності</div>
-              <div class="settings-nav-item" data-tab="logout" style="color: var(--danger);">Вийти</div>
+              <div class="settings-nav-item" data-tab="logout" style="color:var(--danger);">Вийти</div>
             </nav>
 
-            <!-- Контент вкладок -->
             <div class="settings-content" style="flex:1;">
               <!-- Обліковий запис -->
               <div class="settings-tab-content active" id="settings-account">
@@ -359,7 +337,8 @@
                   <label class="toggle"><input type="checkbox" id="settingAutoplayVideos"><span class="toggle-slider"></span><span class="toggle-label">Автоматично відтворювати відео</span></label>
                 </div>
                 <div class="settings-group">
-                  <h4>Звуков�� ефекти</h4>
+                  <!-- ВИПРАВЛЕННЯ: "Звуков&#xFFFD;&#xFFFD; ефекти" → "Звукові ефекти" (битий символ) -->
+                  <h4>Звукові ефекти</h4>
                   <label class="toggle"><input type="checkbox" id="settingSoundEffects"><span class="toggle-slider"></span><span class="toggle-label">Увімкнути звуки інтерфейсу</span></label>
                 </div>
               </div>
@@ -406,7 +385,7 @@
       </div>
     </main>
 
-    <!-- Нижня навігація (меню) -->
+    <!-- Нижня навігація -->
     <nav class="bottom-nav" id="bottomNav">
       <div class="nav-item active" data-section="home" tabindex="0">
         <svg class="icon" viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -436,7 +415,7 @@
     </nav>
   </div>
 
-  <!-- ========== ВСІ МОДАЛЬНІ ВІКНА ========== -->
+  <!-- ========== МОДАЛЬНІ ВІКНА ========== -->
   <div class="modal" id="editProfileModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -459,21 +438,9 @@
     </div>
   </div>
 
-  <div class="modal" id="editPostModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Редагувати пост</h3>
-        <button class="modal-close" id="closeEditPostModal">✕</button>
-      </div>
-      <div class="modal-body">
-        <textarea id="editPostText" class="input" placeholder="Текст поста" rows="4"></textarea>
-        <div id="editPostMediaPreview"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" id="savePostEdit">Зберегти</button>
-      </div>
-    </div>
-  </div>
+  <!-- ВИПРАВЛЕННЯ: #editPostModal видалено — він ніколи не використовувався в JS.
+       Редагування постів відбувається через динамічний #customEditModal у posts.js.
+       Залишення мертвого коду плутало б майбутніх розробників. -->
 
   <div class="modal" id="followersModal">
     <div class="modal-content">
@@ -502,7 +469,7 @@
         <button class="modal-close" id="closePrivacyModal">✕</button>
       </div>
       <div class="modal-body">
-        <p>Текст політики конфіденційності... (тут можна вставити згенерований текст)</p>
+        <p>Текст політики конфіденційності...</p>
       </div>
     </div>
   </div>
@@ -517,7 +484,7 @@
         <div class="filter-list" id="filterList"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn" id="clearFilterBtn">Ск��нути</button>
+        <button class="btn" id="clearFilterBtn">Скинути</button>
       </div>
     </div>
   </div>
@@ -546,18 +513,15 @@
   <!-- Глобальний Toast -->
   <div id="toast"></div>
 
-  <!-- Підключення основного скрипта (модуль) -->
   <script type="module" src="js/main.js"></script>
 
-  <!-- Фіксуємо заголовок "𝑭𝒂𝒏𝒕𝒂𝒔𝒚𝒂𝒔" навіть при зміні розділів -->
+  <!-- Захист заголовку від перезапису JS-кодом -->
   <script>
     (function() {
       const titleEl = document.getElementById('pageTitle');
       if (!titleEl) return;
       const targetText = '𝑭𝒂𝒏𝒕𝒂𝒔𝒚𝒂𝒔';
-      // Встановлюємо одразу
       titleEl.innerText = targetText;
-      // Спостерігаємо за змінами вмісту елемента
       const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
           if (mutation.type === 'characterData' || mutation.type === 'childList') {
