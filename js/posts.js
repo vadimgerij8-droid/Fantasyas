@@ -55,7 +55,7 @@ export const toggleLike = debounce(async (postId, buttonElement) => {
     }
 
     const postData = postSnap.data();
-    const isLiked = postData.likes && postData.likes.includes(state.currentUser.uid) ? true : false;
+    const isLiked = !!(postData.likes && postData.likes.includes(state.currentUser.uid));
 
     if (isLiked === wasLiked) {
       const batch = writeBatch(db);
@@ -118,7 +118,7 @@ export const toggleSave = debounce(async (postId, buttonElement) => {
     }
 
     const postData = postSnap.data();
-    const isSaved = postData.saves && postData.saves.includes(state.currentUser.uid) ? true : false;
+    const isSaved = !!(postData.saves && postData.saves.includes(state.currentUser.uid));
 
     if (isSaved === wasSaved) {
       const batch = writeBatch(db);
@@ -163,20 +163,20 @@ export async function createPost(text, files) {
   try {
     showToast('Завантаження...');
 
+    // ВИПРАВЛЕННЯ: завантажуємо всі файли паралельно замість послідовного await у циклі
+    const uploadResults = await Promise.allSettled(
+      files.map(file => uploadToCloudinary(file).then(url => ({ url, type: file.type.split('/')[0], name: file.name })))
+    );
+
     const media = [];
-    for (const file of files) {
-      try {
-        const url = await uploadToCloudinary(file);
-        if (!url) {
-          showToast('Помилка завантаження одного з файлів');
-          continue;
-        }
-        media.push({ url, type: file.type.split('/')[0] });
-      } catch (fileError) {
-        console.error('Помилка при завантаженні файлу:', fileError);
-        showToast('Помилка завантаження файлу: ' + file.name);
+    uploadResults.forEach((result, i) => {
+      if (result.status === 'fulfilled' && result.value.url) {
+        media.push({ url: result.value.url, type: result.value.type });
+      } else {
+        console.error('Помилка при завантаженні файлу:', result.reason);
+        showToast(`Помилка завантаження файлу: ${files[i].name}`);
       }
-    }
+    });
 
     if (media.length === 0 && files.length > 0) {
       showToast('Не вдалося завантажити жодного файлу');
@@ -259,22 +259,18 @@ export async function editPost(postId) {
       if (postEl) {
         const contentContainer = postEl.querySelector('.post-content');
         if (contentContainer) {
-          contentContainer.innerHTML = '';
-          
-          // Створюємо текст з санітизацією
-          const textNode = document.createTextNode(newText);
-          contentContainer.appendChild(textNode);
-
-          // Додаємо хештеги як окремі span елементи
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = newText.replace(/#(\w+)/g, '<span class="hashtag" data-tag="$1">#$1</span>');
-          contentContainer.innerHTML = tempDiv.innerHTML;
+          // ВИПРАВЛЕННЯ: escapeHtml перед replace, щоб уникнути XSS.
+          // Раніше newText вставлявся в innerHTML без санітизації.
+          const safeText = escapeHtml(newText);
+          contentContainer.innerHTML = safeText.replace(
+            /#(\w+)/g,
+            '<span class="hashtag" data-tag="$1">#$1</span>'
+          );
 
           contentContainer.querySelectorAll('.hashtag').forEach(span => {
             span.onclick = (e) => {
               e.stopPropagation();
-              const tag = span.dataset.tag;
-              searchHashtag(tag);
+              searchHashtag(span.dataset.tag);
             };
           });
         }
@@ -463,15 +459,12 @@ export async function loadMorePosts(containerId = 'feed') {
     let queryConstraints = [];
 
     if (state.currentFilterHashtag) {
-      console.log('loadMorePosts: фільтр за хештегом', state.currentFilterHashtag);
       queryConstraints.push(where("hashtags", "array-contains", state.currentFilterHashtag));
     }
 
     if (state.currentFeedType === 'new' || state.currentFilterHashtag) {
-      console.log('loadMorePosts: сортування за датою (нові)');
       queryConstraints.push(orderBy("createdAt", "desc"));
     } else {
-      console.log('loadMorePosts: сортування за популярністю');
       queryConstraints.push(orderBy("likesCount", "desc"));
       queryConstraints.push(orderBy("createdAt", "desc"));
     }
@@ -479,13 +472,11 @@ export async function loadMorePosts(containerId = 'feed') {
     queryConstraints.push(limit(10));
 
     if (state.lastVisible) {
-      console.log('loadMorePosts: є lastVisible, додаємо startAfter');
       queryConstraints.push(startAfter(state.lastVisible));
     }
 
     const q = query(collection(db, "posts"), ...queryConstraints);
     const snapshot = await getDocs(q);
-    console.log('loadMorePosts: отримано документів', snapshot.size);
 
     if (snapshot.empty) {
       state.hasMore = false;
@@ -526,8 +517,15 @@ export function renderPosts(docs, containerId = 'feed') {
   docs.forEach(docSnap => {
     const post = { id: docSnap.id, ...docSnap.data() };
 
-    const liked = state.currentUser && post.likes && post.likes.includes(state.currentUser.uid) ? true : false;
-    const saved = state.currentUser && post.saves && post.saves.includes(state.currentUser.uid) ? true : false;
+    // ВИПРАВЛЕННЯ: якщо пост вже є на сторінці — пропускаємо, щоб уникнути
+    // дублювання onSnapshot-слухачів і дублікатів у DOM
+    if (document.querySelector(`.post[data-post-id="${post.id}"]`)) {
+      console.warn(`renderPosts: пост ${post.id} вже існує у DOM, пропускаємо`);
+      return;
+    }
+
+    const liked = !!(state.currentUser && post.likes && post.likes.includes(state.currentUser.uid));
+    const saved = !!(state.currentUser && post.saves && post.saves.includes(state.currentUser.uid));
 
     let postTime = '';
     if (post.createdAt && typeof post.createdAt.seconds === 'number') {
@@ -541,8 +539,8 @@ export function renderPosts(docs, containerId = 'feed') {
       });
     }
 
-    const isAuthor = state.currentUser && post.author === state.currentUser.uid;
-    const isFollowing = state.currentUserFollowing && state.currentUserFollowing.includes(post.author) ? true : false;
+    const isAuthor = !!(state.currentUser && post.author === state.currentUser.uid);
+    const isFollowing = !!(state.currentUserFollowing && state.currentUserFollowing.includes(post.author));
 
     const postEl = document.createElement('div');
     postEl.className = 'post';
@@ -562,15 +560,12 @@ export function renderPosts(docs, containerId = 'feed') {
       `;
     }
 
-    // Санітизуємо текст посту
     const contentDiv = document.createElement('div');
     contentDiv.className = 'post-content';
-    contentDiv.textContent = post.text || '';
-    
-    // Змінюємо текст з хештегами
-    let contentHtml = escapeHtml(post.text || '');
-    contentHtml = contentHtml.replace(/#(\w+)/g, '<span class="hashtag" data-tag="$1">#$1</span>');
-    contentDiv.innerHTML = contentHtml;
+
+    // Санітизуємо текст перед вставкою в innerHTML
+    const safeText = escapeHtml(post.text || '');
+    contentDiv.innerHTML = safeText.replace(/#(\w+)/g, '<span class="hashtag" data-tag="$1">#$1</span>');
 
     const followButtonHtml = !isAuthor && state.currentUser ?
       `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>` : '';
@@ -651,13 +646,14 @@ export function renderPosts(docs, containerId = 'feed') {
 
     feed.appendChild(postEl);
 
-    incrementPostView(post.id);
+    // ВИПРАВЛЕННЯ: incrementPostView — async функція, помилки логуються всередині неї,
+    // але ми більше не ігноруємо повернуте Promise мовчки
+    incrementPostView(post.id).catch(e => console.warn('incrementPostView failed:', e));
 
     contentDiv.querySelectorAll('.hashtag').forEach(span => {
       span.onclick = (e) => {
         e.stopPropagation();
-        const tag = span.dataset.tag;
-        searchHashtag(tag);
+        searchHashtag(span.dataset.tag);
       };
     });
 
@@ -703,23 +699,15 @@ export function renderPosts(docs, containerId = 'feed') {
         const data = snap.data();
         const likeBtn = postEl.querySelector('.like-btn');
         if (likeBtn && postEl.parentNode) {
-          const liked = state.currentUser && data.likes && data.likes.includes(state.currentUser.uid) ? true : false;
+          const liked = !!(state.currentUser && data.likes && data.likes.includes(state.currentUser.uid));
+          likeBtn.classList.toggle('liked', liked);
           const countSpan = likeBtn.querySelector('span');
-          if (liked) {
-            likeBtn.classList.add('liked');
-          } else {
-            likeBtn.classList.remove('liked');
-          }
           if (countSpan) countSpan.textContent = data.likesCount || 0;
         }
         const saveBtn = postEl.querySelector('.save-btn');
         if (saveBtn && postEl.parentNode) {
-          const saved = state.currentUser && data.saves && data.saves.includes(state.currentUser.uid) ? true : false;
-          if (saved) {
-            saveBtn.classList.add('saved');
-          } else {
-            saveBtn.classList.remove('saved');
-          }
+          const saved = !!(state.currentUser && data.saves && data.saves.includes(state.currentUser.uid));
+          saveBtn.classList.toggle('saved', saved);
         }
       } else {
         if (postEl.parentNode) {
@@ -772,7 +760,6 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  // ================= Делегування для follow кнопок =================
   const followBtn = e.target.closest('.follow-btn-post');
   if (followBtn) {
     e.preventDefault();
@@ -901,7 +888,7 @@ function createGallery(media) {
   const inner = document.createElement('div');
   inner.className = 'gallery-inner';
 
-  media.forEach((item, index) => {
+  media.forEach((item) => {
     const slide = document.createElement('div');
     slide.className = 'gallery-slide';
     if (item.type === 'image') {
@@ -955,14 +942,19 @@ function createGallery(media) {
   return gallery;
 }
 
-// ================= Хештеги =================
-export async function loadHashtags(listId = 'hashtagList') {
+// ================= Хелпер завантаження хештегів =================
+// ВИПРАВЛЕННЯ: loadHashtags і loadFilterHashtags мали абсолютно ідентичну логіку —
+// дублювання коду винесено у спільну функцію.
+async function fetchAndRenderHashtags({ listId, maxTags, itemClass, onClickTag }) {
   const list = document.getElementById(listId);
   if (!list) return;
   list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
 
   try {
-    const postsSnap = await getDocs(collection(db, "posts"));
+    // УВАГА: getDocs(collection(db, "posts")) завантажує ВСІ пости.
+    // При великій кількості постів це дорого. Рекомендується зберігати
+    // агреговані лічильники хештегів в окремому документі Firestore.
+    const postsSnap = await getDocs(query(collection(db, "posts"), limit(500)));
     const tagCount = new Map();
     postsSnap.forEach(docSnap => {
       const tags = docSnap.data().hashtags || [];
@@ -971,7 +963,9 @@ export async function loadHashtags(listId = 'hashtagList') {
       });
     });
 
-    const sortedTags = Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 20);
+    const sortedTags = Array.from(tagCount.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, maxTags);
 
     list.innerHTML = '';
     if (sortedTags.length === 0) {
@@ -981,19 +975,37 @@ export async function loadHashtags(listId = 'hashtagList') {
 
     sortedTags.forEach(([tag, count]) => {
       const div = document.createElement('div');
-      div.className = 'hashtag-item';
+      div.className = itemClass;
       div.tabIndex = 0;
       div.innerHTML = `
-        <span class="hashtag-name">${escapeHtml(tag)}</span>
+        <span class="hashtag-name">#${escapeHtml(tag)}</span>
         <span class="hashtag-count">${count} постів</span>
       `;
-      div.onclick = () => searchHashtag(tag);
+      div.onclick = () => onClickTag(tag);
       list.appendChild(div);
     });
   } catch (e) {
     console.error('Error loading hashtags:', e);
     list.innerHTML = '<p style="text-align:center; padding:20px;">Помилка завантаження</p>';
   }
+}
+
+export async function loadHashtags(listId = 'hashtagList') {
+  await fetchAndRenderHashtags({
+    listId,
+    maxTags: 20,
+    itemClass: 'hashtag-item',
+    onClickTag: searchHashtag
+  });
+}
+
+export async function loadFilterHashtags(listId = 'filterList') {
+  await fetchAndRenderHashtags({
+    listId,
+    maxTags: 30,
+    itemClass: 'filter-item',
+    onClickTag: applyFilter
+  });
 }
 
 export function searchHashtag(tag) {
@@ -1006,46 +1018,6 @@ export function searchHashtag(tag) {
 }
 
 // ================= Фільтри =================
-export async function loadFilterHashtags(listId = 'filterList') {
-  const list = document.getElementById(listId);
-  if (!list) return;
-  list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
-
-  try {
-    const postsSnap = await getDocs(collection(db, "posts"));
-    const tagCount = new Map();
-    postsSnap.forEach(docSnap => {
-      const tags = docSnap.data().hashtags || [];
-      tags.forEach(tag => {
-        tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
-      });
-    });
-
-    const sortedTags = Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 30);
-
-    list.innerHTML = '';
-    if (sortedTags.length === 0) {
-      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає хештегів</p>';
-      return;
-    }
-
-    sortedTags.forEach(([tag, count]) => {
-      const div = document.createElement('div');
-      div.className = 'filter-item';
-      div.tabIndex = 0;
-      div.innerHTML = `
-        <span class="tag">#${escapeHtml(tag)}</span>
-        <span class="count">${count} постів</span>
-      `;
-      div.onclick = () => applyFilter(tag);
-      list.appendChild(div);
-    });
-  } catch (e) {
-    console.error('Error loading filter hashtags:', e);
-    list.innerHTML = '<p style="text-align:center; padding:20px;">Помилка завантаження</p>';
-  }
-}
-
 export function applyFilter(tag) {
   setFilterHashtag(tag);
   const filterModal = document.getElementById('filterModal');
@@ -1059,14 +1031,20 @@ export function applyFilter(tag) {
     if (feedPopularBtn) feedPopularBtn.classList.remove('active');
   }
 
+  // ВИПРАВЛЕННЯ: уникаємо змішування innerHTML і appendChild.
+  // Будуємо весь вміст через DOM API для надійності.
   const activeDiv = document.getElementById('activeFilter');
   if (activeDiv) {
+    activeDiv.innerHTML = '';
+
+    const tagSpan = document.createElement('span');
+    tagSpan.textContent = `#${tag} `;
+    activeDiv.appendChild(tagSpan);
+
     const clearBtn = document.createElement('button');
     clearBtn.id = 'clearFilterChip';
     clearBtn.textContent = '✕';
     clearBtn.onclick = clearFilter;
-    
-    activeDiv.innerHTML = `#${escapeHtml(tag)} `;
     activeDiv.appendChild(clearBtn);
   }
 
