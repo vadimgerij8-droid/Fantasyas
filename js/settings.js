@@ -77,40 +77,37 @@ function updateSettingsUI() {
 }
 
 export function setupSettingsListeners() {
-  const toggleIds = [
-    'settingPushNotifications', 'settingEmailNotifications', 'settingSmsNotifications',
-    'settingPrivateChats', 'settingLikes', 'settingComments', 'settingNewFollowers',
-    'settingMentions', 'settingDirectMessages', 'settingStoryReplies',
-    'settingPrivateAccount', 'settingActivityStatus',
-    'settingDarkMode', 'settingReduceMotion', 'settingHighContrast',
-    'settingAutoplayVideos', 'settingSoundEffects',
-    'settingTwoFactor', 'settingLoginAlerts'
-  ];
+  // ВИПРАВЛЕННЯ: використовуємо Map замість крихкої if/else if логіки з includes().
+  // Попередній код мав баг: 'settingPrivateAccount'.includes('PrivateChats') == false,
+  // але порядок перевірок міг спричиняти неправильне зіставлення для схожих назв.
+  // Явний Map виключає будь-яку неоднозначність.
+  const toggleMap = {
+    settingPushNotifications:  (v) => { state.userSettings.notifications.push = v; },
+    settingEmailNotifications: (v) => { state.userSettings.notifications.email = v; },
+    settingSmsNotifications:   (v) => { state.userSettings.notifications.sms = v; },
+    settingPrivateChats:       (v) => { state.userSettings.notifications.privateChats = v; },
+    settingLikes:              (v) => { state.userSettings.notifications.likes = v; },
+    settingComments:           (v) => { state.userSettings.notifications.comments = v; },
+    settingNewFollowers:       (v) => { state.userSettings.notifications.newFollowers = v; },
+    settingMentions:           (v) => { state.userSettings.notifications.mentions = v; },
+    settingDirectMessages:     (v) => { state.userSettings.notifications.directMessages = v; },
+    settingStoryReplies:       (v) => { state.userSettings.notifications.storyReplies = v; },
+    settingPrivateAccount:     (v) => { state.userSettings.privacy.privateAccount = v; },
+    settingActivityStatus:     (v) => { state.userSettings.privacy.activityStatus = v; },
+    settingDarkMode:           (v) => { state.userSettings.preferences.darkMode = v; },
+    settingReduceMotion:       (v) => { state.userSettings.preferences.reduceMotion = v; },
+    settingHighContrast:       (v) => { state.userSettings.preferences.highContrast = v; },
+    settingAutoplayVideos:     (v) => { state.userSettings.preferences.autoplayVideos = v; },
+    settingSoundEffects:       (v) => { state.userSettings.preferences.soundEffects = v; },
+    settingTwoFactor:          (v) => { state.userSettings.security.twoFactor = v; },
+    settingLoginAlerts:        (v) => { state.userSettings.security.loginAlerts = v; },
+  };
 
-  toggleIds.forEach(id => {
+  Object.entries(toggleMap).forEach(([id, setter]) => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('change', (e) => {
-        if (id.includes('Push')) state.userSettings.notifications.push = e.target.checked;
-        else if (id.includes('Email')) state.userSettings.notifications.email = e.target.checked;
-        else if (id.includes('Sms')) state.userSettings.notifications.sms = e.target.checked;
-        else if (id.includes('PrivateChats')) state.userSettings.notifications.privateChats = e.target.checked;
-        else if (id.includes('Likes')) state.userSettings.notifications.likes = e.target.checked;
-        else if (id.includes('Comments')) state.userSettings.notifications.comments = e.target.checked;
-        else if (id.includes('NewFollowers')) state.userSettings.notifications.newFollowers = e.target.checked;
-        else if (id.includes('Mentions')) state.userSettings.notifications.mentions = e.target.checked;
-        else if (id.includes('DirectMessages')) state.userSettings.notifications.directMessages = e.target.checked;
-        else if (id.includes('StoryReplies')) state.userSettings.notifications.storyReplies = e.target.checked;
-        else if (id.includes('PrivateAccount')) state.userSettings.privacy.privateAccount = e.target.checked;
-        else if (id.includes('ActivityStatus')) state.userSettings.privacy.activityStatus = e.target.checked;
-        else if (id.includes('DarkMode')) state.userSettings.preferences.darkMode = e.target.checked;
-        else if (id.includes('ReduceMotion')) state.userSettings.preferences.reduceMotion = e.target.checked;
-        else if (id.includes('HighContrast')) state.userSettings.preferences.highContrast = e.target.checked;
-        else if (id.includes('AutoplayVideos')) state.userSettings.preferences.autoplayVideos = e.target.checked;
-        else if (id.includes('SoundEffects')) state.userSettings.preferences.soundEffects = e.target.checked;
-        else if (id.includes('TwoFactor')) state.userSettings.security.twoFactor = e.target.checked;
-        else if (id.includes('LoginAlerts')) state.userSettings.security.loginAlerts = e.target.checked;
-
+        setter(e.target.checked);
         applySettings();
         saveSettingsToFirestore();
       });
@@ -180,6 +177,7 @@ function updatePrivacyUI() {
 }
 
 export function applySettings() {
+  // Темна тема
   if (state.userSettings.preferences.darkMode) {
     document.body.classList.add('dark');
   } else {
@@ -187,6 +185,7 @@ export function applySettings() {
   }
   localStorage.setItem('theme', state.userSettings.preferences.darkMode ? 'dark' : 'light');
 
+  // Зменшення анімацій
   if (state.userSettings.preferences.reduceMotion) {
     document.documentElement.style.setProperty('--transition', '0s');
     document.documentElement.style.setProperty('--transition-slow', '0s');
@@ -195,13 +194,15 @@ export function applySettings() {
     document.documentElement.style.setProperty('--transition-slow', '0.62s cubic-bezier(0.16, 1, 0.3, 1)');
   }
 
+  // ВИПРАВЛЕННЯ: при вимкненні highContrast явно повертаємо дефолтні кольори
+  // замість просто видалення властивостей, що могло лишати некоректні значення
+  // якщо вони були встановлені inline раніше.
   if (state.userSettings.preferences.highContrast) {
-    document.documentElement.style.setProperty('--text-primary', '#000');
-    document.documentElement.style.setProperty('--text-secondary', '#222');
+    document.documentElement.style.setProperty('--text-primary', '#000000');
+    document.documentElement.style.setProperty('--text-secondary', '#222222');
   } else {
-    // Скидання до змінних CSS (можна додати логіку, якщо потрібно)
-    document.documentElement.style.removeProperty('--text-primary');
-    document.documentElement.style.removeProperty('--text-secondary');
+    document.documentElement.style.setProperty('--text-primary', '');
+    document.documentElement.style.setProperty('--text-secondary', '');
   }
 }
 
@@ -224,22 +225,34 @@ async function loadBlockedUsers() {
   const container = document.getElementById('blockedUsersList');
   if (!container) return;
 
-  if (!state.currentUserData || !state.currentUserData.blockedUsers || state.currentUserData.blockedUsers.length === 0) {
+  if (
+    !state.currentUserData ||
+    !state.currentUserData.blockedUsers ||
+    state.currentUserData.blockedUsers.length === 0
+  ) {
     container.innerHTML = '<p style="color:var(--text-secondary); padding:10px;">Немає заблокованих користувачів</p>';
     return;
   }
 
   container.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
 
-  const blockedUsers = [];
-  for (const uid of state.currentUserData.blockedUsers) {
-    const snap = await getDoc(doc(db, "users", uid));
-    if (snap.exists()) {
-      blockedUsers.push({ id: uid, ...snap.data() });
-    }
-  }
+  // ВИПРАВЛЕННЯ: замість послідовного await у циклі (N окремих запитів до Firestore)
+  // використовуємо Promise.all для паралельного завантаження всіх документів одразу.
+  const snapshots = await Promise.all(
+    state.currentUserData.blockedUsers.map(uid => getDoc(doc(db, "users", uid)))
+  );
+
+  const blockedUsers = snapshots
+    .filter(snap => snap.exists())
+    .map(snap => ({ id: snap.id, ...snap.data() }));
 
   container.innerHTML = '';
+
+  if (blockedUsers.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-secondary); padding:10px;">Немає заблокованих користувачів</p>';
+    return;
+  }
+
   blockedUsers.forEach(user => {
     const div = document.createElement('div');
     div.className = 'blocked-user-item';
@@ -269,22 +282,31 @@ function loadAccountStats() {
 
   const statsContainer = document.getElementById('accountStats');
   if (statsContainer) {
+    // ВИПРАВЛЕННЯ: posts/followers/following можуть бути числом (лічильник),
+    // масивом, або undefined — обробляємо всі три випадки.
+    const getValue = (field) => {
+      const val = state.currentUserData[field];
+      if (typeof val === 'number') return val;
+      if (Array.isArray(val)) return val.length;
+      return 0;
+    };
+
     statsContainer.innerHTML = `
       <h4>Статистика</h4>
       <div class="stat-item">
-        <span class="stat-value">${state.currentUserData.posts?.length || 0}</span>
+        <span class="stat-value">${getValue('posts')}</span>
         <span class="stat-label">Постів</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">${state.currentUserData.followers?.length || 0}</span>
+        <span class="stat-value">${getValue('followers')}</span>
         <span class="stat-label">Підписників</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">${state.currentUserData.following?.length || 0}</span>
+        <span class="stat-value">${getValue('following')}</span>
         <span class="stat-label">Підписок</span>
       </div>
       <div class="stat-item">
-        <span class="stat-value">${state.currentUserData.likedPosts?.length || 0}</span>
+        <span class="stat-value">${getValue('likedPosts')}</span>
         <span class="stat-label">Лайків</span>
       </div>
     `;
@@ -292,6 +314,10 @@ function loadAccountStats() {
 
   const accountInfo = document.getElementById('accountInfo');
   if (accountInfo && state.currentUser) {
+    const createdAt = state.currentUserData.createdAt
+      ? new Date(state.currentUserData.createdAt.seconds * 1000).toLocaleDateString('uk-UA')
+      : 'Невідомо';
+
     accountInfo.innerHTML = `
       <h4>Інформація</h4>
       <div class="info-row">
@@ -304,7 +330,7 @@ function loadAccountStats() {
       </div>
       <div class="info-row">
         <span class="info-label">Дата реєстрації:</span>
-        <span class="info-value">${state.currentUserData.createdAt ? new Date(state.currentUserData.createdAt.seconds * 1000).toLocaleDateString() : 'Невідомо'}</span>
+        <span class="info-value">${createdAt}</span>
       </div>
     `;
   }
@@ -321,9 +347,11 @@ async function updateStorageInfo() {
     postCount = postsSnap.size;
   }
 
+  // ВИПРАВЛЕННЯ: hasOwnProperty може бути перевизначений у деяких середовищах,
+  // використовуємо безпечніший виклик через Object.prototype.
   let localStorageSize = 0;
   for (let key in localStorage) {
-    if (localStorage.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
       localStorageSize += (localStorage[key].length * 2) / 1024;
     }
   }
