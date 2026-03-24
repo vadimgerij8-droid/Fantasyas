@@ -2,7 +2,6 @@ import { auth, db } from './config.js';
 import { doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { state } from './state.js';
 
-// ================= Toast =================
 export const showToast = (msg) => {
   const toast = document.getElementById('toast');
   if (!toast) return;
@@ -11,10 +10,8 @@ export const showToast = (msg) => {
   setTimeout(() => toast.classList.remove('show'), 3000);
 };
 
-// ================= Вібрація =================
 export const vibrate = (ms) => { if (navigator.vibrate) navigator.vibrate(ms); };
 
-// ================= Дебаунс =================
 export function debounce(func, wait) {
   let timeout;
   return function executedFunction(...args) {
@@ -27,7 +24,6 @@ export function debounce(func, wait) {
   };
 }
 
-// ================= Емоджі-пікер =================
 const emojiList = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','😇','🙂','🙃','😉','😌','😍','🥰','😘','😗','😙','😚','😋','😛','😝','😜','🤪','🤨','🧐','🤓','😎','🥸','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯','😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷','🤒','🤕','🤑','🤠','😈','👿','👹','👺','🤡','💩','👻','💀','☠️','👽','👾','🤖','🎃','😺','😸','😹','😻','😼','😽','🙀','😿','😾'];
 
 export function closeAllEmojiPickers() {
@@ -75,7 +71,6 @@ export function setupEmojiPicker(buttonId, pickerId, inputId) {
   });
 }
 
-// ================= Кастомний вибір файлу =================
 export function setupFileInput(inputId, labelId, previewId) {
   const input = document.getElementById(inputId);
   const label = document.getElementById(labelId);
@@ -107,7 +102,6 @@ export function setupFileInput(inputId, labelId, previewId) {
   });
 }
 
-// ================= Завантаження на Cloudinary =================
 export async function uploadToCloudinary(file) {
   const CLOUD_NAME = 'dv6ehoqiq';
   const UPLOAD_PRESET = 'post_media';
@@ -131,57 +125,15 @@ export async function uploadToCloudinary(file) {
   return data.secure_url;
 }
 
-// ================= Функції для онлайн-статусу =================
-let heartbeatInterval = null;
-
-// Форматування часу останнього візиту
-export function formatLastSeen(timestamp) {
-  if (!timestamp) return '';
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
-  const now = new Date();
-  const diffMs = now - date;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'щойно';
-  if (diffMins < 60) return `${diffMins} хв тому`;
-  if (diffHours < 24) return `${diffHours} год тому`;
-  if (diffDays === 1) return 'вчора';
-  if (diffDays < 7) return `${diffDays} дн тому`;
-  return date.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
-}
-
-// Запуск heartbeat (періодичне оновлення lastSeen)
-export function startHeartbeat(user) {
-  if (!user) return;
-
-  const userRef = doc(db, "users", user.uid);
-
-  // Встановлюємо lastSeen при старті
-  updateDoc(userRef, { lastSeen: serverTimestamp() }).catch(console.error);
-
-  // Оновлюємо кожні 30 секунд
-  if (heartbeatInterval) clearInterval(heartbeatInterval);
-  heartbeatInterval = setInterval(() => {
-    updateDoc(userRef, { lastSeen: serverTimestamp() }).catch(console.error);
-  }, 30000);
-
-  // При закритті вкладки оновлюємо lastSeen востаннє
-  window.addEventListener('beforeunload', function() {
-    updateDoc(userRef, { lastSeen: serverTimestamp() }).catch(console.error);
-  });
-}
-
-// Зупинка heartbeat (при виході)
-export function stopHeartbeat() {
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-    heartbeatInterval = null;
+export async function updateLastOnline() {
+  if (!state.currentUser) return;
+  try {
+    await updateDoc(doc(db, "users", state.currentUser.uid), { lastOnline: serverTimestamp() });
+  } catch (e) {
+    console.error('Failed to update lastOnline:', e);
   }
 }
 
-// ================= Оновлення бейджа непрочитаних =================
 export function updateUnreadBadge(unreadCount) {
   const badge = document.getElementById('unreadBadge');
   if (!badge) return;
