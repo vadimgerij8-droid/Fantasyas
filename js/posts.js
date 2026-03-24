@@ -1,30 +1,21 @@
 import { db } from './config.js';
-import {
-  collection, addDoc, doc, getDoc, updateDoc, deleteDoc, query, where, orderBy, limit, startAfter,
-  getDocs, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, onSnapshot
+import { 
+  collection, addDoc, doc, getDoc, updateDoc, deleteDoc, query, orderBy, limit, startAfter, 
+  getDocs, serverTimestamp, arrayUnion, arrayRemove, increment, writeBatch, onSnapshot 
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import {
-  state,
-  setFilterHashtag, resetPaginationState, setCurrentFeedType
+import { 
+  state, setLoading, setHasMore, setLastVisible, addViewedPost, addPostListener, removePostListener,
+  setFilterHashtag
 } from './state.js';
 import { showToast, vibrate, uploadToCloudinary, debounce, setupEmojiPicker } from './utils.js';
 import { toggleFollow } from './profile.js';
 
-// ================= Утильна функція для санітизації HTML =================
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// ================= Допоміжні функції =================
 export function extractHashtags(text) {
   const regex = /#(\w+)/g;
   const matches = text.match(regex);
   return matches ? matches.map(tag => tag.toLowerCase()) : [];
 }
 
-// ================= Лайк (з debounce) =================
 export const toggleLike = debounce(async (postId, buttonElement) => {
   if (!state.currentUser) {
     showToast('Увійдіть, щоб лайкати');
@@ -37,7 +28,6 @@ export const toggleLike = debounce(async (postId, buttonElement) => {
   const countSpan = buttonElement.querySelector('span');
   const oldCount = countSpan ? parseInt(countSpan.textContent) : 0;
 
-  // Оптимістичне оновлення
   const newCount = wasLiked ? Math.max(oldCount - 1, 0) : oldCount + 1;
   buttonElement.classList.toggle('liked', !wasLiked);
   if (countSpan) countSpan.textContent = newCount;
@@ -55,7 +45,7 @@ export const toggleLike = debounce(async (postId, buttonElement) => {
     }
 
     const postData = postSnap.data();
-    const isLiked = !!(postData.likes && postData.likes.includes(state.currentUser.uid));
+    const isLiked = postData.likes?.includes(state.currentUser.uid) || false;
 
     if (isLiked === wasLiked) {
       const batch = writeBatch(db);
@@ -94,7 +84,6 @@ export const toggleLike = debounce(async (postId, buttonElement) => {
   }
 }, 300);
 
-// ================= Збереження поста =================
 export const toggleSave = debounce(async (postId, buttonElement) => {
   if (!state.currentUser) {
     showToast('Увійдіть, щоб зберегти');
@@ -117,9 +106,7 @@ export const toggleSave = debounce(async (postId, buttonElement) => {
       return;
     }
 
-    const postData = postSnap.data();
-    const isSaved = !!(postData.saves && postData.saves.includes(state.currentUser.uid));
-
+    const isSaved = postSnap.data().saves?.includes(state.currentUser.uid) || false;
     if (isSaved === wasSaved) {
       const batch = writeBatch(db);
       const userRef = doc(db, "users", state.currentUser.uid);
@@ -143,15 +130,10 @@ export const toggleSave = debounce(async (postId, buttonElement) => {
   }
 }, 300);
 
-// ================= Створення поста =================
 export async function createPost(text, files) {
   if (!state.currentUser) {
     showToast('Увійдіть, щоб опублікувати пост');
     return false;
-  }
-
-  if (!files || !Array.isArray(files)) {
-    files = [];
   }
 
   const MAX_FILES = 3;
@@ -163,32 +145,13 @@ export async function createPost(text, files) {
   try {
     showToast('Завантаження...');
 
-    // ВИПРАВЛЕННЯ: завантажуємо всі файли паралельно замість послідовного await у циклі
-    const uploadResults = await Promise.allSettled(
-      files.map(file => uploadToCloudinary(file).then(url => ({ url, type: file.type.split('/')[0], name: file.name })))
-    );
-
     const media = [];
-    uploadResults.forEach((result, i) => {
-      if (result.status === 'fulfilled' && result.value.url) {
-        media.push({ url: result.value.url, type: result.value.type });
-      } else {
-        console.error('Помилка при завантаженні файлу:', result.reason);
-        showToast(`Помилка завантаження файлу: ${files[i].name}`);
-      }
-    });
-
-    if (media.length === 0 && files.length > 0) {
-      showToast('Не вдалося завантажити жодного файлу');
-      return false;
+    for (const file of files) {
+      const url = await uploadToCloudinary(file);
+      media.push({ url, type: file.type.split('/')[0] });
     }
 
-    const userRef = doc(db, "users", state.currentUser.uid);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      showToast('Користувача не знайдено');
-      return false;
-    }
+    const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
     const userData = userSnap.data();
 
     const hashtags = extractHashtags(text);
@@ -196,8 +159,8 @@ export async function createPost(text, files) {
     const postDoc = await addDoc(collection(db, "posts"), {
       author: state.currentUser.uid,
       authorType: 'user',
-      authorName: userData.nickname || 'Невідомо',
-      authorUserId: userData.userId || '',
+      authorName: userData.nickname,
+      authorUserId: userData.userId,
       authorAvatar: userData.avatar || '',
       text,
       media,
@@ -211,7 +174,7 @@ export async function createPost(text, files) {
       popularity: 0
     });
 
-    await updateDoc(userRef, { posts: arrayUnion(postDoc.id) });
+    await updateDoc(doc(db, "users", state.currentUser.uid), { posts: arrayUnion(postDoc.id) });
 
     document.getElementById('postText').value = '';
     document.getElementById('postMedia').value = '';
@@ -227,381 +190,99 @@ export async function createPost(text, files) {
   }
 }
 
-// ================= Редагування поста =================
-export async function editPost(postId) {
-  if (!state.currentUser) return;
-
-  const postRef = doc(db, "posts", postId);
-  const postSnap = await getDoc(postRef);
-  if (!postSnap.exists()) {
-    showToast('Пост не знайдено');
-    return;
-  }
-
-  const post = postSnap.data();
-  if (post.author !== state.currentUser.uid) {
-    showToast('Ви не автор цього поста');
-    return;
-  }
-
-  createEditModal(post.text || '', async (newText) => {
-    try {
-      const hashtags = extractHashtags(newText);
-      await updateDoc(postRef, {
-        text: newText,
-        hashtags,
-        edited: true,
-        updatedAt: serverTimestamp()
-      });
-      showToast('Пост оновлено');
-
-      const postEl = document.querySelector(`.post[data-post-id="${postId}"]`);
-      if (postEl) {
-        const contentContainer = postEl.querySelector('.post-content');
-        if (contentContainer) {
-          // ВИПРАВЛЕННЯ: escapeHtml перед replace, щоб уникнути XSS.
-          // Раніше newText вставлявся в innerHTML без санітизації.
-          const safeText = escapeHtml(newText);
-          contentContainer.innerHTML = safeText.replace(
-            /#(\w+)/g,
-            '<span class="hashtag" data-tag="$1">#$1</span>'
-          );
-
-          contentContainer.querySelectorAll('.hashtag').forEach(span => {
-            span.onclick = (e) => {
-              e.stopPropagation();
-              searchHashtag(span.dataset.tag);
-            };
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Помилка редагування поста:', error);
-      showToast('Не вдалося оновити пост');
-    }
-  });
-}
-
-// Функція для створення UI модального вікна редагування
-function createEditModal(currentText, onSave) {
-  const existingModal = document.getElementById('customEditModal');
-  if (existingModal) existingModal.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'customEditModal';
-  modal.style.cssText = `
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center;
-    z-index: 9999; backdrop-filter: blur(2px);
-  `;
-
-  const modalContent = document.createElement('div');
-  modalContent.style.cssText = `
-    background: var(--bg-color, #ffffff); 
-    padding: 20px; 
-    border-radius: 16px; 
-    width: 90%; 
-    max-width: 500px; 
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
-    display: flex; 
-    flex-direction: column; 
-    gap: 15px;
-  `;
-
-  const title = document.createElement('h3');
-  title.style.cssText = 'margin: 0; font-size: 18px; color: var(--text-color, #333);';
-  title.textContent = 'Редагувати пост';
-
-  const textarea = document.createElement('textarea');
-  textarea.id = 'editModalTextarea';
-  textarea.value = currentText;
-  textarea.style.cssText = `
-    width: 100%; 
-    height: 150px; 
-    padding: 12px; 
-    border: 1px solid var(--border-color, #ddd); 
-    border-radius: 8px; 
-    resize: none; 
-    font-family: inherit; 
-    font-size: 15px; 
-    outline: none; 
-    box-sizing: border-box; 
-    background: var(--input-bg, #fff); 
-    color: var(--text-color, #333);
-  `;
-
-  const buttonContainer = document.createElement('div');
-  buttonContainer.style.cssText = 'display: flex; justify-content: flex-end; gap: 10px;';
-
-  const cancelBtn = document.createElement('button');
-  cancelBtn.id = 'closeEditModal';
-  cancelBtn.textContent = 'Скасувати';
-  cancelBtn.style.cssText = `
-    padding: 10px 16px; 
-    border: none; 
-    border-radius: 8px; 
-    background: var(--btn-secondary-bg, #e0e0e0); 
-    color: var(--text-color, #333); 
-    font-weight: 600; 
-    cursor: pointer;
-  `;
-
-  const saveBtn = document.createElement('button');
-  saveBtn.id = 'saveEditModal';
-  saveBtn.textContent = 'Зберегти';
-  saveBtn.style.cssText = `
-    padding: 10px 16px; 
-    border: none; 
-    border-radius: 8px; 
-    background: var(--primary-color, #007bff); 
-    color: white; 
-    font-weight: 600; 
-    cursor: pointer;
-  `;
-
-  buttonContainer.appendChild(cancelBtn);
-  buttonContainer.appendChild(saveBtn);
-  
-  modalContent.appendChild(title);
-  modalContent.appendChild(textarea);
-  modalContent.appendChild(buttonContainer);
-  
-  modal.appendChild(modalContent);
-  document.body.appendChild(modal);
-
-  textarea.focus();
-  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-
-  const closeModal = () => modal.remove();
-
-  cancelBtn.onclick = closeModal;
-  
-  saveBtn.onclick = () => {
-    const newText = textarea.value.trim();
-    if (newText && newText !== currentText) {
-      onSave(newText);
-      closeModal();
-    } else if (newText === currentText) {
-      closeModal();
-    } else {
-      showToast('Текст поста не може бути порожнім');
-    }
-  };
-
-  modal.onclick = (e) => {
-    if (e.target === modal) closeModal();
-  };
-}
-
-// ================= Видалення поста =================
-export async function deletePost(postId) {
-  if (!state.currentUser) return;
-  if (!confirm('Видалити цей пост назавжди?')) return;
-
-  try {
-    const postRef = doc(db, "posts", postId);
-    const postSnap = await getDoc(postRef);
-    if (!postSnap.exists()) {
-      showToast('Пост не знайдено');
-      return;
-    }
-
-    // Видаляємо слухача перед видаленням
-    const unsubscribe = state.postListeners.get(postId);
-    if (unsubscribe) {
-      unsubscribe();
-      state.postListeners.delete(postId);
-    }
-
-    const commentsSnapshot = await getDocs(collection(db, `posts/${postId}/comments`));
-    const batch = writeBatch(db);
-    commentsSnapshot.forEach(docSnap => batch.delete(docSnap.ref));
-
-    batch.delete(postRef);
-
-    const userRef = doc(db, "users", state.currentUser.uid);
-    batch.update(userRef, {
-      posts: arrayRemove(postId)
-    });
-
-    await batch.commit();
-
-    const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
-    if (postElement) postElement.remove();
-
-    showToast('Пост видалено');
-  } catch (error) {
-    console.error('Помилка видалення поста:', error);
-    showToast('Не вдалося видалити пост');
-  }
-}
-
-// ================= Завантаження постів (пагінація) =================
 export async function loadMorePosts(containerId = 'feed') {
-  if (!state.currentUser) {
-    console.log('loadMorePosts: користувач не авторизований');
-    return;
-  }
-  if (state.loading) {
-    console.log('loadMorePosts: вже завантажується');
-    return;
-  }
-  if (!state.hasMore) {
-    console.log('loadMorePosts: більше немає постів');
-    return;
-  }
-
-  state.loading = true;
+  if (!state.currentUser || state.loading || !state.hasMore) return;
+  setLoading(true);
   const skeleton = document.getElementById('skeletonContainer');
   if (skeleton) skeleton.style.display = 'block';
 
   try {
-    let queryConstraints = [];
-
+    let baseQuery;
     if (state.currentFilterHashtag) {
-      queryConstraints.push(where("hashtags", "array-contains", state.currentFilterHashtag));
-    }
-
-    if (state.currentFeedType === 'new' || state.currentFilterHashtag) {
-      queryConstraints.push(orderBy("createdAt", "desc"));
+      baseQuery = query(collection(db, "posts"), where("hashtags", "array-contains", state.currentFilterHashtag));
     } else {
-      queryConstraints.push(orderBy("likesCount", "desc"));
-      queryConstraints.push(orderBy("createdAt", "desc"));
+      baseQuery = collection(db, "posts");
     }
 
-    queryConstraints.push(limit(10));
-
-    if (state.lastVisible) {
-      queryConstraints.push(startAfter(state.lastVisible));
+    let q;
+    if (state.currentFeedType === 'new' || state.currentFilterHashtag) {
+      q = query(baseQuery, orderBy("createdAt", "desc"), limit(10));
+    } else {
+      q = query(baseQuery, orderBy("likesCount", "desc"), orderBy("createdAt", "desc"), limit(10));
     }
 
-    const q = query(collection(db, "posts"), ...queryConstraints);
+    if (state.lastVisible) q = query(q, startAfter(state.lastVisible));
+
     const snapshot = await getDocs(q);
-
     if (snapshot.empty) {
-      state.hasMore = false;
+      setHasMore(false);
       return;
     }
 
-    state.lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
     renderPosts(snapshot.docs, containerId);
   } catch (e) {
     console.error("Помилка завантаження постів:", e);
-    if (e.code === 'failed-precondition' || e.message.includes('index')) {
-      const match = e.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
-      if (match) {
-        console.log('Посилання для створення індексу:', match[0]);
-        showToast(`⚠️ Потрібен індекс. Скопіюйте посилання з консолі (F12).`);
-      } else {
-        showToast('⚠️ Потрібно створити складений індекс у Firestore. Перейдіть у Firebase Console.');
-      }
-    } else if (e.code === 'permission-denied') {
-      showToast('❌ Недостатньо прав. Перевірте правила безпеки Firestore.');
-    } else {
-      showToast('Помилка завантаження: ' + e.message);
-    }
+    showToast("Помилка завантаження. Перевірте індекси Firestore.");
   } finally {
     if (skeleton) skeleton.style.display = 'none';
-    state.loading = false;
+    setLoading(false);
   }
 }
 
-// ================= Рендеринг постів =================
 export function renderPosts(docs, containerId = 'feed') {
   const feed = document.getElementById(containerId);
-  if (!feed) {
-    console.error('renderPosts: контейнер не знайдено', containerId);
-    return;
-  }
+  if (!feed) return;
 
   docs.forEach(docSnap => {
     const post = { id: docSnap.id, ...docSnap.data() };
-
-    // ВИПРАВЛЕННЯ: якщо пост вже є на сторінці — пропускаємо, щоб уникнути
-    // дублювання onSnapshot-слухачів і дублікатів у DOM
-    if (document.querySelector(`.post[data-post-id="${post.id}"]`)) {
-      console.warn(`renderPosts: пост ${post.id} вже існує у DOM, пропускаємо`);
-      return;
-    }
-
-    const liked = !!(state.currentUser && post.likes && post.likes.includes(state.currentUser.uid));
-    const saved = !!(state.currentUser && post.saves && post.saves.includes(state.currentUser.uid));
-
-    let postTime = '';
-    if (post.createdAt && typeof post.createdAt.seconds === 'number') {
-      postTime = new Date(post.createdAt.seconds * 1000).toLocaleString('uk-UA', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      });
-    }
-
-    const isAuthor = !!(state.currentUser && post.author === state.currentUser.uid);
-    const isFollowing = !!(state.currentUserFollowing && state.currentUserFollowing.includes(post.author));
+    const liked = post.likes?.includes(state.currentUser?.uid) || false;
+    const saved = post.saves?.includes(state.currentUser?.uid) || false;
+    const postTime = post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleString() : '';
+    const isAuthor = state.currentUser && post.author === state.currentUser.uid;
+    const isFollowing = state.currentUserFollowing.includes(post.author);
 
     const postEl = document.createElement('div');
     postEl.className = 'post';
     postEl.dataset.postId = post.id;
     postEl.tabIndex = 0;
 
-    let menuHtml = '';
+    let actionsHtml = '';
     if (isAuthor) {
-      menuHtml = `
-        <div class="post-menu-container">
-          <button class="post-menu-btn" aria-label="Меню поста" tabindex="0">⋮</button>
-          <div class="post-menu-dropdown" style="display: none;">
-            <div class="post-menu-item" data-action="edit">Редагувати</div>
-            <div class="post-menu-item" data-action="delete">Видалити</div>
-          </div>
-        </div>
-      `;
+      actionsHtml = `<div class="post-actions"><button class="edit-post-btn" title="Редагувати пост" tabindex="0">⋯</button></div>`;
     }
 
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'post-content';
+    let contentHtml = post.text || '';
+    const hashtagRegex = /#(\w+)/g;
+    contentHtml = contentHtml.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
 
-    // Санітизуємо текст перед вставкою в innerHTML
-    const safeText = escapeHtml(post.text || '');
-    contentDiv.innerHTML = safeText.replace(/#(\w+)/g, '<span class="hashtag" data-tag="$1">#$1</span>');
-
-    const followButtonHtml = !isAuthor && state.currentUser ?
+    const followButtonHtml = !isAuthor && state.currentUser ? 
       `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>` : '';
 
-    const headerHtml = `
+    postEl.innerHTML = `
+      ${actionsHtml}
       <div class="post-header">
-        <div class="avatar" style="background-image:url(${escapeHtml(post.authorAvatar || '')})" data-uid="${post.author}" tabindex="0"></div>
+        <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" data-uid="${post.author}" tabindex="0"></div>
         <div class="post-author-info">
           <div>
-            <span class="post-author" data-uid="${post.author}" tabindex="0">${escapeHtml(post.authorName || 'Невідомо')}</span>
-            <span class="post-meta">${escapeHtml(post.authorUserId || '')}</span>
+            <span class="post-author" data-uid="${post.author}" tabindex="0">${post.authorName || 'Невідомо'}</span>
+            <span class="post-meta">${post.authorUserId || ''}</span>
             ${followButtonHtml}
           </div>
-          <div class="post-time">${escapeHtml(postTime)}</div>
+          <div class="post-time">${postTime}</div>
         </div>
-        ${menuHtml}
       </div>
+      <div class="post-content">${contentHtml}</div>
     `;
-
-    postEl.innerHTML = headerHtml;
-    postEl.appendChild(contentDiv);
 
     if (post.media && post.media.length > 0) {
       const gallery = createGallery(post.media);
       postEl.appendChild(gallery);
     } else if (post.mediaUrl) {
-      const mediaContainer = document.createElement('div');
       const mediaEl = post.mediaType === 'image'
-        ? document.createElement('img')
-        : document.createElement('video');
-      mediaEl.src = post.mediaUrl;
-      mediaEl.className = 'post-media';
-      mediaEl.loading = 'lazy';
-      if (post.mediaType !== 'image') mediaEl.controls = true;
-      mediaContainer.appendChild(mediaEl);
-      postEl.appendChild(mediaContainer);
+        ? `<img src="${post.mediaUrl}" class="post-media" loading="lazy" tabindex="0">`
+        : `<video src="${post.mediaUrl}" controls class="post-media" tabindex="0"></video>`;
+      postEl.innerHTML += mediaEl;
     }
 
     const footer = document.createElement('div');
@@ -646,14 +327,13 @@ export function renderPosts(docs, containerId = 'feed') {
 
     feed.appendChild(postEl);
 
-    // ВИПРАВЛЕННЯ: incrementPostView — async функція, помилки логуються всередині неї,
-    // але ми більше не ігноруємо повернуте Promise мовчки
-    incrementPostView(post.id).catch(e => console.warn('incrementPostView failed:', e));
+    incrementPostView(post.id);
 
-    contentDiv.querySelectorAll('.hashtag').forEach(span => {
+    postEl.querySelectorAll('.hashtag').forEach(span => {
       span.onclick = (e) => {
         e.stopPropagation();
-        searchHashtag(span.dataset.tag);
+        const tag = span.dataset.tag;
+        searchHashtag(tag);
       };
     });
 
@@ -698,180 +378,83 @@ export function renderPosts(docs, containerId = 'feed') {
       if (snap.exists()) {
         const data = snap.data();
         const likeBtn = postEl.querySelector('.like-btn');
-        if (likeBtn && postEl.parentNode) {
-          const liked = !!(state.currentUser && data.likes && data.likes.includes(state.currentUser.uid));
-          likeBtn.classList.toggle('liked', liked);
+        if (likeBtn) {
+          const liked = data.likes?.includes(state.currentUser?.uid) || false;
           const countSpan = likeBtn.querySelector('span');
+          if (liked) {
+            likeBtn.classList.add('liked');
+          } else {
+            likeBtn.classList.remove('liked');
+          }
           if (countSpan) countSpan.textContent = data.likesCount || 0;
         }
         const saveBtn = postEl.querySelector('.save-btn');
-        if (saveBtn && postEl.parentNode) {
-          const saved = !!(state.currentUser && data.saves && data.saves.includes(state.currentUser.uid));
-          saveBtn.classList.toggle('saved', saved);
+        if (saveBtn) {
+          const saved = data.saves?.includes(state.currentUser?.uid) || false;
+          if (saved) {
+            saveBtn.classList.add('saved');
+          } else {
+            saveBtn.classList.remove('saved');
+          }
         }
       } else {
-        if (postEl.parentNode) {
-          postEl.parentNode.removeChild(postEl);
-        }
+        if (postEl.parentNode) postEl.parentNode.removeChild(postEl);
         unsubscribe();
-        state.postListeners.delete(post.id);
+        removePostListener(post.id);
       }
     }, (error) => {
       console.error(`Error listening to post ${post.id}:`, error);
     });
-    state.postListeners.set(post.id, unsubscribe);
+    addPostListener(post.id, unsubscribe);
   });
 }
 
-// ================= Глобальне делегування для меню постів =================
-document.addEventListener('click', (e) => {
-  const menuBtn = e.target.closest('.post-menu-btn');
-  if (menuBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    const menuContainer = menuBtn.closest('.post-menu-container');
-    const dropdown = menuContainer.querySelector('.post-menu-dropdown');
-    if (dropdown) {
-      document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-        if (menu !== dropdown) menu.style.display = 'none';
-      });
-      dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-    }
-    return;
-  }
-
-  const menuItem = e.target.closest('.post-menu-item');
-  if (menuItem) {
-    e.preventDefault();
-    e.stopPropagation();
-    const menuContainer = menuItem.closest('.post-menu-container');
-    const postEl = menuContainer.closest('.post');
-    const postId = postEl.dataset.postId;
-    const action = menuItem.dataset.action;
-
-    if (action === 'edit') {
-      editPost(postId);
-    } else if (action === 'delete') {
-      deletePost(postId);
-    }
-
-    const dropdown = menuContainer.querySelector('.post-menu-dropdown');
-    if (dropdown) dropdown.style.display = 'none';
-    return;
-  }
-
-  const followBtn = e.target.closest('.follow-btn-post');
-  if (followBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-    const uid = followBtn.dataset.uid;
-    toggleFollow(uid, followBtn);
-    return;
-  }
-
-  if (!e.target.closest('.post-menu-container')) {
-    document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
-      menu.style.display = 'none';
-    });
-  }
-});
-
-// ================= Коментарі =================
-export async function loadComments(postId, container) {
-  try {
-    const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
-    const snapshot = await getDocs(q);
-    container.innerHTML = '';
-    snapshot.forEach(docSnap => {
-      const comment = docSnap.data();
-      const commentEl = document.createElement('div');
-      commentEl.className = 'comment';
-      let commentTime = '';
-      if (comment.createdAt && typeof comment.createdAt.seconds === 'number') {
-        commentTime = new Date(comment.createdAt.seconds * 1000).toLocaleString('uk-UA', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        });
-      }
-
-      const avatarEl = document.createElement('div');
-      avatarEl.className = 'comment-avatar';
-      avatarEl.style.backgroundImage = `url(${comment.authorAvatar || ''})`;
-      avatarEl.dataset.uid = comment.author;
-
-      const contentEl = document.createElement('div');
-      contentEl.className = 'comment-content';
-
-      const headerEl = document.createElement('div');
-      const authorSpan = document.createElement('span');
-      authorSpan.className = 'comment-author';
-      authorSpan.dataset.uid = comment.author;
-      authorSpan.textContent = comment.authorName;
-
-      const timeSpan = document.createElement('span');
-      timeSpan.className = 'comment-time';
-      timeSpan.textContent = commentTime;
-
-      headerEl.appendChild(authorSpan);
-      headerEl.appendChild(timeSpan);
-
-      const textEl = document.createElement('div');
-      textEl.className = 'comment-text';
-      textEl.textContent = comment.text;
-
-      contentEl.appendChild(headerEl);
-      contentEl.appendChild(textEl);
-
-      commentEl.appendChild(avatarEl);
-      commentEl.appendChild(contentEl);
-
-      container.appendChild(commentEl);
-    });
-  } catch (error) {
-    console.error('Помилка завантаження коментарів:', error);
-    container.innerHTML = '<p style="text-align:center;">Помилка завантаження коментарів</p>';
-  }
+async function loadComments(postId, container) {
+  const q = query(collection(db, `posts/${postId}/comments`), orderBy("createdAt", "asc"));
+  const snapshot = await getDocs(q);
+  container.innerHTML = '';
+  snapshot.forEach(doc => {
+    const comment = doc.data();
+    const commentEl = document.createElement('div');
+    commentEl.className = 'comment';
+    commentEl.innerHTML = `
+      <div class="comment-avatar" style="background-image:url(${comment.authorAvatar || ''})" data-uid="${comment.author}"></div>
+      <div class="comment-content">
+        <div>
+          <span class="comment-author" data-uid="${comment.author}">${comment.authorName}</span>
+          <span class="comment-time">${new Date(comment.createdAt?.seconds * 1000).toLocaleString()}</span>
+        </div>
+        <div class="comment-text">${comment.text}</div>
+      </div>
+    `;
+    container.appendChild(commentEl);
+  });
 }
 
-export async function addComment(postId, text) {
+async function addComment(postId, text) {
   if (!state.currentUser || !text.trim()) return;
-
-  try {
-    const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
-    if (!userSnap.exists()) {
-      showToast('Користувача не знайдено');
-      return;
-    }
-    const user = userSnap.data();
-    const commentRef = collection(db, `posts/${postId}/comments`);
-    await addDoc(commentRef, {
-      author: state.currentUser.uid,
-      authorName: user.nickname || 'Невідомо',
-      authorAvatar: user.avatar || '',
-      text: text.trim(),
-      createdAt: serverTimestamp()
-    });
-    await updateDoc(doc(db, "posts", postId), {
-      commentsCount: increment(1),
-      popularity: increment(40)
-    });
-  } catch (error) {
-    console.error('Помилка додавання коментаря:', error);
-    throw error;
-  }
+  const userSnap = await getDoc(doc(db, "users", state.currentUser.uid));
+  const user = userSnap.data();
+  const commentRef = collection(db, `posts/${postId}/comments`);
+  await addDoc(commentRef, {
+    author: state.currentUser.uid,
+    authorName: user.nickname,
+    authorAvatar: user.avatar || '',
+    text: text.trim(),
+    createdAt: serverTimestamp()
+  });
+  await updateDoc(doc(db, "posts", postId), { 
+    commentsCount: increment(1),
+    popularity: increment(40)
+  });
 }
 
-// ================= Перегляди =================
 async function incrementPostView(postId) {
   if (!state.currentUser) return;
   if (state.viewedPosts.has(postId)) return;
-  state.viewedPosts.add(postId);
+  addViewedPost(postId);
   try {
-    await updateDoc(doc(db, "posts", postId), {
+    await updateDoc(doc(db, "posts", postId), { 
       views: increment(1),
       popularity: increment(5)
     });
@@ -880,30 +463,21 @@ async function incrementPostView(postId) {
   }
 }
 
-// ================= Галерея =================
 function createGallery(media) {
   const gallery = document.createElement('div');
   gallery.className = 'post-gallery';
+  gallery.setAttribute('data-current', 0);
 
   const inner = document.createElement('div');
   inner.className = 'gallery-inner';
 
-  media.forEach((item) => {
+  media.forEach((item, index) => {
     const slide = document.createElement('div');
     slide.className = 'gallery-slide';
     if (item.type === 'image') {
-      const img = document.createElement('img');
-      img.src = item.url;
-      img.loading = 'lazy';
-      img.tabIndex = 0;
-      slide.appendChild(img);
+      slide.innerHTML = `<img src="${item.url}" loading="lazy" tabindex="0">`;
     } else {
-      const video = document.createElement('video');
-      video.src = item.url;
-      video.controls = true;
-      video.className = 'post-media';
-      video.tabIndex = 0;
-      slide.appendChild(video);
+      slide.innerHTML = `<video src="${item.url}" controls class="post-media" tabindex="0"></video>`;
     }
     inner.appendChild(slide);
   });
@@ -924,48 +498,50 @@ function createGallery(media) {
   counter.textContent = `1/${media.length}`;
   gallery.appendChild(counter);
 
-  const updateGallery = () => {
-    const scrollLeft = inner.scrollLeft;
-    const slideWidth = inner.clientWidth;
-    const index = Math.round(scrollLeft / slideWidth);
-    const safeIndex = Math.min(Math.max(index, 0), media.length - 1);
+  let startX = 0;
+  inner.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+  });
 
+  inner.addEventListener('touchend', (e) => {
+    if (!startX) return;
+    const endX = e.changedTouches[0].clientX;
+    const diff = endX - startX;
+    const current = parseInt(gallery.dataset.current);
+    if (diff > 50 && current > 0) {
+      gallery.dataset.current = current - 1;
+    } else if (diff < -50 && current < media.length - 1) {
+      gallery.dataset.current = current + 1;
+    } else {
+      return;
+    }
+    const newCurrent = parseInt(gallery.dataset.current);
+    inner.style.transform = `translateX(-${newCurrent * 100}%)`;
     indicators.querySelectorAll('span').forEach((dot, i) => {
-      dot.className = i === safeIndex ? 'active' : '';
+      dot.className = i === newCurrent ? 'active' : '';
     });
-    counter.textContent = `${safeIndex + 1}/${media.length}`;
-  };
-
-  inner.addEventListener('scroll', updateGallery);
-  setTimeout(updateGallery, 0);
+    counter.textContent = `${newCurrent + 1}/${media.length}`;
+  });
 
   return gallery;
 }
 
-// ================= Хелпер завантаження хештегів =================
-// ВИПРАВЛЕННЯ: loadHashtags і loadFilterHashtags мали абсолютно ідентичну логіку —
-// дублювання коду винесено у спільну функцію.
-async function fetchAndRenderHashtags({ listId, maxTags, itemClass, onClickTag }) {
+export async function loadHashtags(listId = 'hashtagList') {
   const list = document.getElementById(listId);
   if (!list) return;
   list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
 
   try {
-    // УВАГА: getDocs(collection(db, "posts")) завантажує ВСІ пости.
-    // При великій кількості постів це дорого. Рекомендується зберігати
-    // агреговані лічильники хештегів в окремому документі Firestore.
-    const postsSnap = await getDocs(query(collection(db, "posts"), limit(500)));
+    const postsSnap = await getDocs(collection(db, "posts"));
     const tagCount = new Map();
-    postsSnap.forEach(docSnap => {
-      const tags = docSnap.data().hashtags || [];
+    postsSnap.forEach(doc => {
+      const tags = doc.data().hashtags || [];
       tags.forEach(tag => {
         tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
       });
     });
 
-    const sortedTags = Array.from(tagCount.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, maxTags);
+    const sortedTags = Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 20);
 
     list.innerHTML = '';
     if (sortedTags.length === 0) {
@@ -975,13 +551,13 @@ async function fetchAndRenderHashtags({ listId, maxTags, itemClass, onClickTag }
 
     sortedTags.forEach(([tag, count]) => {
       const div = document.createElement('div');
-      div.className = itemClass;
+      div.className = 'hashtag-item';
       div.tabIndex = 0;
       div.innerHTML = `
-        <span class="hashtag-name">#${escapeHtml(tag)}</span>
+        <span class="hashtag-name">${tag}</span>
         <span class="hashtag-count">${count} постів</span>
       `;
-      div.onclick = () => onClickTag(tag);
+      div.onclick = () => searchHashtag(tag);
       list.appendChild(div);
     });
   } catch (e) {
@@ -990,63 +566,61 @@ async function fetchAndRenderHashtags({ listId, maxTags, itemClass, onClickTag }
   }
 }
 
-export async function loadHashtags(listId = 'hashtagList') {
-  await fetchAndRenderHashtags({
-    listId,
-    maxTags: 20,
-    itemClass: 'hashtag-item',
-    onClickTag: searchHashtag
-  });
-}
-
-export async function loadFilterHashtags(listId = 'filterList') {
-  await fetchAndRenderHashtags({
-    listId,
-    maxTags: 30,
-    itemClass: 'filter-item',
-    onClickTag: applyFilter
-  });
-}
-
-export function searchHashtag(tag) {
+function searchHashtag(tag) {
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.value = '#' + tag;
-    const searchBtn = document.querySelector('[data-section="search"]');
-    if (searchBtn) searchBtn.click();
+    document.querySelector('[data-section="search"]').click();
   }
 }
 
-// ================= Фільтри =================
+export async function loadFilterHashtags(listId = 'filterList') {
+  const list = document.getElementById(listId);
+  if (!list) return;
+  list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
+
+  try {
+    const postsSnap = await getDocs(collection(db, "posts"));
+    const tagCount = new Map();
+    postsSnap.forEach(doc => {
+      const tags = doc.data().hashtags || [];
+      tags.forEach(tag => {
+        tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
+      });
+    });
+
+    const sortedTags = Array.from(tagCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 30);
+
+    list.innerHTML = '';
+    if (sortedTags.length === 0) {
+      list.innerHTML = '<p style="text-align:center; padding:20px;">Немає хештегів</p>';
+      return;
+    }
+
+    sortedTags.forEach(([tag, count]) => {
+      const div = document.createElement('div');
+      div.className = 'filter-item';
+      div.tabIndex = 0;
+      div.innerHTML = `
+        <span class="tag">#${tag}</span>
+        <span class="count">${count} постів</span>
+      `;
+      div.onclick = () => applyFilter(tag);
+      list.appendChild(div);
+    });
+  } catch (e) {
+    console.error('Error loading filter hashtags:', e);
+    list.innerHTML = '<p style="text-align:center; padding:20px;">Помилка завантаження</p>';
+  }
+}
+
 export function applyFilter(tag) {
   setFilterHashtag(tag);
-  const filterModal = document.getElementById('filterModal');
-  if (filterModal) filterModal.classList.remove('active');
+  document.getElementById('filterModal').classList.remove('active');
 
-  if (state.currentFeedType === 'popular') {
-    setCurrentFeedType('new');
-    const feedNewBtn = document.getElementById('feedNewBtn');
-    const feedPopularBtn = document.getElementById('feedPopularBtn');
-    if (feedNewBtn) feedNewBtn.classList.add('active');
-    if (feedPopularBtn) feedPopularBtn.classList.remove('active');
-  }
-
-  // ВИПРАВЛЕННЯ: уникаємо змішування innerHTML і appendChild.
-  // Будуємо весь вміст через DOM API для надійності.
   const activeDiv = document.getElementById('activeFilter');
-  if (activeDiv) {
-    activeDiv.innerHTML = '';
-
-    const tagSpan = document.createElement('span');
-    tagSpan.textContent = `#${tag} `;
-    activeDiv.appendChild(tagSpan);
-
-    const clearBtn = document.createElement('button');
-    clearBtn.id = 'clearFilterChip';
-    clearBtn.textContent = '✕';
-    clearBtn.onclick = clearFilter;
-    activeDiv.appendChild(clearBtn);
-  }
+  activeDiv.innerHTML = `#${tag} <button id="clearFilterChip">✕</button>`;
+  document.getElementById('clearFilterChip').onclick = clearFilter;
 
   resetPaginationState();
   const feed = document.getElementById('feed');
@@ -1058,8 +632,7 @@ export function applyFilter(tag) {
 
 export function clearFilter() {
   setFilterHashtag(null);
-  const activeDiv = document.getElementById('activeFilter');
-  if (activeDiv) activeDiv.innerHTML = '';
+  document.getElementById('activeFilter').innerHTML = '';
   resetPaginationState();
   const feed = document.getElementById('feed');
   if (feed) {
