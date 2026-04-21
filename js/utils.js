@@ -144,3 +144,9 @@ export function updateUnreadBadge(unreadCount) {
     badge.style.display = 'none';
   }
 }
+export function stopHeartbeat() {
+  if (state.lastOnlineInterval) {
+    clearInterval(state.lastOnlineInterval);
+    state.lastOnlineInterval = null;
+  }
+}
