@@ -203,8 +203,6 @@ function renderProfile(data, uid, isOwn) {
       };
     }
 
-    // ВИПРАВЛЕНО: setDoc тепер імпортовано; після відкриття чату
-    // переходимо до секції chats щоб вікно було видимим.
     const profileMessageBtn = document.getElementById('profileMessageBtn');
     if (profileMessageBtn) {
       profileMessageBtn.onclick = async () => {
@@ -299,25 +297,38 @@ function renderProfile(data, uid, isOwn) {
       <div class="profile-tab active" data-tab="posts" tabindex="0">Пости</div>
       <div class="profile-tab" data-tab="likes" tabindex="0">Лайки</div>
       <div class="profile-tab" data-tab="media" tabindex="0">Медіа</div>
-      <div class="profile-tab" data-tab="saved" tabindex="0">Збережене</div>
+      ${isOwn ? '<div class="profile-tab" data-tab="saved" tabindex="0">Збережене</div>' : ''}
     `;
     document.querySelectorAll('.profile-tab').forEach(tab => {
       tab.onclick = () => {
         document.querySelectorAll('.profile-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        loadProfileFeed(uid, tab.dataset.tab);
+        // ВИПРАВЛЕНО: передаємо isOwn для керування видимістю newPostBox
+        loadProfileFeed(uid, tab.dataset.tab, isOwn);
       };
     });
   }
-  loadProfileFeed(uid, 'posts');
+  // ВИПРАВЛЕНО: передаємо isOwn для першого завантаження
+  loadProfileFeed(uid, 'posts', isOwn);
 }
 
-async function loadProfileFeed(uid, tab) {
+// ВИПРАВЛЕНО: додано параметр isOwn
+async function loadProfileFeed(uid, tab, isOwn) {
   if (!state.currentUser) return;
   const feed = document.getElementById('profileFeed');
   if (!feed) return;
   feed.innerHTML = '';
   let posts = [];
+
+  // ВИПРАВЛЕНО: керуємо видимістю newPostBox залежно від вкладки та власника профілю
+  const newPostBox = document.getElementById('newPostBox');
+  if (newPostBox) {
+    if (isOwn && tab === 'posts') {
+      newPostBox.style.display = 'block';
+    } else {
+      newPostBox.style.display = 'none';
+    }
+  }
 
   const userSnap = await getDoc(doc(db, 'users', uid));
   const userData = userSnap.data();
