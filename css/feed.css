@@ -173,6 +173,8 @@
   align-items: flex-start;
   gap: 8px;
   flex-shrink: 0;
+  position: relative;          /* ← Додано для позиціонування випадаючого меню */
+  margin-left: auto;           /* ← Виштовхує меню в крайній правий кут */
 }
 
 /* Сховати кнопку підписки на постах */
@@ -180,7 +182,7 @@
   display: none;
 }
 
-/* Меню поста */
+/* Меню поста (кнопка "…") */
 .post-menu-btn {
   background: none;
   border: none;
@@ -203,6 +205,42 @@
   transform: scale(1.15);
   outline: none;
 }
+
+/* ----- НОВІ СТИЛІ ДЛЯ ВИПАДАЮЧОГО МЕНЮ ----- */
+.post-options-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  min-width: 150px;
+  display: none;               /* Сховано за замовчуванням */
+}
+
+.post-options-menu button {
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.post-options-menu button:hover {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.delete-menu-item:hover {
+  color: var(--like) !important;  /* Червоний колір для пункту видалення */
+}
+/* -------------------------------------------- */
 
 /* Контент поста */
 .post-content {
@@ -324,7 +362,6 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   width: 100%;
-  /* ВАЖЛИВО: не додавати transition або transform */
 }
 
 .gallery-inner::-webkit-scrollbar {
@@ -456,7 +493,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow: hidden; /* запобігає виходу збільшених елементів за межі */
+  overflow: hidden;
 }
 .hashtag-item {
   display: flex;
