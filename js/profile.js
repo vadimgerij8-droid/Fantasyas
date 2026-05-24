@@ -297,7 +297,7 @@ function renderProfile(data, uid, isOwn) {
       <div class="profile-tab active" data-tab="posts" tabindex="0">Пости</div>
       <div class="profile-tab" data-tab="likes" tabindex="0">Лайки</div>
       <div class="profile-tab" data-tab="media" tabindex="0">Медіа</div>
-      ${isOwn ? '<div class="profile-tab" data-tab="saved" tabindex="0">Збережене</div>' : ''}
+      <div class="profile-tab" data-tab="saved" tabindex="0">Збережене</div>
     `;
     document.querySelectorAll('.profile-tab').forEach(tab => {
       tab.onclick = () => {
