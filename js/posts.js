@@ -246,9 +246,17 @@ export function renderPosts(docs, containerId = 'feed') {
     postEl.dataset.postId = post.id;
     postEl.tabIndex = 0;
 
+    // 1. Кнопка меню (тільки для автора)
     let actionsHtml = '';
     if (isAuthor) {
-      actionsHtml = `<div class="post-actions"><button class="edit-post-btn" title="Редагувати пост" tabindex="0">&#8943;</button></div>`;
+      actionsHtml = `
+        <div class="post-header-actions">
+          <button class="post-menu-btn" title="Опції" tabindex="0">&#8943;</button>
+          <div class="post-options-menu" style="display: none;">
+            <button class="edit-menu-item">Редагувати</button>
+            <button class="delete-menu-item">Видалити</button>
+          </div>
+        </div>`;
     }
 
     let contentHtml = post.text || '';
@@ -259,21 +267,52 @@ export function renderPosts(docs, containerId = 'feed') {
       ? `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>`
       : '';
 
+    // 2. actionsHtml тепер усередині post-header (справа)
     postEl.innerHTML = `
-      ${actionsHtml}
       <div class="post-header">
         <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" data-uid="${post.author}" tabindex="0"></div>
         <div class="post-author-info">
-          <div>
+          <div class="post-author-row">
             <span class="post-author" data-uid="${post.author}" tabindex="0">${post.authorName || 'Невідомо'}</span>
-            <span class="post-meta">${post.authorUserId || ''}</span>
+            <span class="post-username">${post.authorUserId || ''}</span>
             ${followButtonHtml}
           </div>
           <div class="post-time">${postTime}</div>
         </div>
+        ${actionsHtml}
       </div>
       <div class="post-content">${contentHtml}</div>
     `;
+
+    // 3. Логіка меню (після вставки HTML)
+    if (isAuthor) {
+      const menuBtn = postEl.querySelector('.post-menu-btn');
+      const optionsMenu = postEl.querySelector('.post-options-menu');
+
+      menuBtn.onclick = (e) => {
+        e.stopPropagation();
+        const isVisible = optionsMenu.style.display === 'block';
+        // Закриваємо всі інші відкриті меню
+        document.querySelectorAll('.post-options-menu').forEach(m => m.style.display = 'none');
+        optionsMenu.style.display = isVisible ? 'none' : 'block';
+      };
+
+      postEl.querySelector('.delete-menu-item').onclick = async () => {
+        if (confirm('Ви впевнені, що хочете видалити цей пост?')) {
+          // Тут викликайте вашу функцію видалення, наприклад:
+          // await deletePost(post.id);
+          postEl.remove();
+        }
+      };
+    }
+
+    // Закриття меню при кліку поза ним (глобальний обробник, додається один раз)
+    if (isAuthor && !document._postMenuCloseHandlerAdded) {
+      document._postMenuCloseHandlerAdded = true;
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.post-options-menu').forEach(m => m.style.display = 'none');
+      });
+    }
 
     if (post.media && post.media.length > 0) {
       const gallery = createGallery(post.media);
