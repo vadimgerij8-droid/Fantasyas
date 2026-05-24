@@ -1,9 +1,9 @@
 import { db } from './config.js';
-import { 
-  doc, getDoc, updateDoc, collection, query, where, getDocs, arrayUnion, arrayRemove, 
-  serverTimestamp, writeBatch, addDoc 
+import {
+  doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, arrayUnion, arrayRemove,
+  serverTimestamp, writeBatch, addDoc
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { 
+import {
   state, setCurrentUserData
 } from './state.js';
 import { showToast, uploadToCloudinary, vibrate, debounce } from './utils.js';
@@ -28,8 +28,8 @@ export const toggleFollow = debounce(async (targetUid, buttonElement) => {
   }
 
   try {
-    const myRef = doc(db, "users", state.currentUser.uid);
-    const targetRef = doc(db, "users", targetUid);
+    const myRef = doc(db, 'users', state.currentUser.uid);
+    const targetRef = doc(db, 'users', targetUid);
     const batch = writeBatch(db);
 
     if (wasFollowing) {
@@ -88,16 +88,26 @@ export async function viewProfile(uid) {
   }
 }
 
-async function loadMyProfile() {
+export async function loadMyProfile() {
   if (!state.currentUser) return;
-  const snap = await getDoc(doc(db, "users", state.currentUser.uid));
+  const snap = await getDoc(doc(db, 'users', state.currentUser.uid));
   if (snap.exists()) renderProfile(snap.data(), state.currentUser.uid, true);
 }
 
 async function loadUserProfile(uid) {
   if (!state.currentUser) return;
-  const snap = await getDoc(doc(db, "users", uid));
+  const snap = await getDoc(doc(db, 'users', uid));
   if (snap.exists()) renderProfile(snap.data(), uid, uid === state.currentUser.uid);
+}
+
+function navigateToChats() {
+  document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+  const chatsNav = document.querySelector('[data-section="chats"]');
+  if (chatsNav) chatsNav.classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const chatsSection = document.getElementById('chats');
+  if (chatsSection) chatsSection.classList.add('active');
+  document.getElementById('pageTitle').textContent = 'Повідомлення';
 }
 
 function renderProfile(data, uid, isOwn) {
@@ -155,7 +165,7 @@ function renderProfile(data, uid, isOwn) {
     </div>
     ${!isOwn && state.currentUser ? `
       <div class="profile-menu">
-        <button class="profile-menu-btn" id="profileMenuBtn" tabindex="0">⋯</button>
+        <button class="profile-menu-btn" id="profileMenuBtn" tabindex="0">&#8943;</button>
         <div class="profile-menu-dropdown" id="profileMenuDropdown">
           <div class="profile-menu-item" id="reportUserBtn">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.5 6.5L21 9l-5 4 2 7-6-4-6 4 2-7-5-4 6.5-.5L12 2z"/></svg>
@@ -192,13 +202,19 @@ function renderProfile(data, uid, isOwn) {
         await toggleFollow(uid, profileFollowBtn);
       };
     }
+
+    // ВИПРАВЛЕНО: setDoc тепер імпортовано; після відкриття чату
+    // переходимо до секції chats щоб вікно було видимим.
     const profileMessageBtn = document.getElementById('profileMessageBtn');
     if (profileMessageBtn) {
-      profileMessageBtn.onclick = () => {
-        const chatId = getChatId(state.currentUser.uid, uid);
-        getDoc(doc(db, "chats", chatId)).then(async (docSnap) => {
-          if (!docSnap.exists()) {
-            await setDoc(doc(db, "chats", chatId), {
+      profileMessageBtn.onclick = async () => {
+        try {
+          const chatId = getChatId(state.currentUser.uid, uid);
+          const chatRef = doc(db, 'chats', chatId);
+          const chatSnap = await getDoc(chatRef);
+
+          if (!chatSnap.exists()) {
+            await setDoc(chatRef, {
               participants: [state.currentUser.uid, uid],
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
@@ -206,8 +222,13 @@ function renderProfile(data, uid, isOwn) {
               unread: { [state.currentUser.uid]: 0, [uid]: 0 }
             });
           }
+
+          navigateToChats();
           openChat(chatId, uid, data.nickname, data.userId, data.avatar);
-        });
+        } catch (error) {
+          console.error('Помилка відкриття чату:', error);
+          showToast('Не вдалося відкрити чат');
+        }
       };
     }
 
@@ -229,9 +250,10 @@ function renderProfile(data, uid, isOwn) {
         const reason = prompt('Опишіть причину скарги (необов\'язково)');
         await reportUser(uid, reason);
       };
+
       document.getElementById('muteUserBtn').onclick = async () => {
         dropdown.classList.remove('show');
-        const userRef = doc(db, "users", state.currentUser.uid);
+        const userRef = doc(db, 'users', state.currentUser.uid);
         const snap = await getDoc(userRef);
         const muted = snap.data().mutedUsers || [];
         if (muted.includes(uid)) {
@@ -240,9 +262,10 @@ function renderProfile(data, uid, isOwn) {
           await muteUser(uid);
         }
       };
+
       document.getElementById('blockUserBtn').onclick = async () => {
         dropdown.classList.remove('show');
-        const userRef = doc(db, "users", state.currentUser.uid);
+        const userRef = doc(db, 'users', state.currentUser.uid);
         const snap = await getDoc(userRef);
         const blocked = snap.data().blockedUsers || [];
         if (blocked.includes(uid)) {
@@ -295,25 +318,26 @@ async function loadProfileFeed(uid, tab) {
   if (!feed) return;
   feed.innerHTML = '';
   let posts = [];
-  const userSnap = await getDoc(doc(db, "users", uid));
+
+  const userSnap = await getDoc(doc(db, 'users', uid));
   const userData = userSnap.data();
 
   if (tab === 'posts') {
     const postIds = userData.posts || [];
     for (const id of postIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
+      const postSnap = await getDoc(doc(db, 'posts', id));
       if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
     }
   } else if (tab === 'likes') {
     const likedIds = userData.likedPosts || [];
     for (const id of likedIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
+      const postSnap = await getDoc(doc(db, 'posts', id));
       if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
     }
   } else if (tab === 'media') {
     const postIds = userData.posts || [];
     for (const id of postIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
+      const postSnap = await getDoc(doc(db, 'posts', id));
       if (postSnap.exists()) {
         const post = postSnap.data();
         if ((post.media && post.media.length > 0) || post.mediaUrl) {
@@ -324,7 +348,7 @@ async function loadProfileFeed(uid, tab) {
   } else if (tab === 'saved') {
     const savedIds = userData.savedPosts || [];
     for (const id of savedIds.slice(0, 20)) {
-      const postSnap = await getDoc(doc(db, "posts", id));
+      const postSnap = await getDoc(doc(db, 'posts', id));
       if (postSnap.exists()) posts.push({ id, ...postSnap.data() });
     }
   }
@@ -341,12 +365,12 @@ async function loadProfileFeed(uid, tab) {
 export async function saveProfileEdit(nickname, bio, note, avatarFile) {
   if (!state.currentUser) return;
   if (!nickname) {
-    showToast('Псевдонім обов’язковий');
+    showToast('Псевдонім обов\u2019язковий');
     return false;
   }
 
   const newUserId = `@${nickname.toLowerCase()}`;
-  const q = query(collection(db, "users"), where("userId", "==", newUserId));
+  const q = query(collection(db, 'users'), where('userId', '==', newUserId));
   const snap = await getDocs(q);
   if (!snap.empty && snap.docs[0].id !== state.currentUser.uid) {
     showToast('Цей ID вже зайнятий');
@@ -359,16 +383,16 @@ export async function saveProfileEdit(nickname, bio, note, avatarFile) {
       avatarUrl = await uploadToCloudinary(avatarFile);
     }
 
-    const updateData = { 
-      nickname, 
-      userId: newUserId, 
-      nickname_lower: nickname.toLowerCase().trim(), 
+    const updateData = {
+      nickname,
+      userId: newUserId,
+      nickname_lower: nickname.toLowerCase().trim(),
       bio,
       note
     };
     if (avatarUrl) updateData.avatar = avatarUrl;
 
-    await updateDoc(doc(db, "users", state.currentUser.uid), updateData);
+    await updateDoc(doc(db, 'users', state.currentUser.uid), updateData);
     await loadMyProfile();
     document.getElementById('editProfileModal').classList.remove('active');
     showToast('Профіль оновлено');
@@ -386,11 +410,11 @@ export async function openFollowersList(uid) {
   list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
   modal.classList.add('active');
 
-  const userSnap = await getDoc(doc(db, "users", uid));
+  const userSnap = await getDoc(doc(db, 'users', uid));
   const followersIds = userSnap.data().followers || [];
   const followers = [];
   for (const id of followersIds) {
-    const snap = await getDoc(doc(db, "users", id));
+    const snap = await getDoc(doc(db, 'users', id));
     if (snap.exists()) followers.push({ id, ...snap.data() });
   }
 
@@ -426,11 +450,11 @@ export async function openFollowingList(uid) {
   list.innerHTML = '<div class="skeleton" style="height:60px;"></div>';
   modal.classList.add('active');
 
-  const userSnap = await getDoc(doc(db, "users", uid));
+  const userSnap = await getDoc(doc(db, 'users', uid));
   const followingIds = userSnap.data().following || [];
   const following = [];
   for (const id of followingIds) {
-    const snap = await getDoc(doc(db, "users", id));
+    const snap = await getDoc(doc(db, 'users', id));
     if (snap.exists()) following.push({ id, ...snap.data() });
   }
 
@@ -462,7 +486,7 @@ export async function openFollowingList(uid) {
 export async function reportUser(targetUid, reason = '') {
   if (!state.currentUser) return;
   try {
-    await addDoc(collection(db, "reports"), {
+    await addDoc(collection(db, 'reports'), {
       reportedUserId: targetUid,
       reporterId: state.currentUser.uid,
       reason: reason || 'Без причини',
@@ -476,11 +500,9 @@ export async function reportUser(targetUid, reason = '') {
 
 export async function muteUser(targetUid) {
   if (!state.currentUser) return;
-  const userRef = doc(db, "users", state.currentUser.uid);
+  const userRef = doc(db, 'users', state.currentUser.uid);
   try {
-    await updateDoc(userRef, {
-      mutedUsers: arrayUnion(targetUid)
-    });
+    await updateDoc(userRef, { mutedUsers: arrayUnion(targetUid) });
     showToast('Користувача замучено');
   } catch (e) {
     showToast('Помилка: ' + e.message);
@@ -489,11 +511,9 @@ export async function muteUser(targetUid) {
 
 export async function unmuteUser(targetUid) {
   if (!state.currentUser) return;
-  const userRef = doc(db, "users", state.currentUser.uid);
+  const userRef = doc(db, 'users', state.currentUser.uid);
   try {
-    await updateDoc(userRef, {
-      mutedUsers: arrayRemove(targetUid)
-    });
+    await updateDoc(userRef, { mutedUsers: arrayRemove(targetUid) });
     showToast('Користувача розмучено');
   } catch (e) {
     showToast('Помилка: ' + e.message);
@@ -502,11 +522,9 @@ export async function unmuteUser(targetUid) {
 
 export async function blockUser(targetUid) {
   if (!state.currentUser) return;
-  const userRef = doc(db, "users", state.currentUser.uid);
+  const userRef = doc(db, 'users', state.currentUser.uid);
   try {
-    await updateDoc(userRef, {
-      blockedUsers: arrayUnion(targetUid)
-    });
+    await updateDoc(userRef, { blockedUsers: arrayUnion(targetUid) });
     showToast('Користувача заблоковано');
   } catch (e) {
     showToast('Помилка: ' + e.message);
@@ -515,11 +533,9 @@ export async function blockUser(targetUid) {
 
 export async function unblockUser(targetUid) {
   if (!state.currentUser) return;
-  const userRef = doc(db, "users", state.currentUser.uid);
+  const userRef = doc(db, 'users', state.currentUser.uid);
   try {
-    await updateDoc(userRef, {
-      blockedUsers: arrayRemove(targetUid)
-    });
+    await updateDoc(userRef, { blockedUsers: arrayRemove(targetUid) });
     showToast('Користувача розблоковано');
   } catch (e) {
     showToast('Помилка: ' + e.message);
