@@ -68,7 +68,30 @@ function updatePrivacyUI() {
 }
 
 export function setupSettingsListeners() {
-  // Чекбокси / тогли
+  // ===== Навігація по вкладках =====
+  const navItems = document.querySelectorAll('.settings-nav-item');
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const tabId = item.dataset.tab;
+
+      // 1. Знімаємо активний стан з усіх кнопок меню
+      navItems.forEach(nav => nav.classList.remove('active'));
+      // 2. Додаємо активний стан натиснутій кнопці
+      item.classList.add('active');
+
+      // 3. Приховуємо весь контент вкладок
+      document.querySelectorAll('.settings-tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      // 4. Показуємо потрібну вкладку
+      const targetContent = document.getElementById(`settings-${tabId}`);
+      if (targetContent) {
+        targetContent.classList.add('active');
+      }
+    });
+  });
+
+  // ===== Чекбокси / тогли =====
   Object.entries(TOGGLE_MAP).forEach(([id, [section, key]]) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -80,7 +103,7 @@ export function setupSettingsListeners() {
     });
   });
 
-  // Мова
+  // ===== Мова =====
   const langSelect = document.getElementById('settingLanguage');
   if (langSelect) {
     langSelect.addEventListener('change', (e) => {
@@ -89,7 +112,7 @@ export function setupSettingsListeners() {
     });
   }
 
-  // Радіо-кнопки приватності
+  // ===== Радіо-кнопки приватності =====
   Object.entries(RADIO_MAP).forEach(([name, [section, key]]) => {
     document.querySelectorAll(`input[name="${name}"]`).forEach(radio => {
       radio.addEventListener('change', (e) => {
@@ -109,7 +132,7 @@ function applySettings() {
   }
   localStorage.setItem('theme', state.userSettings.preferences.darkMode ? 'dark' : 'light');
 
-  // Зменшення анімацій — ВАЖЛИВО: подвійний дефіс --, не тире –
+  // Зменшення анімацій
   if (state.userSettings.preferences.reduceMotion) {
     document.documentElement.style.setProperty('--transition', '0s');
     document.documentElement.style.setProperty('--transition-slow', '0s');
