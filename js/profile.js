@@ -81,6 +81,10 @@ export async function viewProfile(uid) {
     document.querySelector('.back-btn').classList.remove('visible');
   }
 
+  // Приховуємо newPostBox одразу, loadProfileFeed покаже його якщо потрібно
+  const newPostBox = document.getElementById('newPostBox');
+  if (newPostBox) newPostBox.style.display = 'none';
+
   if (uid === state.currentUser?.uid) {
     await loadMyProfile();
   } else {
