@@ -246,7 +246,6 @@ export function renderPosts(docs, containerId = 'feed') {
     postEl.dataset.postId = post.id;
     postEl.tabIndex = 0;
 
-    // 1. Кнопка меню (тільки для автора)
     let actionsHtml = '';
     if (isAuthor) {
       actionsHtml = `
@@ -267,7 +266,6 @@ export function renderPosts(docs, containerId = 'feed') {
       ? `<button class="follow-btn-post ${isFollowing ? 'following' : ''}" data-uid="${post.author}" tabindex="0">${isFollowing ? 'Відписатися' : 'Підписатися'}</button>`
       : '';
 
-    // 2. actionsHtml тепер усередині post-header (справа)
     postEl.innerHTML = `
       <div class="post-header">
         <div class="avatar" style="background-image:url(${post.authorAvatar || ''})" data-uid="${post.author}" tabindex="0"></div>
@@ -284,7 +282,6 @@ export function renderPosts(docs, containerId = 'feed') {
       <div class="post-content">${contentHtml}</div>
     `;
 
-    // 3. Логіка меню (після вставки HTML)
     if (isAuthor) {
       const menuBtn = postEl.querySelector('.post-menu-btn');
       const optionsMenu = postEl.querySelector('.post-options-menu');
@@ -292,21 +289,29 @@ export function renderPosts(docs, containerId = 'feed') {
       menuBtn.onclick = (e) => {
         e.stopPropagation();
         const isVisible = optionsMenu.style.display === 'block';
-        // Закриваємо всі інші відкриті меню
         document.querySelectorAll('.post-options-menu').forEach(m => m.style.display = 'none');
         optionsMenu.style.display = isVisible ? 'none' : 'block';
       };
 
+      // ВИПРАВЛЕНО: обробник редагування відкриває модальне вікно
+      postEl.querySelector('.edit-menu-item').onclick = () => {
+        const modal = document.getElementById('editPostModal');
+        if (!modal) return;
+        document.getElementById('editPostText').value = post.text;
+        modal.dataset.editingPostId = post.id;
+        modal.classList.add('active');
+        optionsMenu.style.display = 'none';
+      };
+
+      // ВИПРАВЛЕНО: обробник видалення тепер викликає deletePost
       postEl.querySelector('.delete-menu-item').onclick = async () => {
         if (confirm('Ви впевнені, що хочете видалити цей пост?')) {
-          // Тут викликайте вашу функцію видалення, наприклад:
-          // await deletePost(post.id);
-          postEl.remove();
+          const success = await deletePost(post.id);
+          if (success) postEl.remove();
         }
       };
     }
 
-    // Закриття меню при кліку поза ним (глобальний обробник, додається один раз)
     if (isAuthor && !document._postMenuCloseHandlerAdded) {
       document._postMenuCloseHandlerAdded = true;
       document.addEventListener('click', () => {
@@ -555,6 +560,22 @@ function createGallery(media) {
   });
 
   return gallery;
+}
+
+// НОВА ФУНКЦІЯ: видалення поста з Firestore
+export async function deletePost(postId) {
+  try {
+    await deleteDoc(doc(db, 'posts', postId));
+    await updateDoc(doc(db, 'users', state.currentUser.uid), {
+      posts: arrayRemove(postId)
+    });
+    showToast('Пост видалено');
+    return true;
+  } catch (e) {
+    console.error('Помилка видалення:', e);
+    showToast('Помилка при видаленні');
+    return false;
+  }
 }
 
 export async function loadHashtags(listId = 'hashtagList') {
