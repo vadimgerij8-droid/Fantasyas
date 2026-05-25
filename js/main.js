@@ -7,7 +7,7 @@ import {
 } from './state.js';
 import { showToast, updateLastOnline, updateUnreadBadge, setupEmojiPicker, setupFileInput, debounce } from './utils.js';
 import { register, login, googleLogin, appleLogin, resetPassword, logout } from './auth.js';
-import { createPost, loadMorePosts, loadHashtags, loadFilterHashtags, clearFilter } from './posts.js';
+import { createPost, loadMorePosts, loadHashtags, loadFilterHashtags, clearFilter, extractHashtags } from './posts.js';
 import { viewProfile, saveProfileEdit, toggleFollow, openFollowersList, openFollowingList, blockUser } from './profile.js';
 import { loadChatList, openChat, closeChat, sendMessage, handleTyping, handleMessageContextAction, searchUsersForChat } from './chat.js';
 import { loadSettings, setupSettingsListeners } from './settings.js';
@@ -127,6 +127,41 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   document.getElementById('closeModal').onclick = () => {
     document.getElementById('editProfileModal').classList.remove('active');
+  };
+
+  // ДОДАНО: обробник кнопки "Зберегти" у модальному вікні редагування поста
+  document.getElementById('savePostEdit').onclick = async () => {
+    const modal = document.getElementById('editPostModal');
+    const postId = modal.dataset.editingPostId;
+    const newText = document.getElementById('editPostText').value.trim();
+
+    if (!postId || !newText) {
+      showToast('Текст поста не може бути порожнім');
+      return;
+    }
+
+    try {
+      const hashtags = extractHashtags(newText);
+      const postRef = doc(db, 'posts', postId);
+      await updateDoc(postRef, { text: newText, hashtags });
+      modal.classList.remove('active');
+      showToast('Пост оновлено');
+
+      // Оновити текст поста на сторінці без перезавантаження
+      const postEl = document.querySelector(`[data-post-id="${postId}"] .post-content`);
+      if (postEl) {
+        const hashtagRegex = /#(\w+)/g;
+        postEl.innerHTML = newText.replace(hashtagRegex, '<span class="hashtag" data-tag="$1">#$1</span>');
+      }
+    } catch (e) {
+      console.error('Помилка збереження поста:', e);
+      showToast('Помилка збереження: ' + e.message);
+    }
+  };
+
+  // ДОДАНО: закриття модального вікна редагування поста
+  document.getElementById('closeEditPostModal').onclick = () => {
+    document.getElementById('editPostModal').classList.remove('active');
   };
 
   document.getElementById('filterBtn').onclick = async () => {
