@@ -416,12 +416,15 @@ document.addEventListener('DOMContentLoaded', () => {
 onAuthStateChanged(auth, (user) => {
   cleanupAllListeners();
 
+  const feedHeader = document.querySelector('.feed-header');
+
   if (user) {
     setCurrentUser(user);
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'none';
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'block';
+    if (feedHeader) feedHeader.style.display = 'flex'; // Показати кнопки стрічки
 
     const interval = setInterval(updateLastOnline, 30000);
     setLastOnlineInterval(interval);
@@ -482,6 +485,7 @@ onAuthStateChanged(auth, (user) => {
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'none';
     updateUnreadBadge(0);
+    if (feedHeader) feedHeader.style.display = 'none'; // Приховати кнопки стрічки
   }
 });
 
