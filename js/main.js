@@ -164,26 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('editPostModal').classList.remove('active');
   };
 
-  document.getElementById('filterBtn').onclick = async () => {
-    await loadFilterHashtags();
-    document.getElementById('filterModal').classList.add('active');
-  };
-  document.getElementById('closeFilterModal').onclick = () => {
-    document.getElementById('filterModal').classList.remove('active');
-  };
-  document.getElementById('clearFilterBtn').onclick = clearFilter;
-
-  document.getElementById('feedNewBtn').onclick = () => {
-    if (state.currentFeedType === 'new') return;
-    setCurrentFeedType('new');
-    resetPagination();
-  };
-  document.getElementById('feedPopularBtn').onclick = () => {
-    if (state.currentFeedType === 'popular') return;
-    setCurrentFeedType('popular');
-    resetPagination();
-  };
-
   document.getElementById('searchInput').addEventListener('input', debounce(loadSearchUsers, 300));
 
   document.getElementById('sendMessage').addEventListener('click', () => {
@@ -416,15 +396,12 @@ document.addEventListener('DOMContentLoaded', () => {
 onAuthStateChanged(auth, (user) => {
   cleanupAllListeners();
 
-  const feedHeader = document.querySelector('.feed-header');
-
   if (user) {
     setCurrentUser(user);
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'none';
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'block';
-    if (feedHeader) feedHeader.style.display = 'flex'; // Показати кнопки стрічки
 
     const interval = setInterval(updateLastOnline, 30000);
     setLastOnlineInterval(interval);
@@ -485,7 +462,6 @@ onAuthStateChanged(auth, (user) => {
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'none';
     updateUnreadBadge(0);
-    if (feedHeader) feedHeader.style.display = 'none'; // Приховати кнопки стрічки
   }
 });
 
