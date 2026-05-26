@@ -210,6 +210,8 @@
 .chat-header-text {
   line-height: 1.3;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 .chat-header-name {
   font-weight: 700;
@@ -219,7 +221,9 @@
   text-overflow: ellipsis;
 }
 .chat-status {
-  font-size: 0.85rem;
+  font-size: 12px;
+  margin-top: 2px;
+  transition: color 0.3s ease;
   color: var(--text-tertiary);
   display: flex;
   align-items: center;
@@ -529,7 +533,6 @@
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15), var(--shadow-glow);
   outline: none;
 }
-/* Покращений блок попереднього перегляду відповіді (біля поля вводу) */
 .reply-preview {
   display: flex;
   align-items: center;
@@ -581,7 +584,6 @@
   transform: scale(1.2);
   color: var(--danger);
 }
-/* Покращений блок відповіді всередині повідомлення */
 .message-reply-preview {
   background: rgba(var(--surface-rgb), 0.3);
   backdrop-filter: blur(4px);
@@ -674,12 +676,11 @@
   transform: scale(1.15);
 }
 .message-actions-menu .menu-item.danger {
-  color: #e0e0e0; /* світло-сірий замість червоного */
+  color: #e0e0e0;
 }
 .message-actions-menu .menu-item.danger:hover {
   background: rgba(200, 200, 200, 0.15);
 }
-/* Спеціальний стиль для пункту "Відповісти" */
 .message-actions-menu .menu-item.reply {
   color: var(--accent);
   font-weight: 600;
@@ -688,7 +689,6 @@
   stroke: var(--accent);
 }
 
-/* Покращене контекстне меню (загальне) */
 .context-menu {
   position: fixed;
   background: rgba(var(--card-rgb), 0.85);
@@ -724,7 +724,6 @@
   transform: translateX(6px);
 }
 
-/* Реакції – пікер */
 .reaction-picker {
   position: fixed;
   background: rgba(var(--card-rgb), 0.85);
@@ -769,7 +768,6 @@
 .reaction-btn.more:hover {
   transform: scale(1.2) translateY(-4px);
 }
-/* Підсвічування реакції користувача */
 .reaction-item.user-reacted {
   background: rgba(var(--accent-rgb), 0.15);
   border-color: var(--accent);
@@ -778,71 +776,33 @@
 
 /* ========== АНІМАЦІЇ ========== */
 @keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 @keyframes messageSlideIn {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 @keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @keyframes typingDot {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  30% {
-    transform: translateY(-8px);
-    opacity: 1;
-  }
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-8px); opacity: 1; }
 }
 @keyframes pulse-soft {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.9;
-  }
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
 }
 
 /* ========== МОБІЛЬНА АДАПТАЦІЯ ========== */
 @media (max-width: 768px) {
-  .chats-container {
-    flex-direction: column;
-  }
+  .chats-container { flex-direction: column; }
   .chat-list-sidebar {
     width: 100%;
     height: 100%;
@@ -863,34 +823,17 @@
     display: flex;
     animation: slideIn 0.3s ease-out;
   }
-  .chat-back-btn {
-    display: flex !important;
-  }
-  .chat-list-sidebar.hide {
-    display: none;
-  }
-  .message-wrapper {
-    max-width: 85%;
-  }
-  .chat-header {
-    padding-top: env(safe-area-inset-top, 12px);
-  }
+  .chat-back-btn { display: flex !important; }
+  .chat-list-sidebar.hide { display: none; }
+  .message-wrapper { max-width: 85%; }
+  .chat-header { padding-top: env(safe-area-inset-top, 12px); }
   .message-actions-menu {
     min-width: 200px;
     border-radius: 18px !important;
   }
-  .reaction-picker {
-    padding: 10px;
-    gap: 4px;
-  }
-  .reaction-btn {
-    width: 48px;
-    height: 48px;
-    font-size: 1.8rem;
-  }
-  .reply-preview {
-    margin: 0 12px 10px;
-  }
+  .reaction-picker { padding: 10px; gap: 4px; }
+  .reaction-btn { width: 48px; height: 48px; font-size: 1.8rem; }
+  .reply-preview { margin: 0 12px 10px; }
 }
 
 /* ========== ЧОРНО-БІЛА ТЕМА (базові змінні) ========== */
@@ -916,7 +859,6 @@
   --btn-primary-text: #ffffff;
 }
 
-/* Приклад темної теми (перевизначиться, якщо додати клас .dark-theme або медіа-запит) */
 .dark-theme {
   --accent: #cccccc;
   --accent-light: #2a2a2a;
@@ -939,7 +881,6 @@
   --btn-primary-text: #000000;
 }
 
-/* Загальний перехід для всіх елементів */
 * {
   transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
