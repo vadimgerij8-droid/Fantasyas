@@ -8,7 +8,7 @@ import {
   setUnsubscribeMessages, setUnsubscribeTyping, setUnsubscribeChatPresence,
   updateUnreadCount
 } from './state.js';
-import { showToast, uploadToCloudinary } from './utils.js';
+import { showToast, uploadToCloudinary, formatLastSeen } from './utils.js';
 import { viewProfile, blockUser } from './profile.js';
 
 export const getChatId = (uid1, uid2) => [uid1, uid2].sort().join('_');
@@ -131,12 +131,21 @@ export async function openChat(chatId, otherUid, otherName, otherUserId, otherAv
 
   subscribeToMessages(chatId);
 
+  // Слухач статусу партнера (замінює старий блок presence)
   if (state.unsubscribeChatPresence) state.unsubscribeChatPresence();
-  const unsubPresence = onSnapshot(doc(db, "users", otherUid), (snap) => {
-    const lastOnline = snap.data()?.lastOnline?.seconds * 1000 || 0;
-    const isOnline = (Date.now() - lastOnline) < 60000;
-    const statusEl = document.getElementById('chatStatus');
-    statusEl.textContent = isOnline ? 'онлайн' : 'був(ла) нещодавно';
+  const partnerRef = doc(db, "users", otherUid);
+  const unsubPresence = onSnapshot(partnerRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      const statusEl = document.getElementById('chatStatus');
+      if (statusEl) {
+        const statusText = formatLastSeen(data.lastOnline);
+        statusEl.textContent = statusText;
+        statusEl.style.color = statusText === "Активний(а) зараз"
+          ? "#4ade80"
+          : "rgba(255,255,255,0.5)";
+      }
+    }
   });
   setUnsubscribeChatPresence(unsubPresence);
 
