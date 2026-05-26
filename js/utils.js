@@ -126,12 +126,35 @@ export async function uploadToCloudinary(file) {
 }
 
 export async function updateLastOnline() {
-  if (!state.currentUser) return;
+  if (!auth.currentUser) return;
   try {
-    await updateDoc(doc(db, "users", state.currentUser.uid), { lastOnline: serverTimestamp() });
+    const userRef = doc(db, "users", auth.currentUser.uid);
+    await updateDoc(userRef, {
+      lastOnline: serverTimestamp()
+    });
   } catch (e) {
-    console.error('Failed to update lastOnline:', e);
+    console.error("Error updating online status:", e);
   }
+}
+
+export function formatLastSeen(timestamp) {
+  if (!timestamp) return "Не в мережі";
+
+  const now = new Date();
+  const lastSeen = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  const diffInSeconds = Math.floor((now - lastSeen) / 1000);
+
+  if (diffInSeconds < 120) return "Активний(а) зараз";
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `В мережі ${diffInMinutes} хв. тому`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `В мережі ${diffInHours} год. тому`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return "Був(ла) в мережі вчора";
+  return `В мережі ${diffInDays} дн. тому`;
 }
 
 export function updateUnreadBadge(unreadCount) {
@@ -144,6 +167,7 @@ export function updateUnreadBadge(unreadCount) {
     badge.style.display = 'none';
   }
 }
+
 export function stopHeartbeat() {
   if (state.lastOnlineInterval) {
     clearInterval(state.lastOnlineInterval);
