@@ -129,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('editProfileModal').classList.remove('active');
   };
 
+  // ДОДАНО: обробник кнопки "Зберегти" у модальному вікні редагування поста
   document.getElementById('savePostEdit').onclick = async () => {
     const modal = document.getElementById('editPostModal');
     const postId = modal.dataset.editingPostId;
@@ -146,6 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modal.classList.remove('active');
       showToast('Пост оновлено');
 
+      // Оновити текст поста на сторінці без перезавантаження
       const postEl = document.querySelector(`[data-post-id="${postId}"] .post-content`);
       if (postEl) {
         const hashtagRegex = /#(\w+)/g;
@@ -157,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // ДОДАНО: закриття модального вікна редагування поста
   document.getElementById('closeEditPostModal').onclick = () => {
     document.getElementById('editPostModal').classList.remove('active');
   };
@@ -413,13 +416,15 @@ document.addEventListener('DOMContentLoaded', () => {
 onAuthStateChanged(auth, (user) => {
   cleanupAllListeners();
 
+  const feedHeader = document.querySelector('.feed-header');
+
   if (user) {
-    document.body.classList.add('logged-in');
     setCurrentUser(user);
     const authBox = document.getElementById('authBox');
     if (authBox) authBox.style.display = 'none';
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'block';
+    if (feedHeader) feedHeader.style.display = 'flex'; // Показати кнопки стрічки
 
     const interval = setInterval(updateLastOnline, 30000);
     setLastOnlineInterval(interval);
@@ -473,7 +478,6 @@ onAuthStateChanged(auth, (user) => {
     resetPagination();
     import('./profile.js').then(module => module.loadMyProfile());
   } else {
-    document.body.classList.remove('logged-in');
     setCurrentUser(null);
     setCurrentUserData(null);
     const authBox = document.getElementById('authBox');
@@ -481,6 +485,7 @@ onAuthStateChanged(auth, (user) => {
     const newPostBox = document.getElementById('newPostBox');
     if (newPostBox) newPostBox.style.display = 'none';
     updateUnreadBadge(0);
+    if (feedHeader) feedHeader.style.display = 'none'; // Приховати кнопки стрічки
   }
 });
 
